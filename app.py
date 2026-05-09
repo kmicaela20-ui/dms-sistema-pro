@@ -1,16 +1,62 @@
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import sqlite3, datetime, urllib.parse, unicodedata
+import os, datetime, urllib.parse, unicodedata
+import psycopg2, psycopg2.extras
+from werkzeug.security import generate_password_hash, check_password_hash
 
 app=Flask(__name__)
-app.secret_key='dms_v8'
-DB='dms_pro_v8.db'
+app.secret_key=os.environ.get('SECRET_KEY','CAMBIAR_SECRET_KEY_DMS')
 PHONE='Sucursal Perico: 3884794349 | Sucursal El Carmen: 3885911211'
 
+class PGCursor:
+    def __init__(self, cur):
+        self.cur=cur
+        self.lastrowid=None
+    def _sql(self, sql):
+        return sql.replace('?', '%s')
+    def execute(self, sql, params=None):
+        q=self._sql(sql)
+        s=q.strip().lower()
+        if s.startswith('insert into clients') and 'returning id' not in s:
+            q += ' RETURNING id'
+        if s.startswith('insert into orders') and 'returning id' not in s:
+            q += ' RETURNING id'
+        self.cur.execute(q, params or ())
+        if s.startswith('insert into clients') or s.startswith('insert into orders'):
+            try:
+                row=self.cur.fetchone(); self.lastrowid=row['id'] if row else None
+            except Exception:
+                self.lastrowid=None
+        return self
+    def executemany(self, sql, seq):
+        self.cur.executemany(self._sql(sql), seq)
+        return self
+    def executescript(self, script):
+        for part in script.split(';'):
+            st=part.strip()
+            if not st: continue
+            st=st.replace('id INTEGER PRIMARY KEY','id SERIAL PRIMARY KEY')
+            st=st.replace('REAL','NUMERIC')
+            st=st.replace('user TEXT','username TEXT')
+            self.cur.execute(st)
+        return self
+    def fetchone(self): return self.cur.fetchone()
+    def fetchall(self): return self.cur.fetchall()
+
+class PGConn:
+    def __init__(self):
+        url=os.environ.get('DATABASE_URL','').strip()
+        if not url:
+            raise RuntimeError('Falta DATABASE_URL. En Render agregá la variable DATABASE_URL de PostgreSQL.')
+        self.conn=psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
+    def cursor(self): return PGCursor(self.conn.cursor())
+    def execute(self, sql, params=None):
+        cur=self.cursor(); return cur.execute(sql, params)
+    def commit(self): return self.conn.commit()
+    def close(self): return self.conn.close()
+
 def db():
-    c=sqlite3.connect(DB)
-    c.row_factory=sqlite3.Row
-    return c
+    return PGConn()
 
 def today(): return datetime.date.today().isoformat()
 def now(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -37,7 +83,7 @@ def next_inventory_code(cur, category, category_prefix=None):
 def init():
     con=db(); cur=con.cursor()
     cur.executescript("""
-    CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT);
+    CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, role TEXT, active TEXT);
     CREATE TABLE IF NOT EXISTS clients(id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT);
     CREATE TABLE IF NOT EXISTS inventory_categories(id INTEGER PRIMARY KEY, name TEXT UNIQUE, code TEXT UNIQUE);
     CREATE TABLE IF NOT EXISTS inventory(id INTEGER PRIMARY KEY, sku TEXT, category TEXT, item TEXT, detail TEXT, unit TEXT, cost_price REAL, retail_price REAL, wholesale_price REAL, stock_qty REAL, min_stock REAL, active TEXT);
@@ -51,7 +97,9 @@ def init():
     CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
     """)
     if cur.execute('SELECT COUNT(*) c FROM users').fetchone()['c']==0:
-        cur.execute("INSERT INTO users(username,password,role) VALUES('admin','admin','Administrador')")
+        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(os.environ.get('ADMIN_USERNAME','admin'),generate_password_hash(os.environ.get('ADMIN_PASSWORD','admin')),'Admin','Sí'))
+        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('caja',generate_password_hash('caja123'),'Caja','Sí'))
+        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('produccion',generate_password_hash('produccion123'),'Producción','Sí'))
     if cur.execute('SELECT COUNT(*) c FROM inventory_categories').fetchone()['c']==0:
         cats=[('Indumentaria','IND'),('Polímero','POL'),('Remeras','REM'),('Vidrios','VID'),('Escolar','ESC')]
         cur.executemany('INSERT INTO inventory_categories(name,code) VALUES(?,?)', cats)
@@ -71,6 +119,19 @@ def login_required(fn):
         return fn(*a,**k)
     wrap.__name__=fn.__name__
     return wrap
+
+def role_required(*roles):
+    def deco(fn):
+        def wrap(*a,**k):
+            if 'user' not in session:
+                return redirect('/login')
+            if session.get('role') not in roles and session.get('role')!='Admin':
+                flash('No tenés permiso para entrar a este módulo.')
+                return redirect('/')
+            return fn(*a,**k)
+        wrap.__name__=fn.__name__
+        return wrap
+    return deco
 
 def prefix(doc): return 'FAC' if doc=='Pedido/Factura' else 'PRE'
 
@@ -92,8 +153,8 @@ def save_client(cur,name,phone,address):
     return cur.lastrowid
 
 def register_cash_payment(cur, oid, code, concept, amount, method, note):
-    cur.execute('INSERT INTO payments(order_id,dt,concept,amount,method,note,user) VALUES(?,?,?,?,?,?,?)',(oid,now(),concept,amount,method,note,session.get('user','admin')))
-    cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,order_id,user,note) VALUES(?,?,?,?,?,?,?,?,?)',(today(),now(),'Ingreso',f'{concept} {code}',amount,method,oid,session.get('user','admin'),note))
+    cur.execute('INSERT INTO payments(order_id,dt,concept,amount,method,note,username) VALUES(?,?,?,?,?,?,?)',(oid,now(),concept,amount,method,note,session.get('user','admin')))
+    cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,order_id,username,note) VALUES(?,?,?,?,?,?,?,?,?)',(today(),now(),'Ingreso',f'{concept} {code}',amount,method,oid,session.get('user','admin'),note))
 
 def common_order_insert(cur, doc, module, subtotal, extra):
     code=next_code(doc,module)
@@ -125,8 +186,10 @@ def day_totals(cur, date):
 @app.route('/login',methods=['GET','POST'])
 def login():
     if request.method=='POST':
-        con=db(); u=con.execute('SELECT * FROM users WHERE username=? AND password=?',(request.form['username'],request.form['password'])).fetchone(); con.close()
-        if u:
+        con=db(); cur=con.cursor()
+        u=cur.execute('SELECT * FROM users WHERE username=? AND active=?',(request.form['username'],'Sí')).fetchone()
+        con.close()
+        if u and check_password_hash(u['password_hash'],request.form['password']):
             session['user']=u['username']; session['role']=u['role']
             return redirect('/')
         flash('Usuario o contraseña incorrectos')
@@ -156,8 +219,38 @@ def get_category_prefix(cur, category_name, manual_code=None):
         return row['code']
     return category_code(category_name)
 
+
+@app.route('/users',methods=['GET','POST'])
+@role_required('Admin')
+def users():
+    con=db(); cur=con.cursor()
+    if request.method=='POST':
+        username=request.form.get('username')
+        password=request.form.get('password')
+        role=request.form.get('role')
+        if username and password:
+            old=cur.execute('SELECT * FROM users WHERE username=?',(username,)).fetchone()
+            if old:
+                cur.execute('UPDATE users SET password_hash=?, role=?, active=? WHERE username=?',(generate_password_hash(password),role,'Sí',username))
+            else:
+                cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(username,generate_password_hash(password),role,'Sí'))
+            con.commit()
+        con.close()
+        return redirect('/users')
+    rows=cur.execute('SELECT id,username,role,active FROM users ORDER BY username').fetchall()
+    con.close()
+    return render_template('users.html',rows=rows)
+
+@app.route('/users/<int:uid>/delete',methods=['POST'])
+@role_required('Admin')
+def user_delete(uid):
+    con=db(); cur=con.cursor()
+    cur.execute("UPDATE users SET active='No' WHERE id=?",(uid,))
+    con.commit(); con.close()
+    return redirect('/users')
+
 @app.route('/inventory',methods=['GET','POST'])
-@login_required
+@role_required('Admin','Caja','Producción')
 def inventory():
     con=db(); cur=con.cursor()
     if request.method=='POST':
@@ -181,7 +274,7 @@ def inventory():
 
 
 @app.route('/inventory/category/add',methods=['POST'])
-@login_required
+@role_required('Admin')
 def inventory_category_add():
     con=db(); cur=con.cursor()
     name=(request.form.get('name') or '').strip()
@@ -196,7 +289,7 @@ def inventory_category_add():
     return redirect('/inventory')
 
 @app.route('/inventory/<int:iid>/delete',methods=['POST'])
-@login_required
+@role_required('Admin')
 def inventory_delete(iid):
     con=db(); cur=con.cursor()
     cur.execute("UPDATE inventory SET active='No' WHERE id=?",(iid,))
@@ -204,7 +297,7 @@ def inventory_delete(iid):
     return redirect('/inventory')
 
 @app.route('/inventory/<int:iid>/edit',methods=['GET','POST'])
-@login_required
+@role_required('Admin','Caja')
 def inventory_edit(iid):
     con=db(); cur=con.cursor()
     item=cur.execute('SELECT * FROM inventory WHERE id=?',(iid,)).fetchone()
@@ -360,11 +453,11 @@ def client_history(cid):
     return render_template('client_history.html',client=client,rows=rows)
 
 @app.route('/cash',methods=['GET','POST'])
-@login_required
+@role_required('Admin','Caja')
 def cash():
     con=db(); cur=con.cursor()
     if request.method=='POST':
-        cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,user,note) VALUES(?,?,?,?,?,?,?,?)',(today(),now(),request.form.get('type'),request.form.get('concept'),money(request.form.get('amount')),request.form.get('method'),session['user'],request.form.get('note')))
+        cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,username,note) VALUES(?,?,?,?,?,?,?,?)',(today(),now(),request.form.get('type'),request.form.get('concept'),money(request.form.get('amount')),request.form.get('method'),session['user'],request.form.get('note')))
         con.commit(); return redirect('/cash')
     q=(request.args.get('q') or '').strip()
     found=[]
@@ -412,17 +505,17 @@ def finance_day(date):
     return render_template('finance_day.html',date=date,moves=moves,orders=orders,session_row=session_row,ef=ef,tr=tr,gef=gef,gtr=gtr)
 
 @app.route('/cash/open',methods=['POST'])
-@login_required
+@role_required('Admin','Caja')
 def cash_open():
     con=db(); cur=con.cursor()
     exists=cur.execute("SELECT * FROM cash_sessions WHERE date=? AND status='Abierta'",(today(),)).fetchone()
     if not exists:
-        cur.execute('INSERT INTO cash_sessions(date,opened_at,opening_cash,user,notes,status) VALUES(?,?,?,?,?,?)',(today(),now(),money(request.form.get('opening_cash')),session['user'],request.form.get('notes'),'Abierta'))
+        cur.execute('INSERT INTO cash_sessions(date,opened_at,opening_cash,username,notes,status) VALUES(?,?,?,?,?,?)',(today(),now(),money(request.form.get('opening_cash')),session['user'],request.form.get('notes'),'Abierta'))
         con.commit()
     con.close(); return redirect('/cash')
 
 @app.route('/cash/close',methods=['POST'])
-@login_required
+@role_required('Admin','Caja')
 def cash_close():
     con=db(); cur=con.cursor()
     ses=cur.execute("SELECT * FROM cash_sessions WHERE date=? AND status='Abierta' ORDER BY id DESC LIMIT 1",(today(),)).fetchone()
@@ -432,7 +525,8 @@ def cash_close():
         cur.execute("UPDATE cash_sessions SET closed_at=?, closing_cash=?, total_efectivo=?, total_transferencia=?, total_gastos=?, final_cash=?, notes=?, status='Cerrada' WHERE id=?",(now(),money(request.form.get('closing_cash')),ef,tr,gef+gtr,final_cash,request.form.get('notes'),ses['id']))
         con.commit()
     con.close(); return redirect('/cash')
+
 init()
 
 if __name__=='__main__':
-    app.run(host='0.0.0.0',port=5000)
+    app.run(host='0.0.0.0',port=int(os.environ.get('PORT',5000)))

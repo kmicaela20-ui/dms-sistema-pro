@@ -1,0 +1,11 @@
+{% extends "base.html" %}{% block content %}
+<h1>Usuarios y permisos</h1>
+<section class="panel"><h2>Crear o cambiar usuario</h2>
+<form method="post" class="formgrid">
+<input name="username" placeholder="Usuario" required>
+<input name="password" placeholder="Contraseña nueva" required>
+<select name="role"><option>Admin</option><option>Caja</option><option>Producción</option></select>
+<button>Guardar usuario</button>
+</form><small>Admin ve todo. Caja carga pedidos y cobros. Producción ve taller e inventario.</small></section>
+<section class="panel"><h2>Usuarios</h2><table><tr><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr>{% for u in rows %}<tr><td>{{u.username}}</td><td>{{u.role}}</td><td>{{u.active}}</td><td><form method="post" action="/users/{{u.id}}/delete" onsubmit="return confirm('¿Desactivar usuario?')"><button class="danger">Desactivar</button></form></td></tr>{% endfor %}</table></section>
+{% endblock %}
