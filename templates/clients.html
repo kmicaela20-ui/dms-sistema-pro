@@ -1,0 +1,3 @@
+{% extends "base.html" %}{% block content %}
+<h1>Clientes</h1><section class="panel"><form method="get" class="searchbar"><input name="q" value="{{q or ''}}" placeholder="Buscar cliente por nombre o teléfono"><button>Buscar</button><a class="btn grey" href="/clients">Limpiar</a></form></section>
+<section class="panel"><table><tr><th>Nombre</th><th>Teléfono</th><th>Dirección</th><th>Historial</th></tr>{% for c in rows %}<tr><td>{{c.name}}</td><td>{{c.phone}}</td><td>{{c.address}}</td><td><a href="/clients/{{c.id}}">Ver historial</a></td></tr>{% endfor %}</table></section>{% endblock %}

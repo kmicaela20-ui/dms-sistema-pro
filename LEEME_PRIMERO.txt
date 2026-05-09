@@ -1,0 +1,45 @@
+SISTEMA DMS SUBLIMACIONES - CORRECCION PEDIDOS v2
+
+Usuario: admin
+Contraseña: admin
+
+Base: Sistema_DMS_PRO_Correccion_Pedidos.zip
+Agregado:
+- Pedidos Generales
+- Pedidos Indumentaria
+- Pedidos Birretes / Estolas
+- Tipo comprobante solo: Pedido/Factura o Presupuesto
+- Clientes se guardan automaticamente solo con nombre, telefono y direccion
+- Indumentaria con tipo de tela, diseño general, sponsors y lista taller
+- Birretes/Estolas con escuela, grado/año y lista taller
+
+Abrir:
+1) Doble clic en INICIAR_SISTEMA_DMS.bat
+2) Chrome: http://127.0.0.1:5000
+
+
+V7 OK:
+- Birretes/Estolas corregido.
+- Talles: birrete 50cm a 64cm; estola 65cm a 95cm.
+- Ficha taller compacta.
+
+
+V8 GESTION:
+- Logo con fondo transparente.
+- Nuevos pedidos solo dentro de Todos los Pedidos.
+- Buscadores en pedidos, inventario, clientes y caja.
+- Acciones por pedido: comprobante, editar, estado por WhatsApp, hoja taller.
+- Inventario con código automático por categoría.
+- Clientes con historial.
+- Caja busca saldos y cobra automáticamente.
+
+
+V9 FINANZAS: logo nuevo, historial mensual y diario imprimible, abrir/cerrar caja, inventario editable simplificado.
+
+
+V10 INVENTARIO CATEGORIAS:
+- Inventario agrupado por categoría.
+- Categorías iniciales: Indumentaria, Polímero, Remeras, Vidrios, Escolar.
+- Permite cargar nueva categoría con código.
+- Cada artículo tiene Editar y Eliminar.
+- El código del artículo se genera automáticamente dentro de cada categoría.

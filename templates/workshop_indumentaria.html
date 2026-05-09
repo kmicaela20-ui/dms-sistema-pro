@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Ficha Taller Indumentaria</title>
+<style>
+*{box-sizing:border-box} body{font-family:Arial,Helvetica,sans-serif;background:#fff;color:#111;margin:0}
+.page{width:210mm;min-height:297mm;padding:5mm;margin:0 auto;background:white}
+.header{display:grid;grid-template-columns:85px 1fr 130px;gap:7px;align-items:center;border-bottom:2px solid #111;padding-bottom:4px}
+.logo{width:78px;max-height:58px;object-fit:contain} h1{font-size:14px;margin:0 0 2px}
+.info,.money{font-size:9.5px;line-height:1.18}.money{text-align:right}
+.section-title{font-size:11px;font-weight:bold;margin:4px 0 2px}.note{font-size:9.2px;border:1px solid #aaa;padding:3px;border-radius:4px;min-height:18px}
+.mockups{display:grid;grid-template-columns:1fr 1fr;gap:6mm;margin:5px 0}.card{border:1.5px solid #333;border-radius:7px;padding:4px;background:#ddd}
+.cardTitle{text-align:center;font-size:12px;font-weight:bold;margin-bottom:3px}.uniform{position:relative;height:260px;background:linear-gradient(#8a8a8a,#747474);border-radius:6px;overflow:hidden}
+.shirt{position:absolute;top:16px;left:50%;transform:translateX(-50%);width:145px;height:140px;background:#fafafa;border-radius:38px 38px 20px 20px;box-shadow:inset 0 0 14px #d0d0d0}
+.shirt:before,.shirt:after{content:"";position:absolute;top:20px;width:45px;height:66px;background:#fafafa;border-radius:15px;box-shadow:inset 0 0 10px #d0d0d0}
+.shirt:before{left:-35px;transform:rotate(16deg)}.shirt:after{right:-35px;transform:rotate(-16deg)}
+.neck{position:absolute;top:0;left:50%;transform:translateX(-50%);width:42px;height:20px;background:#747474;border-radius:0 0 28px 28px;z-index:3}
+.short{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);width:125px;height:72px;background:#fafafa;border-radius:14px 14px 24px 24px;box-shadow:inset 0 0 12px #d0d0d0}
+.short:before{content:"";position:absolute;left:50%;top:22px;transform:translateX(-50%);width:14px;height:53px;background:#747474;clip-path:polygon(50% 0,100% 100%,0 100%)}
+.box{position:absolute;border:1px solid #111;background:rgba(255,255,255,.95);padding:1px 3px;font-size:8px;text-align:center;min-width:34px;max-width:78px;min-height:13px;z-index:10;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc{top:82px;left:50%;transform:translateX(-50%)}.fi{top:60px;left:48px}.fd{top:60px;right:48px}.finf{top:118px;left:50%;transform:translateX(-50%)}
+.es{top:48px;left:50%;transform:translateX(-50%)}.ec{top:86px;left:50%;transform:translateX(-50%)}.einf{top:122px;left:50%;transform:translateX(-50%)}
+.mi{top:76px;left:3px}.md{top:76px;right:3px}.hi{top:38px;left:50px}.hd{top:38px;right:50px}
+.sfi{bottom:55px;left:55px}.sfd{bottom:55px;right:55px}.sei{bottom:55px;left:55px}.sed{bottom:55px;right:55px}
+table{width:100%;border-collapse:collapse;margin-top:3px}th,td{border:1px solid #777;padding:2px 3px;font-size:8.5px;text-align:left}th{background:#eee}
+@media print{@page{size:A4 portrait;margin:4mm}.page{width:100%;padding:0}.card{break-inside:avoid}}
+</style></head><body><div class="page">
+<div class="header"><img src="{{ url_for('static', filename='logo.png') }}" class="logo"><div><h1>FICHA PARA TALLER - INDUMENTARIA</h1><div class="info"><b>Cliente:</b> {{order.client_name}}<br><b>Tel:</b> {{order.client_phone}} &nbsp; <b>Entrega:</b> {{order.date_delivery}}<br><b>Tipo de tela:</b> {{order.fabric_type}}</div></div><div class="money"><b>Total:</b> ${{"%.2f"|format(order.total)}}<br><b>Seña:</b> ${{"%.2f"|format(order.deposit)}}<br><b>Saldo:</b> ${{"%.2f"|format(order.balance)}}</div></div>
+<div class="section-title">Diseño general del equipo</div><div class="note">{{order.team_design_notes}}</div>
+<div class="mockups"><div class="card"><div class="cardTitle">FRENTE</div><div class="uniform"><div class="shirt"><div class="neck"></div></div><div class="short"></div>
+{% for s in sponsors %}{% if s.garment_part == 'Prenda superior' %}{% if s.location == 'Frente central' %}<div class="box fc">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Frente izquierdo' %}<div class="box fi">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Frente derecho' %}<div class="box fd">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Frente inferior' %}<div class="box finf">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Manga derecha' %}<div class="box md">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Manga izquierda' %}<div class="box mi">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Hombro derecho' %}<div class="box hd">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Hombro izquierdo' %}<div class="box hi">{{s.sponsor_name}}</div>{% endif %}{% endif %}{% if s.garment_part == 'Prenda inferior' %}{% if s.location == 'Frente derecho' %}<div class="box sfd">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Frente izquierdo' %}<div class="box sfi">{{s.sponsor_name}}</div>{% endif %}{% endif %}{% endfor %}
+</div></div><div class="card"><div class="cardTitle">ESPALDA</div><div class="uniform"><div class="shirt"></div><div class="short"></div>
+{% for s in sponsors %}{% if s.garment_part == 'Prenda superior' %}{% if s.location == 'Espalda superior' %}<div class="box es">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Espalda central' %}<div class="box ec">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Espalda inferior' %}<div class="box einf">{{s.sponsor_name}}</div>{% endif %}{% endif %}{% if s.garment_part == 'Prenda inferior' %}{% if s.location == 'Espalda derecho' %}<div class="box sed">{{s.sponsor_name}}</div>{% endif %}{% if s.location == 'Espalda izquierdo' %}<div class="box sei">{{s.sponsor_name}}</div>{% endif %}{% endif %}{% endfor %}
+</div></div></div>
+<div class="section-title">Lista de prendas</div><table><tr><th>Artículo</th><th>Nombre</th><th>Talle superior</th><th>Talle inferior</th><th>Precio</th></tr>{% for i in apparel %}<tr><td>{{i.article}}</td><td>{{i.person_name}}</td><td>{{i.upper_size}}</td><td>{{i.lower_size}}</td><td>${{"%.2f"|format(i.price)}}</td></tr>{% endfor %}</table>
+<div class="section-title">Detalle de sponsors</div><table><tr><th>Prenda</th><th>Ubicación</th><th>Sponsor</th><th>Observación</th></tr>{% for s in sponsors %}<tr><td>{{s.garment_part}}</td><td>{{s.location}}</td><td>{{s.sponsor_name}}</td><td>{{s.note}}</td></tr>{% endfor %}</table>
+</div><script>window.print()</script></body></html>

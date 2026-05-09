@@ -1,0 +1,64 @@
+{% extends "base.html" %}{% import "form_parts.html" as parts %}{% block content %}
+<h1>Nuevo Pedido Birretes / Estolas</h1>
+<form method="post">
+{{ parts.common_fields(today) }}
+
+<section class="panel">
+<h2>Datos escolares</h2>
+<label>Nombre de la escuela<input name="school_name"></label>
+<label>Grado / Año<input name="school_grade" placeholder="Ej: 7° U, 5to año, sala 5"></label>
+</section>
+
+<section class="panel">
+<h2>Lista de artículos</h2>
+<input type="hidden" name="item_count" id="item_count" value="1">
+<table id="items">
+<tr>
+<th>#</th><th>Nombre</th><th>Talle birrete</th><th>Talle estola</th><th>Observación</th><th>Precio</th>
+</tr>
+<tr>
+<td>1</td>
+<td><input name="name_1"></td>
+<td><select name="cap_1">{% for s in cap_sizes %}<option>{{s}}</option>{% endfor %}</select></td>
+<td><select name="stole_1">{% for s in stole_sizes %}<option>{{s}}</option>{% endfor %}</select></td>
+<td><input name="note_1"></td>
+<td><input class="itemPrice" name="price_1" type="number" value="0" oninput="calc()"></td>
+</tr>
+</table>
+<button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
+</section>
+
+<button class="savebtn">Guardar</button>
+</form>
+
+<script>
+const capSizes={{ cap_sizes|tojson }};
+const stoleSizes={{ stole_sizes|tojson }};
+function options(arr){return arr.map(x=>`<option>${x}</option>`).join('')}
+function addItem(){
+  let n=+document.getElementById('item_count').value+1;
+  document.getElementById('item_count').value=n;
+  document.getElementById('items').insertAdjacentHTML('beforeend',
+  `<tr>
+    <td>${n}</td>
+    <td><input name="name_${n}"></td>
+    <td><select name="cap_${n}">${options(capSizes)}</select></td>
+    <td><select name="stole_${n}">${options(stoleSizes)}</select></td>
+    <td><input name="note_${n}"></td>
+    <td><input class="itemPrice" name="price_${n}" type="number" value="0" oninput="calc()"></td>
+  </tr>`);
+}
+function calc(){
+  let st=0;
+  document.querySelectorAll('.itemPrice').forEach(x=>st+=+x.value||0);
+  let d=+document.getElementById('discount').value||0;
+  let t=Math.max(0,st-d);
+  let dep=(document.getElementById('document_type').value==='Presupuesto')?0:(+document.getElementById('deposit').value||0);
+  if(document.getElementById('document_type').value==='Presupuesto') document.getElementById('deposit').value=0;
+  document.getElementById('subtotalBox').innerText='$'+st.toFixed(2);
+  document.getElementById('totalBox').innerText='$'+t.toFixed(2);
+  document.getElementById('balanceBox').innerText='$'+Math.max(0,t-dep).toFixed(2);
+}
+calc()
+</script>
+{% endblock %}
