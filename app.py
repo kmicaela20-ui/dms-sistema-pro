@@ -432,7 +432,7 @@ def cash_close():
         cur.execute("UPDATE cash_sessions SET closed_at=?, closing_cash=?, total_efectivo=?, total_transferencia=?, total_gastos=?, final_cash=?, notes=?, status='Cerrada' WHERE id=?",(now(),money(request.form.get('closing_cash')),ef,tr,gef+gtr,final_cash,request.form.get('notes'),ses['id']))
         con.commit()
     con.close(); return redirect('/cash')
-
+init()
 if __name__=='__main__':
     init()
     app.run(host='0.0.0.0',port=5000)
