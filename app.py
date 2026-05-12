@@ -117,7 +117,7 @@ def init():
 cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
 row = cur.fetchone()
 
-if not row or row["c"] == 0:
+if not row or row['c'] == 0:
         templates=[
             ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
             ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
