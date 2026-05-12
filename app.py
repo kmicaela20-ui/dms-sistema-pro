@@ -114,11 +114,13 @@ def init():
               ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
               ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
         cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-        cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
-        row = cur.fetchone()
+cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
+row = cur.fetchone()
 
-if not row or row['c'] == 0:
-        templates=[
+if not row or row["c"] == 0:
+    templates=[...]
+
+for sql in [
             ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
             ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
             ("En producción","Pedido en producción","👕 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en PRODUCCIÓN.\n\nEstamos trabajando para que quede excelente.\n\nGracias por elegirnos 💙"),
