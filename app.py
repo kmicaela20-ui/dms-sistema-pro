@@ -130,15 +130,17 @@ templates = [
 ]
 cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
 
-    
+
     # Actualizaciones seguras para versiones anteriores
-    for sql in [
-        "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS suggested_price NUMERIC DEFAULT 0"
-    ]:
-        cur.execute(sql)
+updates = [
+    "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
+    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS suggested_price NUMERIC DEFAULT 0"
+]
+
+for sql in updates:
+    cur.execute(sql)
 
     cur.execute("SELECT COUNT(*) c FROM cost_templates")
     if cur.fetchone()["c"] == 0:
