@@ -120,15 +120,15 @@ row = cur.fetchone()
 if not row or row["c"] == 0:
     templates=[...]
 
-for sql in [
+templates = [
             ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
             ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
             ("En producción","Pedido en producción","👕 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en PRODUCCIÓN.\n\nEstamos trabajando para que quede excelente.\n\nGracias por elegirnos 💙"),
             ("Terminado","Pedido terminado","✅ DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está TERMINADO y listo para retirar.\n\nSaldo pendiente: ${saldo}\n\n📍 Te esperamos en sucursal.\nGracias por confiar en nosotros 💙"),
             ("Entregado","Pedido entregado","💙 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} figura como ENTREGADO.\n\nMuchas gracias por confiar en nuestro trabajo.\nTe esperamos nuevamente 😊"),
             ("Saldo pendiente","Recordatorio de saldo","💰 DMS Sublimaciones\n\nHola {cliente} 👋\nTe recordamos que tu pedido {pedido} tiene un saldo pendiente de ${saldo}.\n\nGracias.")
-        ]
-        cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
+]
+cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
 
     
     # Actualizaciones seguras para versiones anteriores
