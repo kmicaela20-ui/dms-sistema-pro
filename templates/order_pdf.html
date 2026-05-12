@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>{{order.code}} - DMS Sublimaciones</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:Arial, Helvetica, sans-serif;margin:0;background:#f2f4f8;color:#111}
+.page{width:210mm;min-height:297mm;margin:20px auto;background:white;padding:18mm;box-shadow:0 0 18px rgba(0,0,0,.15)}
+.header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #0b3b75;padding-bottom:12px}
+.logo{width:150px;height:auto}
+.title{text-align:right}
+.title h1{margin:0;font-size:24px;color:#0b3b75}
+.title h2{margin:6px 0 0;font-size:18px;color:#222}
+.badge{display:inline-block;background:#0b66ff;color:white;padding:6px 12px;border-radius:20px;font-weight:bold}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+.card{border:1px solid #d8dee9;border-radius:12px;padding:12px}
+.card h3{margin:0 0 10px;color:#0b3b75;font-size:16px;border-bottom:1px solid #e5e7eb;padding-bottom:6px}
+.row{display:flex;justify-content:space-between;border-bottom:1px dashed #e5e7eb;padding:5px 0;font-size:13px}
+.row b{color:#333}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:12px}
+th{background:#0b3b75;color:#fff;text-align:left;padding:8px}
+td{border:1px solid #d8dee9;padding:7px}
+.totals{margin-left:auto;width:320px;margin-top:18px;border:1px solid #d8dee9;border-radius:12px;padding:12px}
+.totals div{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed #e5e7eb}
+.totals .final{font-size:20px;color:#0b66ff;font-weight:bold;border-bottom:0}
+.note{margin-top:18px;border:1px solid #d8dee9;border-radius:12px;padding:12px;min-height:70px}
+.footer{margin-top:20px;text-align:center;font-size:12px;color:#555;border-top:1px solid #d8dee9;padding-top:10px}
+.actions{position:fixed;top:16px;right:16px;display:flex;gap:8px}
+.actions button,.actions a{background:#0b66ff;color:white;border:0;border-radius:8px;padding:10px 14px;text-decoration:none;font-weight:bold;cursor:pointer}
+.actions a{background:#25D366;color:#063}
+.status{font-weight:bold;color:#0b3b75}
+@media print{body{background:white}.page{margin:0;box-shadow:none;width:auto;min-height:auto}.actions{display:none}}
+</style>
+</head>
+<body>
+<div class="actions">
+<button onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+<a href="/orders/{{order.id}}/whatsapp">Enviar WhatsApp</a>
+</div>
+<div class="page">
+  <div class="header">
+    <img src="/static/logo.png" class="logo">
+    <div class="title">
+      <h1>DMS Sublimaciones</h1>
+      <h2>{% if order.document_type=='Presupuesto' %}PRESUPUESTO{% else %}COMPROBANTE DE PEDIDO{% endif %}</h2>
+      <p><span class="badge">{{order.code}}</span></p>
+    </div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h3>Datos del cliente</h3>
+      <div class="row"><b>Cliente</b><span>{{order.client_name}}</span></div>
+      <div class="row"><b>Teléfono</b><span>{{order.client_phone}}</span></div>
+      <div class="row"><b>Dirección</b><span>{{order.client_address}}</span></div>
+      {% if order.school_name %}<div class="row"><b>Escuela</b><span>{{order.school_name}}</span></div>{% endif %}
+      {% if order.school_grade %}<div class="row"><b>Grado/Año</b><span>{{order.school_grade}}</span></div>{% endif %}
+    </div>
+    <div class="card">
+      <h3>Datos del pedido</h3>
+      <div class="row"><b>Tipo</b><span>{{order.document_type}}</span></div>
+      <div class="row"><b>Módulo</b><span>{{order.order_module}}</span></div>
+      <div class="row"><b>Fecha toma</b><span>{{order.date_taken}}</span></div>
+      <div class="row"><b>Entrega</b><span>{{order.date_delivery}}</span></div>
+      <div class="row"><b>Estado</b><span class="status">{{order.status}}</span></div>
+      {% if order.fabric_type %}<div class="row"><b>Tipo de tela</b><span>{{order.fabric_type}}</span></div>{% endif %}
+    </div>
+  </div>
+  {% if general %}
+  <h3>Artículos del pedido</h3>
+  <table><tr><th>Producto</th><th>Detalle</th><th>Cant.</th><th>Precio</th><th>Subtotal</th></tr>
+    {% for i in general %}<tr><td>{{i.product}}</td><td>{{i.detail}}</td><td>{{i.qty}}</td><td>${{"%.2f"|format(i.unit_price)}}</td><td>${{"%.2f"|format(i.subtotal)}}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if apparel %}
+  <h3>Lista de indumentaria</h3>
+  <table><tr><th>Artículo</th><th>Nombre</th><th>Número</th><th>Talle superior</th><th>Talle inferior</th><th>Precio</th></tr>
+    {% for i in apparel %}<tr><td>{{i.article}}</td><td>{{i.person_name}}</td><td>{{i.number}}</td><td>{{i.upper_size}}</td><td>{{i.lower_size}}</td><td>${{"%.2f"|format(i.price)}}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if sponsors %}
+  <h3>Ubicación de sponsors / logos</h3>
+  <table><tr><th>Prenda</th><th>Ubicación</th><th>Sponsor</th><th>Observación</th></tr>
+    {% for s in sponsors %}<tr><td>{{s.garment_part}}</td><td>{{s.location}}</td><td>{{s.sponsor_name}}</td><td>{{s.note}}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if grads %}
+  <h3>Lista Birretes / Estolas</h3>
+  <table><tr><th>Nombre</th><th>Talle birrete</th><th>Talle estola</th><th>Observación</th><th>Precio</th></tr>
+    {% for g in grads %}<tr><td>{{g.person_name}}</td><td>{{g.cap_size}}</td><td>{{g.stole_size}}</td><td>{{g.note}}</td><td>${{"%.2f"|format(g.price)}}</td></tr>{% endfor %}
+  </table>
+  {% endif %}
+  {% if files %}
+  <h3>Archivos adjuntos</h3>
+  <table><tr><th>Archivo</th></tr>{% for f in files %}<tr><td>{{f.original_name}}</td></tr>{% endfor %}</table>
+  {% endif %}
+  <div class="totals">
+    <div><b>Subtotal</b><span>${{"%.2f"|format(order.subtotal)}}</span></div>
+    <div><b>Descuento</b><span>${{"%.2f"|format(order.discount)}}</span></div>
+    <div class="final"><b>Total</b><span>${{"%.2f"|format(order.total)}}</span></div>
+    <div><b>Seña / abonado</b><span>${{"%.2f"|format(order.deposit)}}</span></div>
+    <div><b>Saldo</b><span>${{"%.2f"|format(order.balance)}}</span></div>
+  </div>
+  <div class="note">
+    <b>Observaciones:</b><br>{{order.client_notes or ''}}
+    {% if order.document_type=='Presupuesto' %}<br><br><b>Presupuesto válido por 7 días hábiles.</b>{% endif %}
+  </div>
+  <div class="footer">{{business_phone}} · Ciudad Perico / El Carmen · DMS Sublimaciones</div>
+</div>
+</body></html>

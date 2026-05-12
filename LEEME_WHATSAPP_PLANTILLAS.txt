@@ -1,0 +1,1 @@
+Nuevo módulo: Plantillas WhatsApp. Subir a GitHub y hacer Deploy latest commit en Render.

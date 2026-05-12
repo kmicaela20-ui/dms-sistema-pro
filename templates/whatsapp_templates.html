@@ -1,0 +1,28 @@
+{% extends "base.html" %}{% block content %}
+<h1>📲 Plantillas WhatsApp</h1>
+<section class="panel">
+<p>Desde acá podés cambiar los mensajes que se abren automáticamente en WhatsApp según el estado del pedido.</p>
+<p><b>Variables disponibles:</b> {cliente}, {pedido}, {estado}, {total}, {deposito}, {saldo}, {fecha}, {sucursal}, {telefono}</p>
+<form method="post" action="/whatsapp-templates/reset" onsubmit="return confirm('¿Restablecer todas las plantillas por defecto?')">
+<button class="btn grey">Restablecer mensajes por defecto</button>
+</form>
+</section>
+{% for r in rows %}
+<section class="panel">
+<h2>{{r.status_key}} — {{r.title}}</h2>
+<form method="post" class="templateForm">
+<input type="hidden" name="status_key" value="{{r.status_key}}">
+<label>Título<input name="title" value="{{r.title}}"></label>
+<label>Mensaje<textarea name="message" rows="8" oninput="previewMsg(this, 'prev{{r.id}}')">{{r.message}}</textarea></label>
+<button>Guardar plantilla</button>
+</form>
+<div class="previewBox">
+<b>Vista previa:</b>
+<pre id="prev{{r.id}}">{{r.message}}</pre>
+</div>
+</section>
+{% endfor %}
+<script>
+function previewMsg(el,id){ document.getElementById(id).innerText = el.value; }
+</script>
+{% endblock %}

@@ -1,6 +1,6 @@
 {% extends "base.html" %}{% import "form_parts.html" as parts %}{% block content %}
 <h1>Nuevo Pedido Birretes / Estolas</h1>
-<form method="post">
+<form method="post" enctype="multipart/form-data">
 {{ parts.common_fields(today) }}
 
 <section class="panel">
@@ -28,6 +28,12 @@
 <button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
 </section>
 
+
+<section class="panel">
+<h2>Archivos / diseños del pedido</h2>
+<label>Subir logos, imágenes o diseños<input type="file" name="design_files" multiple accept="image/*,.pdf,.ai,.cdr,.psd,.svg"></label>
+<small>Estos archivos quedarán guardados dentro del pedido para producción.</small>
+</section>
 <button class="savebtn">Guardar</button>
 </form>
 

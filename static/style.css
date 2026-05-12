@@ -15,3 +15,9 @@
 .barwrap{display:grid;gap:10px}.bar{position:relative;background:#eef2f7;border-radius:8px;padding:12px;font-weight:bold;overflow:hidden}.bar span{position:absolute;left:0;top:0;bottom:0;background:#16a34a;opacity:.35}.bar.expense span{background:#ef4444}
 
 .danger{background:#dc2626;color:white;border:0;border-radius:7px;padding:5px 8px;font-size:12px;cursor:pointer}
+
+.smallbtn{display:inline-block;background:#eaf2ff;color:#075bd3;padding:6px 9px;border-radius:7px;text-decoration:none;margin:3px;font-size:12px}.smallbtn:hover{background:#dbeafe}
+
+.templateForm textarea{width:100%;font-family:Arial;line-height:1.4}.previewBox{background:#f8fafc;border:1px solid #dbe3ef;border-radius:10px;padding:12px;margin-top:10px}.previewBox pre{white-space:pre-wrap;font-family:Arial;margin:8px 0 0}
+
+.filegrid{display:flex;gap:10px;flex-wrap:wrap}.filegrid a{background:#eef4ff;padding:8px 10px;border-radius:8px;text-decoration:none;color:#075bd3}

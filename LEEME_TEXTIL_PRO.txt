@@ -1,0 +1,7 @@
+VERSION TEXTIL PRO
+- Stock automático mediante recetas de producto.
+- Subida de logos/diseños dentro del pedido.
+- Calculadora de costos: tela, costura, electricidad, impresión e insumos.
+- Indumentaria: talle XS agregado.
+- Indumentaria: columna numeración agregada.
+Subir a GitHub y hacer Deploy latest commit en Render.
