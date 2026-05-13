@@ -114,7 +114,7 @@ def init():
               ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
               ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
         cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-c.execute("SELECT COUNT(*) c FROM whatsapp_templates")
+cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
 row = c.fetchone()
 
 if not row or row["c"] == 0:
