@@ -368,6 +368,7 @@ def new_general():
 def new_indumentaria():
     articles=['Remera sola','Musculosa mujer','Musculosa hombre','Conjunto invierno','Conjunto verano','Chomba pique','Chomba algodon','Buzo full print','Buzo algodon','Campera algodon','Campera full print']
     sizes=['','4','6','8','10','12','14','16','XS','S','M','L','XL','XXL','XXXL']
+    number=request.form.get(f'number_{i}') or ''
     upper=['Manga derecha','Manga izquierda','Espalda superior','Espalda inferior','Espalda central','Frente izquierdo','Frente derecho','Frente central','Frente inferior','Hombro derecho','Hombro izquierdo']
     lower=['Frente derecho','Frente izquierdo','Espalda derecho','Espalda izquierdo']
     if request.method=='POST':
