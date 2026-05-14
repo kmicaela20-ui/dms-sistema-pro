@@ -1,15 +1,12 @@
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import os, datetime, urllib.parse, unicodedata, uuid
+import os, datetime, urllib.parse, unicodedata
 import psycopg2, psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 
 app=Flask(__name__)
 app.secret_key=os.environ.get('SECRET_KEY','CAMBIAR_SECRET_KEY_DMS')
 PHONE='Sucursal Perico: 3884794349 | Sucursal El Carmen: 3885911211'
-UPLOAD_FOLDER=os.path.join('static','uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 class PGCursor:
     def __init__(self, cur):
@@ -114,33 +111,6 @@ def init():
               ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
               ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
         cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-        cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
-    if cur.fetchone()["c"] == 0:
-        templates=[
-            ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
-            ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
-            ("En producción","Pedido en producción","👕 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en PRODUCCIÓN.\n\nEstamos trabajando para que quede excelente.\n\nGracias por elegirnos 💙"),
-            ("Terminado","Pedido terminado","✅ DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está TERMINADO y listo para retirar.\n\nSaldo pendiente: ${saldo}\n\n📍 Te esperamos en sucursal.\nGracias por confiar en nosotros 💙"),
-            ("Entregado","Pedido entregado","💙 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} figura como ENTREGADO.\n\nMuchas gracias por confiar en nuestro trabajo.\nTe esperamos nuevamente 😊"),
-            ("Saldo pendiente","Recordatorio de saldo","💰 DMS Sublimaciones\n\nHola {cliente} 👋\nTe recordamos que tu pedido {pedido} tiene un saldo pendiente de ${saldo}.\n\nGracias.")
-        ]
-        cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
-
-    
-    # Actualizaciones seguras para versiones anteriores
-    for sql in [
-        "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
-        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS suggested_price NUMERIC DEFAULT 0"
-    ]:
-        cur.execute(sql)
-
-    cur.execute("SELECT COUNT(*) c FROM cost_templates")
-    if cur.fetchone()["c"] == 0:
-        cur.execute("INSERT INTO cost_templates(name,tela,costura,electricidad,impresion,insumos,margen) VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    ("Buzo algodón ejemplo",10600,2500,1500,0,3000,80))
-
     con.commit(); con.close()
 
 def login_required(fn):
@@ -228,74 +198,6 @@ def whatsapp_message_for_order(order):
     if status_low in ['diseño','diseno','en diseño','en diseno']:
         return f"Hola {name} 👋%0ATu pedido {code} se encuentra en etapa de diseño.%0ATe avisaremos cuando avance.%0A%0ADMS Sublimaciones."
     return f"Hola {name} 👋%0ATe informamos que tu pedido {code} está en estado: {status}.%0ATotal: ${total:.2f}%0ASaldo pendiente: ${balance:.2f}.%0A%0ADMS Sublimaciones."
-
-
-def format_whatsapp_template(template, order):
-    text = template or ""
-    values = {
-        "cliente": order.get("client_name") or "cliente",
-        "pedido": order.get("code") or "",
-        "estado": order.get("status") or "",
-        "total": f"{float(order.get('total') or 0):.2f}",
-        "saldo": f"{float(order.get('balance') or 0):.2f}",
-        "deposito": f"{float(order.get('deposit') or 0):.2f}",
-        "fecha": order.get("date_delivery") or "",
-        "sucursal": "DMS Sublimaciones",
-        "telefono": PHONE
-    }
-    for k,v in values.items():
-        text = text.replace("{"+k+"}", str(v))
-    return urllib.parse.quote(text)
-
-def get_whatsapp_template_for_order(cur, order):
-    status=(order.get("status") or "Ingreso").strip()
-    cur.execute("SELECT * FROM whatsapp_templates WHERE status_key=%s AND active='Sí'", (status,))
-    tpl=cur.fetchone()
-    if tpl:
-        return tpl["message"]
-    cur.execute("SELECT * FROM whatsapp_templates WHERE status_key=%s AND active='Sí'", ("Ingreso",))
-    tpl=cur.fetchone()
-    return tpl["message"] if tpl else "Hola {cliente}, tu pedido {pedido} está en estado {estado}. Saldo: ${saldo}."
-
-
-def save_uploaded_files(cur, oid):
-    files = request.files.getlist("design_files")
-    for f in files:
-        if not f or not f.filename:
-            continue
-        original = secure_filename(f.filename)
-        ext = os.path.splitext(original)[1].lower()
-        safe = f"{oid}_{uuid.uuid4().hex[:10]}{ext}"
-        rel_path = os.path.join("uploads", safe).replace("\\","/")
-        full_path = os.path.join("static", "uploads", safe)
-        os.makedirs(os.path.dirname(full_path), exist_ok=True)
-        f.save(full_path)
-        cur.execute("INSERT INTO order_files(order_id,original_name,file_path,file_type,uploaded_at,uploaded_by) VALUES(%s,%s,%s,%s,%s,%s)",
-                    (oid, original, rel_path, ext, now(), session.get("user","admin")))
-
-def apply_stock_recipe(cur, product_name, qty):
-    # Descuenta insumos vinculados al producto vendido.
-    cur.execute("SELECT * FROM product_recipes WHERE product_name=%s AND active='Sí'", (product_name,))
-    recipes=cur.fetchall()
-    for r in recipes:
-        inv_id=r.get("material_inventory_id")
-        consume=float(r.get("qty_per_unit") or 0) * float(qty or 0)
-        if inv_id and consume>0:
-            cur.execute("UPDATE inventory SET stock_qty = COALESCE(stock_qty,0) - %s WHERE id=%s", (consume, inv_id))
-
-def calculate_order_cost(cur, rows):
-    # rows: lista de (producto, cantidad)
-    total_cost=0
-    for product_name, qty in rows:
-        cur.execute("SELECT * FROM product_recipes WHERE product_name=%s AND active='Sí'", (product_name,))
-        for r in cur.fetchall():
-            inv_id=r.get("material_inventory_id")
-            consume=float(r.get("qty_per_unit") or 0) * float(qty or 0)
-            if inv_id and consume>0:
-                cur.execute("SELECT cost_price FROM inventory WHERE id=%s", (inv_id,))
-                inv=cur.fetchone()
-                total_cost += consume * float((inv or {}).get("cost_price") or 0)
-    return total_cost
 
 @app.route('/login',methods=['GET','POST'])
 def login():
@@ -444,7 +346,7 @@ def orders():
 def new_general():
     con=db(); cur=con.cursor(); inv=cur.execute("SELECT * FROM inventory WHERE active='Sí' ORDER BY category,item").fetchall()
     if request.method=='POST':
-        doc=request.form.get('document_type'); subtotal=0; rows=[]; sold_rows=[]
+        doc=request.form.get('document_type'); subtotal=0; rows=[]
         for i in range(1,16):
             inv_id=request.form.get(f'inv_id_{i}') or None
             product=request.form.get(f'product_{i}') or ''
@@ -452,11 +354,8 @@ def new_general():
             qty=money(request.form.get(f'qty_{i}'))
             price=money(request.form.get(f'price_{i}'))
             if product and qty>0:
-                st=qty*price; subtotal+=st; rows.append((inv_id,product,detail,qty,price,st)); sold_rows.append((product,qty))
+                st=qty*price; subtotal+=st; rows.append((inv_id,product,detail,qty,price,st))
         oid,code=common_order_insert(cur,doc,'General',subtotal,{})
-        save_uploaded_files(cur, oid)
-        calculated_cost=calculate_order_cost(cur, sold_rows)
-        cur.execute('UPDATE orders SET calculated_cost=%s, calculated_profit=%s WHERE id=%s',(calculated_cost, subtotal-calculated_cost, oid))
         for row in rows:
             cur.execute('INSERT INTO general_items(order_id,inventory_id,product,detail,qty,unit_price,subtotal) VALUES(?,?,?,?,?,?,?)',(oid,*row))
         con.commit(); con.close()
@@ -468,18 +367,17 @@ def new_general():
 @login_required
 def new_indumentaria():
     articles=['Remera sola','Musculosa mujer','Musculosa hombre','Conjunto invierno','Conjunto verano','Chomba pique','Chomba algodon','Buzo full print','Buzo algodon','Campera algodon','Campera full print']
-    sizes=['','XS','S','M','L','XL','XXL','XXXL','4','6','8','10','12','14','16']
+    sizes=['','4','6','8','10','12','14','16','S','M','L','XL','XXL','XXXL']
     upper=['Manga derecha','Manga izquierda','Espalda superior','Espalda inferior','Espalda central','Frente izquierdo','Frente derecho','Frente central','Frente inferior','Hombro derecho','Hombro izquierdo']
     lower=['Frente derecho','Frente izquierdo','Espalda derecho','Espalda izquierdo']
     if request.method=='POST':
         con=db(); cur=con.cursor(); doc=request.form.get('document_type')
         subtotal=0; item_rows=[]
         for i in range(1,int(request.form.get('item_count','1'))+1):
-            article=request.form.get(f'article_{i}') or ''; name=request.form.get(f'name_{i}') or ''; number=request.form.get(f'number_{i}') or ''; upper_size=request.form.get(f'upper_{i}') or ''; lower_size=request.form.get(f'lower_{i}') or ''; price=money(request.form.get(f'price_{i}'))
+            article=request.form.get(f'article_{i}') or ''; name=request.form.get(f'name_{i}') or ''; upper_size=request.form.get(f'upper_{i}') or ''; lower_size=request.form.get(f'lower_{i}') or ''; price=money(request.form.get(f'price_{i}'))
             if article or name or upper_size or lower_size or price>0:
-                subtotal+=price; item_rows.append((article,name,number,upper_size,lower_size,price))
+                subtotal+=price; item_rows.append((article,name,upper_size,lower_size,price))
         oid,code=common_order_insert(cur,doc,'Indumentaria',subtotal,{'fabric_type':request.form.get('fabric_type'),'team_design_notes':request.form.get('team_design_notes')})
-        save_uploaded_files(cur, oid)
         for row in item_rows: cur.execute('INSERT INTO apparel_items(order_id,article,person_name,upper_size,lower_size,price) VALUES(?,?,?,?,?,?)',(oid,*row))
         for i in range(1,int(request.form.get('sponsor_count','1'))+1):
             gp=request.form.get(f'sponsor_part_{i}') or ''; loc=request.form.get(f'sponsor_location_{i}') or ''; sp=request.form.get(f'sponsor_name_{i}') or ''; note=request.form.get(f'sponsor_note_{i}') or ''
@@ -501,7 +399,6 @@ def new_egresados():
             if name or cap or stole or note or price>0:
                 subtotal+=price; rows.append((name,cap,stole,note,price))
         oid,code=common_order_insert(cur,doc,'Birretes/Estolas',subtotal,{'school_name':request.form.get('school_name'), 'school_grade':request.form.get('school_grade')})
-        save_uploaded_files(cur, oid)
         for row in rows: cur.execute('INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,note,price) VALUES(?,?,?,?,?,?)',(oid,*row))
         con.commit(); con.close(); return redirect(f'/orders/{oid}')
     return render_template('new_egresados.html',today=today(),cap_sizes=cap_sizes,stole_sizes=stole_sizes)
@@ -515,9 +412,8 @@ def view_order(oid):
     apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
     sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
     grads=con.execute('SELECT * FROM grad_items WHERE order_id=?',(oid,)).fetchall()
-    cur.execute('SELECT * FROM order_files WHERE order_id=%s ORDER BY id DESC',(oid,)); files=cur.fetchall()
     con.close()
-    return render_template('order_view.html',order=order,general=general,apparel=apparel,sponsors=sponsors,grads=grads,files=files,wa=whatsapp_url(order),business_phone=PHONE)
+    return render_template('order_view.html',order=order,general=general,apparel=apparel,sponsors=sponsors,grads=grads,wa=whatsapp_url(order),business_phone=PHONE)
 
 @app.route('/orders/<int:oid>/edit',methods=['GET','POST'])
 @login_required
@@ -664,9 +560,8 @@ def order_pdf(oid):
     sponsors=cur.fetchall()
     cur.execute('SELECT * FROM grad_items WHERE order_id=%s',(oid,))
     grads=cur.fetchall()
-    cur.execute('SELECT * FROM order_files WHERE order_id=%s ORDER BY id DESC',(oid,)); files=cur.fetchall()
     con.close()
-    return render_template('order_pdf.html',order=order,general=general,apparel=apparel,sponsors=sponsors,grads=grads,files=files,business_phone=PHONE)
+    return render_template('order_pdf.html',order=order,general=general,apparel=apparel,sponsors=sponsors,grads=grads,business_phone=PHONE)
 
 @app.route('/orders/<int:oid>/whatsapp')
 @login_required
@@ -674,98 +569,15 @@ def order_whatsapp(oid):
     con=db(); cur=con.cursor()
     cur.execute('SELECT * FROM orders WHERE id=%s',(oid,))
     order=cur.fetchone()
+    con.close()
     if not order:
-        con.close()
         return redirect('/orders')
     phone=(order.get('client_phone') or '').replace(' ','').replace('-','').replace('+','')
     if not phone:
-        con.close()
         flash("Este pedido no tiene teléfono cargado.")
         return redirect('/orders')
-    template=get_whatsapp_template_for_order(cur, order)
-    con.close()
-    msg=format_whatsapp_template(template, order)
+    msg=whatsapp_message_for_order(order)
     return redirect('https://wa.me/54'+phone+'?text='+msg)
-
-
-
-@app.route('/whatsapp-templates', methods=['GET','POST'])
-@role_required('Admin')
-def whatsapp_templates():
-    con=db(); cur=con.cursor()
-    if request.method == 'POST':
-        status_key=request.form.get('status_key')
-        title=request.form.get('title')
-        message=request.form.get('message')
-        if status_key and title and message:
-            cur.execute("UPDATE whatsapp_templates SET title=%s, message=%s WHERE status_key=%s", (title,message,status_key))
-            con.commit()
-        con.close()
-        return redirect('/whatsapp-templates')
-    cur.execute("SELECT * FROM whatsapp_templates ORDER BY id")
-    rows=cur.fetchall()
-    con.close()
-    return render_template('whatsapp_templates.html', rows=rows)
-
-@app.route('/whatsapp-templates/reset', methods=['POST'])
-@role_required('Admin')
-def whatsapp_templates_reset():
-    defaults=[
-        ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
-        ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
-        ("En producción","Pedido en producción","👕 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en PRODUCCIÓN.\n\nEstamos trabajando para que quede excelente.\n\nGracias por elegirnos 💙"),
-        ("Terminado","Pedido terminado","✅ DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está TERMINADO y listo para retirar.\n\nSaldo pendiente: ${saldo}\n\n📍 Te esperamos en sucursal.\nGracias por confiar en nosotros 💙"),
-        ("Entregado","Pedido entregado","💙 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} figura como ENTREGADO.\n\nMuchas gracias por confiar en nuestro trabajo.\nTe esperamos nuevamente 😊"),
-        ("Saldo pendiente","Recordatorio de saldo","💰 DMS Sublimaciones\n\nHola {cliente} 👋\nTe recordamos que tu pedido {pedido} tiene un saldo pendiente de ${saldo}.\n\nGracias.")
-    ]
-    con=db(); cur=con.cursor()
-    for status_key,title,message in defaults:
-        cur.execute("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s) ON CONFLICT (status_key) DO UPDATE SET title=EXCLUDED.title, message=EXCLUDED.message, active='Sí'", (status_key,title,message))
-    con.commit(); con.close()
-    return redirect('/whatsapp-templates')
-
-
-@app.route('/recipes', methods=['GET','POST'])
-@role_required('Admin')
-def recipes():
-    con=db(); cur=con.cursor()
-    if request.method=='POST':
-        cur.execute("INSERT INTO product_recipes(product_name,material_inventory_id,material_name,qty_per_unit,unit,active) VALUES(%s,%s,%s,%s,%s,%s)",
-                    (request.form.get('product_name'), request.form.get('material_inventory_id') or None, request.form.get('material_name'), money(request.form.get('qty_per_unit')), request.form.get('unit'), 'Sí'))
-        con.commit(); con.close()
-        return redirect('/recipes')
-    cur.execute("SELECT r.*, i.sku, i.item FROM product_recipes r LEFT JOIN inventory i ON r.material_inventory_id=i.id WHERE r.active='Sí' ORDER BY product_name")
-    rows=cur.fetchall()
-    cur.execute("SELECT * FROM inventory WHERE active!='No' ORDER BY category,item")
-    inv=cur.fetchall()
-    con.close()
-    return render_template('recipes.html',rows=rows,inv=inv)
-
-@app.route('/recipes/<int:rid>/delete', methods=['POST'])
-@role_required('Admin')
-def recipe_delete(rid):
-    con=db(); cur=con.cursor()
-    cur.execute("UPDATE product_recipes SET active='No' WHERE id=%s",(rid,))
-    con.commit(); con.close()
-    return redirect('/recipes')
-
-@app.route('/costs', methods=['GET','POST'])
-@login_required
-def costs():
-    result=None
-    if request.method=='POST':
-        tela=money(request.form.get('tela'))
-        costura=money(request.form.get('costura'))
-        electricidad=money(request.form.get('electricidad'))
-        impresion=money(request.form.get('impresion'))
-        insumos=money(request.form.get('insumos'))
-        margen=money(request.form.get('margen'))
-        precio_venta=money(request.form.get('precio_venta'))
-        costo=tela+costura+electricidad+impresion+insumos
-        sugerido=costo*(1+(margen/100))
-        ganancia=(precio_venta or sugerido)-costo
-        result={'costo':costo,'sugerido':sugerido,'ganancia':ganancia,'margen':margen}
-    return render_template('costs.html',result=result)
 
 
 init()
