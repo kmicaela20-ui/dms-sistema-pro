@@ -114,33 +114,31 @@ def init():
               ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
               ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
         cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-        cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
-        row = cur.fetchone()
+cur.execute("SELECT COUNT(*) c FROM whatsapp_templates")
+row = cur.fetchone()
 
 if not row or row["c"] == 0:
     templates=[...]
 
-templates = [
+for sql in [
             ("Ingreso","Pedido recibido","🔥 DMS Sublimaciones 🔥\n\nHola {cliente} 👋\nRecibimos tu pedido {pedido} correctamente.\n\nTotal: ${total}\nSeña/abonado: ${deposito}\nSaldo pendiente: ${saldo}\n\nGracias por confiar en nosotros 💙"),
             ("En diseño","Pedido en diseño","🎨 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en etapa de DISEÑO.\n\nTe avisaremos cuando pase a producción.\n\nGracias por confiar en nuestro trabajo 💙"),
             ("En producción","Pedido en producción","👕 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está en PRODUCCIÓN.\n\nEstamos trabajando para que quede excelente.\n\nGracias por elegirnos 💙"),
             ("Terminado","Pedido terminado","✅ DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} ya está TERMINADO y listo para retirar.\n\nSaldo pendiente: ${saldo}\n\n📍 Te esperamos en sucursal.\nGracias por confiar en nosotros 💙"),
             ("Entregado","Pedido entregado","💙 DMS Sublimaciones\n\nHola {cliente} 👋\nTu pedido {pedido} figura como ENTREGADO.\n\nMuchas gracias por confiar en nuestro trabajo.\nTe esperamos nuevamente 😊"),
             ("Saldo pendiente","Recordatorio de saldo","💰 DMS Sublimaciones\n\nHola {cliente} 👋\nTe recordamos que tu pedido {pedido} tiene un saldo pendiente de ${saldo}.\n\nGracias.")
-]
-cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
+        ]
+        cur.executemany("INSERT INTO whatsapp_templates(status_key,title,message) VALUES(%s,%s,%s)", templates)
 
-
+    
     # Actualizaciones seguras para versiones anteriores
-updates = [
-    "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
-    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
-    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
-    "ALTER TABLE orders ADD COLUMN IF NOT EXISTS suggested_price NUMERIC DEFAULT 0"
-]
-
-for sql in updates:
-    cur.execute(sql)
+    for sql in [
+        "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
+        "ALTER TABLE orders ADD COLUMN IF NOT EXISTS suggested_price NUMERIC DEFAULT 0"
+    ]:
+        cur.execute(sql)
 
     cur.execute("SELECT COUNT(*) c FROM cost_templates")
     if cur.fetchone()["c"] == 0:
@@ -772,13 +770,6 @@ def costs():
         ganancia=(precio_venta or sugerido)-costo
         result={'costo':costo,'sugerido':sugerido,'ganancia':ganancia,'margen':margen}
     return render_template('costs.html',result=result)
-
-
-init()
-
-if __name__=='__main__':
-    app.run(host='0.0.0.0',port=int(os.environ.get('PORT',5000)))
-
 
 
 init()
