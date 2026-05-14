@@ -132,7 +132,7 @@ for sql in [
 
     
     # Actualizaciones seguras para versiones anteriores
-    for sql in [
+    templates = [
         "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT",
         "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_cost NUMERIC DEFAULT 0",
         "ALTER TABLE orders ADD COLUMN IF NOT EXISTS calculated_profit NUMERIC DEFAULT 0",
