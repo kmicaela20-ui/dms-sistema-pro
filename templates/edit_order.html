@@ -1,2 +1,132 @@
-{% extends "base.html" %}{% block content %}
-<h1>Editar pedido {{order.code}}</h1><form method="post"><section class="panel formgrid"><label>Cliente<input name="client_name" value="{{order.client_name}}"></label><label>Teléfono<input name="client_phone" value="{{order.client_phone}}"></label><label>Dirección<input name="client_address" value="{{order.client_address}}"></label><label>Fecha entrega<input type="date" name="date_delivery" value="{{order.date_delivery}}"></label><label>Estado<select name="status"><option {% if order.status=='Ingreso' %}selected{% endif %}>Ingreso</option><option {% if order.status=='En diseño' %}selected{% endif %}>En diseño</option><option {% if order.status=='En producción' %}selected{% endif %}>En producción</option><option {% if order.status=='Terminado' %}selected{% endif %}>Terminado</option><option {% if order.status=='Entregado' %}selected{% endif %}>Entregado</option></select></label><label>Recepciona<input name="receptionist" value="{{order.receptionist}}"></label><label>Escuela<input name="school_name" value="{{order.school_name}}"></label><label>Grado/Año<input name="school_grade" value="{{order.school_grade}}"></label><label>Tipo de tela<input name="fabric_type" value="{{order.fabric_type}}"></label><label>Subtotal<input name="subtotal" type="number" step="0.01" value="{{order.subtotal}}"></label><label>Descuento<input name="discount" type="number" step="0.01" value="{{order.discount}}"></label><label>Seña/abonado<input name="deposit" type="number" step="0.01" value="{{order.deposit}}"></label><label>Método pago<select name="payment_method"><option {% if order.payment_method=='Efectivo' %}selected{% endif %}>Efectivo</option><option {% if order.payment_method=='Transferencia' %}selected{% endif %}>Transferencia</option><option {% if order.payment_method=='Mixto' %}selected{% endif %}>Mixto</option></select></label></section><section class="panel"><label>Observaciones<textarea name="client_notes">{{order.client_notes}}</textarea></label><label>Diseño general / taller<textarea name="team_design_notes">{{order.team_design_notes}}</textarea></label><label>Nota pago<input name="payment_note" value="{{order.payment_note}}"></label></section><button class="savebtn">Guardar cambios</button></form>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Editar pedido {{order.code}}</h1>
+
+<form method="post">
+
+<section class="panel formgrid">
+<label>Cliente<input name="client_name" value="{{order.client_name or ''}}"></label>
+<label>Teléfono<input name="client_phone" value="{{order.client_phone or ''}}"></label>
+<label>Dirección<input name="client_address" value="{{order.client_address or ''}}"></label>
+<label>Fecha entrega<input type="date" name="date_delivery" value="{{order.date_delivery or ''}}"></label>
+
+<label>Estado
+<select name="status">
+<option {% if order.status=='Ingreso' %}selected{% endif %}>Ingreso</option>
+<option {% if order.status=='En diseño' %}selected{% endif %}>En diseño</option>
+<option {% if order.status=='En producción' %}selected{% endif %}>En producción</option>
+<option {% if order.status=='Terminado' %}selected{% endif %}>Terminado</option>
+<option {% if order.status=='Entregado' %}selected{% endif %}>Entregado</option>
+</select>
+</label>
+
+<label>Recepciona<input name="receptionist" value="{{order.receptionist or ''}}"></label>
+<label>Escuela<input name="school_name" value="{{order.school_name or ''}}"></label>
+<label>Grado/Año<input name="school_grade" value="{{order.school_grade or ''}}"></label>
+<label>Tipo de tela<input name="fabric_type" value="{{order.fabric_type or ''}}"></label>
+<label>Descuento<input name="discount" type="number" step="0.01" value="{{order.discount or 0}}"></label>
+<label>Seña/abonado<input name="deposit" type="number" step="0.01" value="{{order.deposit or 0}}"></label>
+</section>
+
+<section class="panel">
+<label>Observaciones<textarea name="client_notes">{{order.client_notes or ''}}</textarea></label>
+<label>Diseño general / taller<textarea name="team_design_notes">{{order.team_design_notes or ''}}</textarea></label>
+<label>Nota pago<input name="payment_note" value="{{order.payment_note or ''}}"></label>
+</section>
+
+<section class="panel">
+<h2>Artículos</h2>
+
+<input type="hidden" name="item_count" id="item_count" value="{{ items|length if items else 1 }}">
+
+<table id="items">
+<tr>
+<th>#</th>
+<th>Artículo</th>
+<th>Nombre / Detalle</th>
+<th>Talle superior</th>
+<th>Talle inferior</th>
+<th>Precio</th>
+</tr>
+
+{% if items %}
+{% for it in items %}
+<tr>
+<td>{{loop.index}}</td>
+<td><input name="article_{{loop.index}}" value="{{it.article if it.article is defined else it.product}}"></td>
+<td><input name="name_{{loop.index}}" value="{{it.person_name if it.person_name is defined else it.detail}}"></td>
+<td><input name="upper_{{loop.index}}" value="{{it.upper_size if it.upper_size is defined else ''}}"></td>
+<td><input name="lower_{{loop.index}}" value="{{it.lower_size if it.lower_size is defined else ''}}"></td>
+<td><input class="itemPrice" name="price_{{loop.index}}" type="text" value="{{it.price if it.price is defined else it.unit_price}}" oninput="calc()"></td>
+</tr>
+{% endfor %}
+{% else %}
+<tr>
+<td>1</td>
+<td><input name="article_1"></td>
+<td><input name="name_1"></td>
+<td><input name="upper_1"></td>
+<td><input name="lower_1"></td>
+<td><input class="itemPrice" name="price_1" type="text" value="0" oninput="calc()"></td>
+</tr>
+{% endif %}
+</table>
+
+<button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
+</section>
+
+<input type="hidden" name="subtotal" id="subtotalInput" value="{{order.subtotal or 0}}">
+
+<section class="panel">
+<h3>Totales</h3>
+<p>Subtotal: <b id="subtotalBox">${{order.subtotal or 0}}</b></p>
+<p>Total: <b id="totalBox">${{order.total or 0}}</b></p>
+<p>Saldo: <b id="balanceBox">${{order.balance or 0}}</b></p>
+</section>
+
+<button class="savebtn">Guardar cambios</button>
+
+</form>
+
+<script>
+function addItem(){
+  let n = +document.getElementById('item_count').value + 1;
+  document.getElementById('item_count').value = n;
+
+  document.getElementById('items').insertAdjacentHTML('beforeend', `
+  <tr>
+    <td>${n}</td>
+    <td><input name="article_${n}"></td>
+    <td><input name="name_${n}"></td>
+    <td><input name="upper_${n}"></td>
+    <td><input name="lower_${n}"></td>
+    <td><input class="itemPrice" name="price_${n}" type="text" value="0" oninput="calc()"></td>
+  </tr>
+  `);
+
+  calc();
+}
+
+function calc(){
+  let subtotal = 0;
+
+  document.querySelectorAll('.itemPrice').forEach(x => {
+    subtotal += parseFloat(x.value) || 0;
+  });
+
+  let discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
+  let deposit = parseFloat(document.querySelector('[name="deposit"]').value) || 0;
+  let total = Math.max(0, subtotal - discount);
+  let balance = Math.max(0, total - deposit);
+
+  document.getElementById('subtotalInput').value = subtotal;
+  document.getElementById('subtotalBox').innerText = '$' + subtotal.toFixed(2);
+  document.getElementById('totalBox').innerText = '$' + total.toFixed(2);
+  document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
+}
+
+calc();
+</script>
+
+{% endblock %}
