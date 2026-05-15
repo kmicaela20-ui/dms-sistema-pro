@@ -215,6 +215,10 @@ def login():
 def logout():
     session.clear(); return redirect('/login')
 
+@app.route('/whatsapp-templates')
+def whatsapp_templates():
+    return render_template('whatsapp_templates.html')
+    
 @app.route('/')
 @login_required
 def dashboard():
