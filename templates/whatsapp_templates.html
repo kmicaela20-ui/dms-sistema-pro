@@ -7,6 +7,14 @@
 <button class="btn grey">Restablecer mensajes por defecto</button>
 </form>
 </section>
+{% set rows = rows or [
+  {'status_key':'ingresado','title':'Pedido ingresado','message':'Hola {cliente}, tu pedido #{pedido} fue registrado correctamente. Total: ${total}. Seña: ${deposito}. Saldo: ${saldo}.'},
+  {'status_key':'diseno','title':'En diseño','message':'Hola {cliente}, tu pedido #{pedido} ya se encuentra en diseño.'},
+  {'status_key':'produccion','title':'En producción','message':'Hola {cliente}, tu pedido #{pedido} ya pasó a producción.'},
+  {'status_key':'terminado','title':'Terminado','message':'Hola {cliente}, tu pedido #{pedido} ya está terminado. Saldo pendiente: ${saldo}.'},
+  {'status_key':'entregado','title':'Entregado','message':'Hola {cliente}, gracias por retirar tu pedido #{pedido}.'}
+] %}
+
 {% for r in rows %}
 <section class="panel">
 <h2>{{r.status_key}} — {{r.title}}</h2>
