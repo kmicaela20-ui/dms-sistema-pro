@@ -422,17 +422,99 @@ def view_order(oid):
 @app.route('/orders/<int:oid>/edit',methods=['GET','POST'])
 @login_required
 def edit_order(oid):
-    con=db(); cur=con.cursor()
-    order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
-    if request.method=='POST':
-        discount=money(request.form.get('discount')); total=max(0,money(request.form.get('subtotal'))-discount); deposit=money(request.form.get('deposit')); balance=max(0,total-deposit)
-        cur.execute('''UPDATE orders SET client_name=?, client_phone=?, client_address=?, date_delivery=?, status=?, receptionist=?, client_notes=?, school_name=?, school_grade=?, fabric_type=?, team_design_notes=?, discount=?, subtotal=?, total=?, deposit=?, balance=?, payment_method=?, payment_note=? WHERE id=?''',
-                    (request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),request.form.get('school_name'),request.form.get('school_grade'),request.form.get('fabric_type'),request.form.get('team_design_notes'),discount,money(request.form.get('subtotal')),total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),oid))
-        con.commit(); con.close()
-        return redirect(f'/orders/{oid}')
-    con.close()
-    return render_template('edit_order.html',order=order)
+    con=db()
+    cur=con.cursor()
 
+    order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
+
+    if request.method=='POST':
+        subtotal = 0
+        item_rows = []
+
+        count = int(request.form.get('item_count','1'))
+
+        for i in range(1,count+1):
+            article = request.form.get(f'article_{i}') or ''
+            name = request.form.get(f'name_{i}') or ''
+            upper_size = request.form.get(f'upper_{i}') or ''
+            lower_size = request.form.get(f'lower_{i}') or ''
+            price = money(request.form.get(f'price_{i}'))
+
+            if article or name or upper_size or lower_size or price > 0:
+                subtotal += price
+                item_rows.append((article,name,upper_size,lower_size,price))
+
+        discount = money(request.form.get('discount'))
+        total = max(0, subtotal - discount)
+        deposit = money(request.form.get('deposit'))
+        balance = max(0, total - deposit)
+
+        cur.execute('''
+            UPDATE orders SET
+            client_name=?,
+            client_phone=?,
+            client_address=?,
+            date_delivery=?,
+            status=?,
+            receptionist=?,
+            client_notes=?,
+            school_name=?,
+            school_grade=?,
+            fabric_type=?,
+            team_design_notes=?,
+            discount=?,
+            subtotal=?,
+            total=?,
+            deposit=?,
+            balance=?,
+            payment_method=?,
+            payment_note=?
+            WHERE id=?
+        ''',
+        (
+            request.form.get('client_name'),
+            request.form.get('client_phone'),
+            request.form.get('client_address'),
+            request.form.get('date_delivery'),
+            request.form.get('status'),
+            request.form.get('receptionist'),
+            request.form.get('client_notes'),
+            request.form.get('school_name'),
+            request.form.get('school_grade'),
+            request.form.get('fabric_type'),
+            request.form.get('team_design_notes'),
+            discount,
+            subtotal,
+            total,
+            deposit,
+            balance,
+            request.form.get('payment_method'),
+            request.form.get('payment_note'),
+            oid
+        ))
+
+        if order['order_module'] == 'Indumentaria':
+            cur.execute('DELETE FROM apparel_items WHERE order_id=?',(oid,))
+            for row in item_rows:
+                cur.execute(
+                    'INSERT INTO apparel_items(order_id,article,person_name,upper_size,lower_size,price) VALUES(?,?,?,?,?,?)',
+                    (oid,*row)
+                )
+
+        con.commit()
+        con.close()
+
+        return redirect(f'/orders/{oid}')
+
+    items=[]
+
+    if order['order_module'] == 'Indumentaria':
+        items=cur.execute('SELECT * FROM apparel_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+
+    con.close()
+
+    return render_template('edit_order.html',order=order,items=items)
+    
 @app.route('/orders/<int:oid>/delete', methods=['POST'])
 @login_required
 def delete_order(oid):
