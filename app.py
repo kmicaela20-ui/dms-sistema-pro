@@ -433,6 +433,39 @@ def edit_order(oid):
     con.close()
     return render_template('edit_order.html',order=order)
 
+@app.route('/orders/<int:oid>/delete', methods=['POST'])
+@login_required
+def delete_order(oid):
+
+    con = db()
+    cur = con.cursor()
+
+    # eliminar items generales
+    cur.execute('DELETE FROM general_items WHERE order_id=?', (oid,))
+
+    # eliminar items indumentaria
+    cur.execute('DELETE FROM apparel_items WHERE order_id=?', (oid,))
+
+    # eliminar sponsors
+    cur.execute('DELETE FROM apparel_sponsors WHERE order_id=?', (oid,))
+
+    # eliminar items egresados
+    cur.execute('DELETE FROM grad_items WHERE order_id=?', (oid,))
+
+    # eliminar pagos
+    cur.execute('DELETE FROM payments WHERE order_id=?', (oid,))
+
+    # eliminar movimientos de caja
+    cur.execute('DELETE FROM cash WHERE order_id=?', (oid,))
+
+    # eliminar pedido principal
+    cur.execute('DELETE FROM orders WHERE id=?', (oid,))
+
+    con.commit()
+    con.close()
+
+    return redirect('/orders')
+    
 @app.route('/orders/<int:oid>/status',methods=['POST'])
 @login_required
 def update_status(oid):
