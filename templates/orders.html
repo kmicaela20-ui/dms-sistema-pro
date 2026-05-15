@@ -1,9 +1,74 @@
 {% extends "base.html" %}{% block content %}
 <h1>{{filter_name}}</h1>
-<div class="quick"><a href="/orders/new/general">📦 Nuevo General</a><a href="/orders/new/indumentaria">👕 Nueva Indumentaria</a><a href="/orders/new/egresados">🎓 Nuevo Birrete/Estola</a></div>
-<section class="panel"><form method="get" class="searchbar"><input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de pedido o cliente"><button>Buscar</button><a class="btn grey" href="/orders">Limpiar</a></form>
-<table><tr><th>Nº</th><th>Tipo</th><th>Módulo</th><th>Cliente</th><th>Entrega</th><th>Total</th><th>Saldo</th><th>Estado / WhatsApp</th><th>Acciones</th></tr>
-{% for r in rows %}<tr><td>{{r.code}}</td><td>{{r.document_type}}</td><td>{{r.order_module}}</td><td>{{r.client_name}}</td><td>{{r.date_delivery}}</td><td>${{"%.2f"|format(r.total)}}</td><td class="red">${{"%.2f"|format(r.balance)}}</td>
-<td><form method="post" action="/orders/{{r.id}}/status" class="inline"><select name="status"><option {% if r.status=='Ingreso' %}selected{% endif %}>Ingreso</option><option {% if r.status=='En diseño' %}selected{% endif %}>En diseño</option><option {% if r.status=='En producción' %}selected{% endif %}>En producción</option><option {% if r.status=='Terminado' %}selected{% endif %}>Terminado</option><option {% if r.status=='Entregado' %}selected{% endif %}>Entregado</option></select><button>Informar</button></form></td>
-<td class="actions"><a href="/orders/{{r.id}}">Comprobante</a><a href="/orders/{{r.id}}/edit">Editar</a>{% if r.order_module=='Indumentaria' %}<a href="/orders/{{r.id}}/workshop" target="_blank">Hoja taller</a><a href="/orders/{{r.id}}/edit">Editar taller</a>{% endif %}</td></tr>{% endfor %}
-</table></section>{% endblock %}
+
+<div class="quick">
+  <a href="/orders/new/general">📦 Nuevo General</a>
+  <a href="/orders/new/indumentaria">👕 Nueva Indumentaria</a>
+  <a href="/orders/new/egresados">🎓 Nuevo Birrete/Estola</a>
+</div>
+
+<section class="panel">
+<form method="get" class="searchbar">
+  <input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de pedido o cliente">
+  <button>Buscar</button>
+  <a class="btn grey" href="/orders">Limpiar</a>
+</form>
+
+<table>
+<tr>
+  <th>Nº</th>
+  <th>Tipo</th>
+  <th>Módulo</th>
+  <th>Cliente</th>
+  <th>Entrega</th>
+  <th>Total</th>
+  <th>Saldo</th>
+  <th>Estado / WhatsApp</th>
+  <th>Acciones</th>
+</tr>
+
+{% for r in rows %}
+<tr>
+  <td>{{r.code}}</td>
+  <td>{{r.document_type}}</td>
+  <td>{{r.order_module}}</td>
+  <td>{{r.client_name}}</td>
+  <td>{{r.date_delivery}}</td>
+  <td>${{"%.2f"|format(r.total)}}</td>
+  <td class="red">${{"%.2f"|format(r.balance)}}</td>
+
+  <td>
+    <form method="post" action="/orders/{{r.id}}/status" class="inline">
+      <select name="status">
+        <option {% if r.status=='Ingreso' %}selected{% endif %}>Ingreso</option>
+        <option {% if r.status=='En diseño' %}selected{% endif %}>En diseño</option>
+        <option {% if r.status=='En producción' %}selected{% endif %}>En producción</option>
+        <option {% if r.status=='Terminado' %}selected{% endif %}>Terminado</option>
+        <option {% if r.status=='Entregado' %}selected{% endif %}>Entregado</option>
+      </select>
+      <button>Informar</button>
+    </form>
+  </td>
+
+  <td class="actions">
+    <a href="/orders/{{r.id}}">Comprobante</a>
+    <a href="/orders/{{r.id}}/edit">Editar</a>
+
+    <form method="post"
+          action="/orders/{{r.id}}/delete"
+          style="display:inline;"
+          onsubmit="return confirm('¿Seguro que querés eliminar este pedido? Esta acción no se puede deshacer.')">
+      <button type="submit" class="btn red">Eliminar</button>
+    </form>
+
+    {% if r.order_module=='Indumentaria' %}
+      <a href="/orders/{{r.id}}/workshop" target="_blank">Hoja taller</a>
+      <a href="/orders/{{r.id}}/edit">Editar taller</a>
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}
+
+</table>
+</section>
+{% endblock %}
