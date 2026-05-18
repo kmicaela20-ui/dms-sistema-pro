@@ -1,1 +1,189 @@
-{% extends "base.html" %}{% block content %}<div class="titlebar no-print"><h1>Historial financiero mensual</h1><button onclick="window.print()" class="btn">🖨 Imprimir resumen mensual</button></div><section class="panel no-print"><form method="get" class="searchbar"><input type="month" name="month" value="{{month}}"><button>Ver mes</button></form></section><div class="kpis"><div class="kpi">💵<small>Ingresos del mes</small><b>${{"%.2f"|format(ingresos)}}</b></div><div class="kpi">💸<small>Gastos del mes</small><b>${{"%.2f"|format(gastos)}}</b></div><div class="kpi">📈<small>Resultado</small><b>${{"%.2f"|format(ingresos-gastos)}}</b></div></div><section class="panel"><h2>Gráfico ingresos vs gastos</h2><div class="barwrap"><div class="bar"><span style="width:{{ (ingresos/(ingresos+gastos+1)*100)|round(0) }}%"></span>Ingresos</div><div class="bar expense"><span style="width:{{ (gastos/(ingresos+gastos+1)*100)|round(0) }}%"></span>Gastos</div></div></section><section class="panel"><h2>Tipos de pedido del mes</h2><table><tr><th>Tipo</th><th>Cantidad</th></tr>{% for m in mod_rows %}<tr><td>{{m.order_module}}</td><td>{{m.c}}</td></tr>{% endfor %}</table></section><section class="panel"><h2>Detalle día por día</h2><table><tr><th>Día</th><th>Ingresos</th><th>Gastos</th><th>Resultado</th><th>Detalle</th></tr>{% for r in rows %}<tr><td>{{r.date}}</td><td>${{"%.2f"|format(r.ingresos or 0)}}</td><td>${{"%.2f"|format(r.gastos or 0)}}</td><td>${{"%.2f"|format((r.ingresos or 0)-(r.gastos or 0))}}</td><td><a href="/finance/day/{{r.date}}">Ver día</a></td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="titlebar no-print">
+<h1>Historial financiero mensual</h1>
+<button onclick="window.print()" class="btn">
+🖨 Imprimir resumen mensual
+</button>
+</div>
+
+<section class="panel no-print">
+
+<form method="get" class="searchbar">
+<input type="month" name="month" value="{{month}}">
+<button>Ver mes</button>
+</form>
+
+</section>
+
+<div class="kpis">
+
+<div class="kpi">
+💵
+<small>Ingresos del mes</small>
+<b>${{"%.2f"|format(ingresos)}}</b>
+</div>
+
+<div class="kpi">
+💸
+<small>Gastos del mes</small>
+<b>${{"%.2f"|format(gastos)}}</b>
+</div>
+
+<div class="kpi">
+📈
+<small>Resultado final</small>
+<b>${{"%.2f"|format(ingresos-gastos)}}</b>
+</div>
+
+<div class="kpi">
+💰
+<small>Efectivo neto</small>
+<b>${{"%.2f"|format(efectivo_neto)}}</b>
+</div>
+
+<div class="kpi">
+🏦
+<small>Transferencia neta</small>
+<b>${{"%.2f"|format(transferencia_neto)}}</b>
+</div>
+
+</div>
+
+<section class="panel">
+
+<h2>Resumen por módulos</h2>
+
+<table>
+
+<tr>
+<th>Módulo</th>
+<th>Ingresos</th>
+<th>Gastos</th>
+<th>Total final</th>
+</tr>
+
+{% for m in module_summary %}
+
+<tr>
+
+<td>{{m.name}}</td>
+
+<td>
+${{"%.2f"|format(m.ingresos)}}
+</td>
+
+<td>
+${{"%.2f"|format(m.gastos)}}
+</td>
+
+<td>
+<b>
+${{"%.2f"|format(m.resultado)}}
+</b>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</section>
+
+<section class="panel">
+
+<h2>Gráfico General</h2>
+
+{% for m in module_summary %}
+
+<div style="margin-bottom:25px;">
+
+<h3>{{m.name}}</h3>
+
+<div class="barwrap">
+
+<div class="bar">
+<span style="width:{{ (m.ingresos/(m.ingresos+m.gastos+1)*100)|round(0) }}%"></span>
+Ingresos
+</div>
+
+<div class="bar expense">
+<span style="width:{{ (m.gastos/(m.ingresos+m.gastos+1)*100)|round(0) }}%"></span>
+Gastos
+</div>
+
+</div>
+
+<p>
+💵 Ingresos:
+<b>${{"%.2f"|format(m.ingresos)}}</b>
+</p>
+
+<p>
+💸 Gastos:
+<b>${{"%.2f"|format(m.gastos)}}</b>
+</p>
+
+<p>
+📈 Total final:
+<b>${{"%.2f"|format(m.resultado)}}</b>
+</p>
+
+<hr>
+
+</div>
+
+{% endfor %}
+
+</section>
+
+<section class="panel">
+
+<h2>Detalle día por día</h2>
+
+<table>
+
+<tr>
+<th>Día</th>
+<th>Ingresos</th>
+<th>Gastos</th>
+<th>Resultado</th>
+<th>Detalle</th>
+</tr>
+
+{% for r in rows %}
+
+<tr>
+
+<td>{{r.date}}</td>
+
+<td>
+${{"%.2f"|format(r.ingresos or 0)}}
+</td>
+
+<td>
+${{"%.2f"|format(r.gastos or 0)}}
+</td>
+
+<td>
+${{"%.2f"|format((r.ingresos or 0)-(r.gastos or 0))}}
+</td>
+
+<td>
+<a href="/finance/day/{{r.date}}">
+Ver día
+</a>
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+</section>
+
+{% endblock %}
