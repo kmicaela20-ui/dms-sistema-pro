@@ -590,20 +590,35 @@ def client_history(cid):
 @app.route('/cash',methods=['GET','POST'])
 @role_required('Admin','Caja')
 def cash():
-    con=db(); cur=con.cursor()
+    con=db()
+    cur=con.cursor()
+
     if request.method=='POST':
+
         module = request.form.get('module') or ''
-concept = request.form.get('concept') or ''
-note = request.form.get('note') or ''
+        concept = request.form.get('concept') or ''
+        note = request.form.get('note') or ''
 
-if module:
-    concept = f'[{module}] {concept}'
+        if module:
+            concept = f'[{module}] {concept}'
 
-cur.execute(
-    'INSERT INTO cash(date,dt,type,concept,amount,method,username,note) VALUES(?,?,?,?,?,?,?,?)',
-    (today(),now(),request.form.get('type'),concept,money(request.form.get('amount')),request.form.get('method'),session['user'],note)
-)
-        con.commit(); return redirect('/cash')
+        cur.execute(
+            'INSERT INTO cash(date,dt,type,concept,amount,method,username,note) VALUES(?,?,?,?,?,?,?,?)',
+            (
+                today(),
+                now(),
+                request.form.get('type'),
+                concept,
+                money(request.form.get('amount')),
+                request.form.get('method'),
+                session['user'],
+                note
+            )
+        )
+
+        con.commit()
+        return redirect('/cash')
+
     q=(request.args.get('q') or '').strip()
     found=[]
     if q: found=cur.execute("SELECT * FROM orders WHERE (code LIKE ? OR client_name LIKE ?) AND balance>0 ORDER BY id DESC",(f'%{q}%',f'%{q}%')).fetchall()
