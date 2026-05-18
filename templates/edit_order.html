@@ -40,6 +40,54 @@
 
 <input type="hidden" name="item_count" id="item_count" value="{{ items|length if items else 1 }}">
 
+{% if order.order_module == 'General' %}
+
+<table id="items">
+<tr>
+<th>#</th>
+<th>Producto</th>
+<th>Detalle</th>
+<th>Cantidad</th>
+<th>Precio unitario</th>
+<th>Subtotal</th>
+</tr>
+
+{% if items %}
+{% for it in items %}
+<tr>
+<td>{{loop.index}}</td>
+
+<td>
+<input name="article_{{loop.index}}" value="{{it.article}}">
+</td>
+
+<td>
+<input name="name_{{loop.index}}" value="{{it.person_name}}">
+</td>
+
+<td>
+<input class="qtyInput" name="qty_{{loop.index}}" type="number" value="1" oninput="calcGeneral()">
+</td>
+
+<td>
+<input class="priceInput" name="price_{{loop.index}}" type="number" value="{{it.price}}" oninput="calcGeneral()">
+</td>
+
+<td>
+<input class="subtotalItem" type="text" value="{{it.price}}" readonly>
+</td>
+
+</tr>
+{% endfor %}
+{% endif %}
+</table>
+
+<button type="button" class="btn" onclick="addGeneralItem()">
++ Agregar artículo
+</button>
+
+{% else %}
+
 <table id="items">
 <tr>
 <th>#</th>
@@ -54,26 +102,38 @@
 {% for it in items %}
 <tr>
 <td>{{loop.index}}</td>
-<td><input name="article_{{loop.index}}" value="{{it.article if it.article is defined else it.product}}"></td>
-<td><input name="name_{{loop.index}}" value="{{it.person_name if it.person_name is defined else it.detail}}"></td>
-<td><input name="upper_{{loop.index}}" value="{{it.upper_size if it.upper_size is defined else ''}}"></td>
-<td><input name="lower_{{loop.index}}" value="{{it.lower_size if it.lower_size is defined else ''}}"></td>
-<td><input class="itemPrice" name="price_{{loop.index}}" type="text" value="{{it.price if it.price is defined else it.unit_price}}" oninput="calc()"></td>
+
+<td>
+<input name="article_{{loop.index}}" value="{{it.article}}">
+</td>
+
+<td>
+<input name="name_{{loop.index}}" value="{{it.person_name}}">
+</td>
+
+<td>
+<input name="upper_{{loop.index}}" value="{{it.upper_size}}">
+</td>
+
+<td>
+<input name="lower_{{loop.index}}" value="{{it.lower_size}}">
+</td>
+
+<td>
+<input class="itemPrice" name="price_{{loop.index}}" type="number" value="{{it.price}}" oninput="calc()">
+</td>
+
 </tr>
 {% endfor %}
-{% else %}
-<tr>
-<td>1</td>
-<td><input name="article_1"></td>
-<td><input name="name_1"></td>
-<td><input name="upper_1"></td>
-<td><input name="lower_1"></td>
-<td><input class="itemPrice" name="price_1" type="text" value="0" oninput="calc()"></td>
-</tr>
 {% endif %}
 </table>
 
-<button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
+<button type="button" class="btn" onclick="addItem()">
++ Agregar artículo
+</button>
+
+{% endif %}
+
 </section>
 
 <input type="hidden" name="subtotal" id="subtotalInput" value="{{order.subtotal or 0}}">
