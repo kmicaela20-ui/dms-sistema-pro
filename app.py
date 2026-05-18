@@ -592,7 +592,17 @@ def client_history(cid):
 def cash():
     con=db(); cur=con.cursor()
     if request.method=='POST':
-        cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,username,note) VALUES(?,?,?,?,?,?,?,?)',(today(),now(),request.form.get('type'),request.form.get('concept'),money(request.form.get('amount')),request.form.get('method'),session['user'],request.form.get('note')))
+        module = request.form.get('module') or ''
+concept = request.form.get('concept') or ''
+note = request.form.get('note') or ''
+
+if module:
+    concept = f'[{module}] {concept}'
+
+cur.execute(
+    'INSERT INTO cash(date,dt,type,concept,amount,method,username,note) VALUES(?,?,?,?,?,?,?,?)',
+    (today(),now(),request.form.get('type'),concept,money(request.form.get('amount')),request.form.get('method'),session['user'],note)
+)
         con.commit(); return redirect('/cash')
     q=(request.args.get('q') or '').strip()
     found=[]
