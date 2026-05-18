@@ -9,9 +9,48 @@
 
 <section class="panel">
 <form method="get" class="searchbar">
-  <input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de pedido o cliente">
-  <button>Buscar</button>
-  <a class="btn grey" href="/orders">Limpiar</a>
+
+<input name="q"
+value="{{q or ''}}"
+placeholder="Buscar por Nº de pedido o cliente">
+
+<select name="status">
+<option value="">Todos los estados</option>
+<option value="Ingreso" {% if status=='Ingreso' %}selected{% endif %}>Ingreso</option>
+<option value="En diseño" {% if status=='En diseño' %}selected{% endif %}>En diseño</option>
+<option value="En producción" {% if status=='En producción' %}selected{% endif %}>En producción</option>
+<option value="Terminado" {% if status=='Terminado' %}selected{% endif %}>Terminado</option>
+<option value="Entregado" {% if status=='Entregado' %}selected{% endif %}>Entregado</option>
+</select>
+
+<input type="date"
+name="delivery_date"
+value="{{delivery_date or ''}}">
+
+<select name="order_by">
+<option value="id_desc" {% if order_by=='id_desc' %}selected{% endif %}>
+Más recientes
+</option>
+
+<option value="delivery_asc" {% if order_by=='delivery_asc' %}selected{% endif %}>
+Entrega más próxima
+</option>
+
+<option value="delivery_desc" {% if order_by=='delivery_desc' %}selected{% endif %}>
+Entrega más lejana
+</option>
+</select>
+
+<button>Buscar</button>
+
+<button type="button" onclick="window.print()">
+🖨 Imprimir lista
+</button>
+
+<a class="btn grey" href="/orders">
+Limpiar
+</a>
+
 </form>
 
 <table>
