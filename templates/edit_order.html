@@ -274,7 +274,11 @@ function calc(){
   document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
 }
 
-calc();
+if (document.querySelector('.qtyInput')) {
+  calcGeneral();
+} else {
+  calc();
+}
 </script>
 
 {% endblock %}
