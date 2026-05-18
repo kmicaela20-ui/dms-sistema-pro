@@ -1,1 +1,191 @@
-{% extends "base.html" %}{% block content %}<h1>Caja</h1><div class="kpis"><div class="kpi">💵<small>Ingresos efectivo</small><b>${{"%.2f"|format(efectivo)}}</b></div><div class="kpi">🏦<small>Transferencias</small><b>${{"%.2f"|format(transferencia)}}</b></div><div class="kpi">💸<small>Gastos</small><b>${{"%.2f"|format(gastos)}}</b></div><div class="kpi">💰<small>Saldo efectivo</small><b>${{"%.2f"|format(saldo_efectivo)}}</b></div></div><section class="panel"><h2>Abrir / Cerrar caja</h2>{% if open_cash %}<p><b>Caja abierta:</b> {{open_cash.opened_at}} | <b>Inicial:</b> ${{"%.2f"|format(open_cash.opening_cash)}}</p><form method="post" action="/cash/close" class="formgrid"><input name="closing_cash" type="number" step="0.01" placeholder="Efectivo real al cerrar"><input name="notes" placeholder="Observación cierre"><button>Cerrar caja</button></form>{% else %}<form method="post" action="/cash/open" class="formgrid"><input name="opening_cash" type="number" step="0.01" placeholder="Efectivo inicial"><input name="notes" placeholder="Observación apertura"><button>Abrir caja</button></form>{% endif %}</section><section class="panel"><h2>Buscar saldo de pedido</h2><form method="get" class="searchbar"><input name="q" value="{{q or ''}}" placeholder="Buscar por número de pedido o nombre"><button>Buscar</button><a class="btn grey" href="/cash">Limpiar</a></form>{% if found %}<table><tr><th>Pedido</th><th>Cliente</th><th>Total</th><th>Abonado</th><th>Saldo</th><th>Cobrar</th></tr>{% for o in found %}<tr><td>{{o.code}}</td><td>{{o.client_name}}</td><td>${{"%.2f"|format(o.total)}}</td><td>${{"%.2f"|format(o.deposit)}}</td><td class="red">${{"%.2f"|format(o.balance)}}</td><td><form method="post" action="/cash/charge/{{o.id}}" class="inline"><input name="amount" type="number" step="0.01" value="{{'%.2f'|format(o.balance)}}"><select name="method"><option>Efectivo</option><option>Transferencia</option><option>Mixto</option></select><button>Cobrar</button></form></td></tr>{% endfor %}</table>{% endif %}</section><section class="panel"><h2>Registrar ingreso/gasto manual</h2><form method="post" class="formgrid"><select name="type"><option>Ingreso</option><option>Venta</option><option>Gasto</option></select><input name="concept" placeholder="Concepto"><input name="amount" type="number" placeholder="Monto"><select name="method"><option>Efectivo</option><option>Transferencia</option></select><input name="note" placeholder="Nota"><button>Guardar</button></form></section><section class="panel"><h2>Movimientos</h2><table><tr><th>Hora</th><th>Tipo</th><th>Concepto</th><th>Monto</th><th>Método</th></tr>{% for m in moves %}<tr><td>{{m.dt[11:16]}}</td><td>{{m.type}}</td><td>{{m.concept}}</td><td>${{"%.2f"|format(m.amount)}}</td><td>{{m.method}}</td></tr>{% endfor %}</table></section>{% endblock %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Caja</h1>
+
+<div class="kpis">
+
+  <div class="kpi">
+    💵
+    <small>Ingresos efectivo</small>
+    <b>${{"%.2f"|format(efectivo)}}</b>
+  </div>
+
+  <div class="kpi">
+    🏦
+    <small>Ingresos transferencia</small>
+    <b>${{"%.2f"|format(transferencia)}}</b>
+  </div>
+
+  <div class="kpi">
+    💸
+    <small>Gastos totales</small>
+    <b>${{"%.2f"|format(gastos)}}</b>
+  </div>
+
+  <div class="kpi">
+    💰
+    <small>Saldo efectivo</small>
+    <b>${{"%.2f"|format(saldo_efectivo)}}</b>
+  </div>
+
+  <div class="kpi">
+    🏦
+    <small>Saldo transferencia</small>
+    <b>${{"%.2f"|format(saldo_transferencia)}}</b>
+  </div>
+
+</div>
+
+<section class="panel">
+
+<h2>Abrir / Cerrar caja</h2>
+
+{% if open_cash %}
+
+<p>
+<b>Caja abierta:</b> {{open_cash.opened_at}}
+|
+<b>Inicial:</b> ${{"%.2f"|format(open_cash.opening_cash)}}
+</p>
+
+<form method="post" action="/cash/close" class="formgrid">
+<input name="closing_cash" type="number" step="0.01" placeholder="Efectivo real al cerrar">
+<input name="notes" placeholder="Observación cierre">
+<button>Cerrar caja</button>
+</form>
+
+{% else %}
+
+<form method="post" action="/cash/open" class="formgrid">
+<input name="opening_cash" type="number" step="0.01" placeholder="Efectivo inicial">
+<input name="notes" placeholder="Observación apertura">
+<button>Abrir caja</button>
+</form>
+
+{% endif %}
+
+</section>
+
+<section class="panel">
+
+<h2>Buscar saldo de pedido</h2>
+
+<form method="get" class="searchbar">
+<input name="q" value="{{q or ''}}" placeholder="Buscar por número de pedido o nombre">
+<button>Buscar</button>
+<a class="btn grey" href="/cash">Limpiar</a>
+</form>
+
+{% if found %}
+
+<table>
+
+<tr>
+<th>Pedido</th>
+<th>Cliente</th>
+<th>Total</th>
+<th>Abonado</th>
+<th>Saldo</th>
+<th>Cobrar</th>
+</tr>
+
+{% for o in found %}
+
+<tr>
+
+<td>{{o.code}}</td>
+<td>{{o.client_name}}</td>
+<td>${{"%.2f"|format(o.total)}}</td>
+<td>${{"%.2f"|format(o.deposit)}}</td>
+<td class="red">${{"%.2f"|format(o.balance)}}</td>
+
+<td>
+
+<form method="post" action="/cash/charge/{{o.id}}" class="inline">
+
+<input name="amount" type="number" step="0.01" value="{{'%.2f'|format(o.balance)}}">
+
+<select name="method">
+<option>Efectivo</option>
+<option>Transferencia</option>
+<option>Mixto</option>
+</select>
+
+<button>Cobrar</button>
+
+</form>
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+</table>
+
+{% endif %}
+
+</section>
+
+<section class="panel">
+
+<h2>Registrar ingreso/gasto manual</h2>
+
+<form method="post" class="formgrid">
+
+<select name="type">
+<option>Ingreso</option>
+<option>Venta</option>
+<option>Gasto</option>
+</select>
+
+<input name="concept" placeholder="Concepto">
+
+<input name="amount" type="number" placeholder="Monto">
+
+<select name="method">
+<option>Efectivo</option>
+<option>Transferencia</option>
+</select>
+
+<input name="note" placeholder="Nota">
+
+<button>Guardar</button>
+
+</form>
+
+</section>
+
+<section class="panel">
+
+<h2>Movimientos</h2>
+
+<table>
+
+<tr>
+<th>Hora</th>
+<th>Tipo</th>
+<th>Concepto</th>
+<th>Monto</th>
+<th>Método</th>
+</tr>
+
+{% for m in moves %}
+
+<tr>
+<td>{{m.dt[11:16]}}</td>
+<td>{{m.type}}</td>
+<td>{{m.concept}}</td>
+<td>${{"%.2f"|format(m.amount)}}</td>
+<td>{{m.method}}</td>
+</tr>
+
+{% endfor %}
+
+</table>
+
+</section>
+
+{% endblock %}
