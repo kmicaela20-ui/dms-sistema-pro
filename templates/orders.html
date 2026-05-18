@@ -1,4 +1,6 @@
-{% extends "base.html" %}{% block content %}
+{% extends "base.html" %}
+{% block content %}
+
 <h1>{{filter_name}}</h1>
 
 <div class="quick">
@@ -7,12 +9,10 @@
   <a href="/orders/new/egresados">🎓 Nuevo Birrete/Estola</a>
 </div>
 
-<section class="panel">
+<section class="panel no-print">
 <form method="get" class="searchbar">
 
-<input name="q"
-value="{{q or ''}}"
-placeholder="Buscar por Nº de pedido o cliente">
+<input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de pedido o cliente">
 
 <select name="status">
 <option value="">Todos los estados</option>
@@ -23,36 +23,93 @@ placeholder="Buscar por Nº de pedido o cliente">
 <option value="Entregado" {% if status=='Entregado' %}selected{% endif %}>Entregado</option>
 </select>
 
-<input type="date"
-name="delivery_date"
-value="{{delivery_date or ''}}">
+<input type="date" name="delivery_date" value="{{delivery_date or ''}}">
 
 <select name="order_by">
-<option value="id_desc" {% if order_by=='id_desc' %}selected{% endif %}>
-Más recientes
-</option>
-
-<option value="delivery_asc" {% if order_by=='delivery_asc' %}selected{% endif %}>
-Entrega más próxima
-</option>
-
-<option value="delivery_desc" {% if order_by=='delivery_desc' %}selected{% endif %}>
-Entrega más lejana
-</option>
+<option value="id_desc" {% if order_by=='id_desc' %}selected{% endif %}>Más recientes</option>
+<option value="delivery_asc" {% if order_by=='delivery_asc' %}selected{% endif %}>Entrega más próxima</option>
+<option value="delivery_desc" {% if order_by=='delivery_desc' %}selected{% endif %}>Entrega más lejana</option>
 </select>
 
 <button>Buscar</button>
-
-<button type="button" onclick="window.print()">
-🖨 Imprimir lista
-</button>
-
-<a class="btn grey" href="/orders">
-Limpiar
-</a>
+<button type="button" onclick="window.print()">🖨 Imprimir lista</button>
+<a class="btn grey" href="/orders">Limpiar</a>
 
 </form>
+</section>
 
+<section class="panel no-print">
+<h2>📅 Calendario de entregas - {{current_month}}</h2>
+
+<style>
+.calendar-grid{
+  display:grid;
+  grid-template-columns:repeat(7,1fr);
+  gap:8px;
+}
+.calendar-head{
+  font-weight:bold;
+  text-align:center;
+  padding:8px;
+  background:#f1f5f9;
+  border-radius:8px;
+}
+.calendar-day{
+  min-height:95px;
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:8px;
+  background:white;
+}
+.calendar-date{
+  font-weight:bold;
+  margin-bottom:5px;
+}
+.calendar-order{
+  display:block;
+  font-size:12px;
+  background:#eef2ff;
+  padding:4px;
+  border-radius:6px;
+  margin-bottom:4px;
+  text-decoration:none;
+  color:#111827;
+}
+.calendar-order small{
+  display:block;
+  color:#555;
+}
+</style>
+
+<div class="calendar-grid">
+  <div class="calendar-head">Lun</div>
+  <div class="calendar-head">Mar</div>
+  <div class="calendar-head">Mié</div>
+  <div class="calendar-head">Jue</div>
+  <div class="calendar-head">Vie</div>
+  <div class="calendar-head">Sáb</div>
+  <div class="calendar-head">Dom</div>
+
+  {% for day in range(1,32) %}
+    {% set d = current_month ~ '-' ~ '%02d'|format(day) %}
+    <div class="calendar-day">
+      <div class="calendar-date">{{day}}</div>
+
+      {% if calendar_days.get(d) %}
+        {% for o in calendar_days.get(d) %}
+          <div class="calendar-order">
+            <b>{{o.code}}</b>
+            <small>{{o.client_name}}</small>
+            <small>{{o.status}}</small>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  {% endfor %}
+</div>
+</section>
+
+<section class="panel">
 <table>
 <tr>
   <th>Nº</th>
@@ -110,4 +167,5 @@ Limpiar
 
 </table>
 </section>
+
 {% endblock %}
