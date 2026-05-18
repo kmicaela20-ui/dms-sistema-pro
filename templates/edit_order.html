@@ -165,6 +165,94 @@ function addItem(){
   </tr>
   `);
 
+  function addGeneralItem(){
+
+  let n = +document.getElementById('item_count').value + 1;
+  document.getElementById('item_count').value = n;
+
+  document.getElementById('items').insertAdjacentHTML('beforeend', `
+
+  <tr>
+
+    <td>${n}</td>
+
+    <td>
+      <input name="article_${n}">
+    </td>
+
+    <td>
+      <input name="name_${n}">
+    </td>
+
+    <td>
+      <input class="qtyInput"
+      name="qty_${n}"
+      type="number"
+      value="1"
+      oninput="calcGeneral()">
+    </td>
+
+    <td>
+      <input class="priceInput"
+      name="price_${n}"
+      type="number"
+      value="0"
+      oninput="calcGeneral()">
+    </td>
+
+    <td>
+      <input class="subtotalItem"
+      type="text"
+      value="0"
+      readonly>
+    </td>
+
+  </tr>
+
+  `);
+
+  calcGeneral();
+}
+
+function calcGeneral(){
+
+  let subtotal = 0;
+
+  let rows = document.querySelectorAll('#items tr');
+
+  rows.forEach((row,index)=>{
+
+    if(index===0) return;
+
+    let qty = row.querySelector('.qtyInput');
+    let price = row.querySelector('.priceInput');
+    let subtotalBox = row.querySelector('.subtotalItem');
+
+    if(qty && price && subtotalBox){
+
+      let sub = (parseFloat(qty.value)||0) * (parseFloat(price.value)||0);
+
+      subtotalBox.value = sub.toFixed(2);
+
+      subtotal += sub;
+    }
+
+  });
+
+  let discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
+  let deposit = parseFloat(document.querySelector('[name="deposit"]').value) || 0;
+
+  let total = Math.max(0, subtotal - discount);
+  let balance = Math.max(0, total - deposit);
+
+  document.getElementById('subtotalInput').value = subtotal;
+
+  document.getElementById('subtotalBox').innerText = '$' + subtotal.toFixed(2);
+
+  document.getElementById('totalBox').innerText = '$' + total.toFixed(2);
+
+  document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
+}
   calc();
 }
 
