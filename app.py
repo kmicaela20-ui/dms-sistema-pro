@@ -648,12 +648,95 @@ def cash_charge(oid):
 @login_required
 def finance():
     month=request.args.get('month') or today()[:7]
-    con=db(); cur=con.cursor()
-    rows=cur.execute("""SELECT date, SUM(CASE WHEN type!='Gasto' THEN amount ELSE 0 END) ingresos, SUM(CASE WHEN type='Gasto' THEN amount ELSE 0 END) gastos FROM cash WHERE substr(date,1,7)=? GROUP BY date ORDER BY date""",(month,)).fetchall()
-    mod_rows=cur.execute('SELECT order_module, COUNT(*) c FROM orders WHERE substr(date_taken,1,7)=? GROUP BY order_module',(month,)).fetchall()
-    ingresos=sum([r['ingresos'] or 0 for r in rows]); gastos=sum([r['gastos'] or 0 for r in rows])
-    con.close(); return render_template('finance.html',month=month,rows=rows,mod_rows=mod_rows,ingresos=ingresos,gastos=gastos)
+    con=db()
+    cur=con.cursor()
 
+    rows=cur.execute("""
+        SELECT date,
+        SUM(CASE WHEN type!='Gasto' THEN amount ELSE 0 END) ingresos,
+        SUM(CASE WHEN type='Gasto' THEN amount ELSE 0 END) gastos
+        FROM cash
+        WHERE substr(date,1,7)=?
+        GROUP BY date
+        ORDER BY date
+    """,(month,)).fetchall()
+
+    ingresos=sum([r['ingresos'] or 0 for r in rows])
+    gastos=sum([r['gastos'] or 0 for r in rows])
+
+    efectivo_ingresos=cur.execute("""
+        SELECT COALESCE(SUM(amount),0) s FROM cash
+        WHERE substr(date,1,7)=? AND method='Efectivo' AND type!='Gasto'
+    """,(month,)).fetchone()['s']
+
+    efectivo_gastos=cur.execute("""
+        SELECT COALESCE(SUM(amount),0) s FROM cash
+        WHERE substr(date,1,7)=? AND method='Efectivo' AND type='Gasto'
+    """,(month,)).fetchone()['s']
+
+    transferencia_ingresos=cur.execute("""
+        SELECT COALESCE(SUM(amount),0) s FROM cash
+        WHERE substr(date,1,7)=? AND method='Transferencia' AND type!='Gasto'
+    """,(month,)).fetchone()['s']
+
+    transferencia_gastos=cur.execute("""
+        SELECT COALESCE(SUM(amount),0) s FROM cash
+        WHERE substr(date,1,7)=? AND method='Transferencia' AND type='Gasto'
+    """,(month,)).fetchone()['s']
+
+    module_summary=[]
+
+    modules=[
+        ('General','General'),
+        ('Indumentaria','Indumentaria'),
+        ('Birretes/Estolas','Birretes/Estolas')
+    ]
+
+    for key,title in modules:
+        ing=cur.execute("""
+            SELECT COALESCE(SUM(amount),0) s FROM cash
+            WHERE substr(date,1,7)=?
+            AND type!='Gasto'
+            AND concept LIKE ?
+        """,(month,f'%[{key}]%')).fetchone()['s']
+
+        gas=cur.execute("""
+            SELECT COALESCE(SUM(amount),0) s FROM cash
+            WHERE substr(date,1,7)=?
+            AND type='Gasto'
+            AND concept LIKE ?
+        """,(month,f'%[{key}]%')).fetchone()['s']
+
+        module_summary.append({
+            'name': title,
+            'ingresos': ing or 0,
+            'gastos': gas or 0,
+            'resultado': (ing or 0) - (gas or 0)
+        })
+
+    mod_rows=cur.execute(
+        'SELECT order_module, COUNT(*) c FROM orders WHERE substr(date_taken,1,7)=? GROUP BY order_module',
+        (month,)
+    ).fetchall()
+
+    con.close()
+
+    return render_template(
+        'finance.html',
+        month=month,
+        rows=rows,
+        mod_rows=mod_rows,
+        ingresos=ingresos,
+        gastos=gastos,
+        efectivo_ingresos=efectivo_ingresos,
+        efectivo_gastos=efectivo_gastos,
+        efectivo_neto=efectivo_ingresos-efectivo_gastos,
+        transferencia_ingresos=transferencia_ingresos,
+        transferencia_gastos=transferencia_gastos,
+        transferencia_neto=transferencia_ingresos-transferencia_gastos,
+        module_summary=module_summary
+    )
+    
 @app.route('/finance/day/<date>')
 @login_required
 def finance_day(date):
