@@ -25,8 +25,8 @@
 <label>Escuela<input name="school_name" value="{{order.school_name or ''}}"></label>
 <label>Grado/Año<input name="school_grade" value="{{order.school_grade or ''}}"></label>
 <label>Tipo de tela<input name="fabric_type" value="{{order.fabric_type or ''}}"></label>
-<label>Descuento<input name="discount" type="number" step="0.01" value="{{order.discount or 0}}"></label>
-<label>Seña/abonado<input name="deposit" type="number" step="0.01" value="{{order.deposit or 0}}"></label>
+<label>Descuento<input name="discount" type="number" step="0.01" value="{{order.discount or 0}}" oninput="recalcTotals()"></label>
+<label>Seña/abonado<input name="deposit" type="number" step="0.01" value="{{order.deposit or 0}}" oninput="recalcTotals()"></label>
 </section>
 
 <section class="panel">
@@ -56,35 +56,26 @@
 {% for it in items %}
 <tr>
 <td>{{loop.index}}</td>
-
-<td>
-<input name="article_{{loop.index}}" value="{{it.article}}">
-</td>
-
-<td>
-<input name="name_{{loop.index}}" value="{{it.person_name}}">
-</td>
-
-<td>
-<input class="qtyInput" name="qty_{{loop.index}}" type="number" value="1" oninput="calcGeneral()">
-</td>
-
-<td>
-<input class="priceInput" name="price_{{loop.index}}" type="number" value="{{it.price}}" oninput="calcGeneral()">
-</td>
-
-<td>
-<input class="subtotalItem" type="text" value="{{it.price}}" readonly>
-</td>
-
+<td><input name="article_{{loop.index}}" value="{{it.article}}"></td>
+<td><input name="name_{{loop.index}}" value="{{it.person_name}}"></td>
+<td><input class="qtyInput" name="qty_{{loop.index}}" type="number" step="0.01" value="{{it.qty if it.qty is defined else 1}}" oninput="calcGeneral()"></td>
+<td><input class="priceInput" name="price_{{loop.index}}" type="number" step="0.01" value="{{it.price}}" oninput="calcGeneral()"></td>
+<td><input class="subtotalItem" type="text" value="0" readonly></td>
 </tr>
 {% endfor %}
+{% else %}
+<tr>
+<td>1</td>
+<td><input name="article_1"></td>
+<td><input name="name_1"></td>
+<td><input class="qtyInput" name="qty_1" type="number" step="0.01" value="1" oninput="calcGeneral()"></td>
+<td><input class="priceInput" name="price_1" type="number" step="0.01" value="0" oninput="calcGeneral()"></td>
+<td><input class="subtotalItem" type="text" value="0" readonly></td>
+</tr>
 {% endif %}
 </table>
 
-<button type="button" class="btn" onclick="addGeneralItem()">
-+ Agregar artículo
-</button>
+<button type="button" class="btn" onclick="addGeneralItem()">+ Agregar artículo</button>
 
 {% else %}
 
@@ -102,35 +93,26 @@
 {% for it in items %}
 <tr>
 <td>{{loop.index}}</td>
-
-<td>
-<input name="article_{{loop.index}}" value="{{it.article}}">
-</td>
-
-<td>
-<input name="name_{{loop.index}}" value="{{it.person_name}}">
-</td>
-
-<td>
-<input name="upper_{{loop.index}}" value="{{it.upper_size}}">
-</td>
-
-<td>
-<input name="lower_{{loop.index}}" value="{{it.lower_size}}">
-</td>
-
-<td>
-<input class="itemPrice" name="price_{{loop.index}}" type="number" value="{{it.price}}" oninput="calc()">
-</td>
-
+<td><input name="article_{{loop.index}}" value="{{it.article}}"></td>
+<td><input name="name_{{loop.index}}" value="{{it.person_name}}"></td>
+<td><input name="upper_{{loop.index}}" value="{{it.upper_size}}"></td>
+<td><input name="lower_{{loop.index}}" value="{{it.lower_size}}"></td>
+<td><input class="itemPrice" name="price_{{loop.index}}" type="number" step="0.01" value="{{it.price}}" oninput="calc()"></td>
 </tr>
 {% endfor %}
+{% else %}
+<tr>
+<td>1</td>
+<td><input name="article_1"></td>
+<td><input name="name_1"></td>
+<td><input name="upper_1"></td>
+<td><input name="lower_1"></td>
+<td><input class="itemPrice" name="price_1" type="number" step="0.01" value="0" oninput="calc()"></td>
+</tr>
 {% endif %}
 </table>
 
-<button type="button" class="btn" onclick="addItem()">
-+ Agregar artículo
-</button>
+<button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
 
 {% endif %}
 
@@ -161,99 +143,29 @@ function addItem(){
     <td><input name="name_${n}"></td>
     <td><input name="upper_${n}"></td>
     <td><input name="lower_${n}"></td>
-    <td><input class="itemPrice" name="price_${n}" type="text" value="0" oninput="calc()"></td>
+    <td><input class="itemPrice" name="price_${n}" type="number" step="0.01" value="0" oninput="calc()"></td>
   </tr>
   `);
 
-  function addGeneralItem(){
+  calc();
+}
 
+function addGeneralItem(){
   let n = +document.getElementById('item_count').value + 1;
   document.getElementById('item_count').value = n;
 
   document.getElementById('items').insertAdjacentHTML('beforeend', `
-
   <tr>
-
     <td>${n}</td>
-
-    <td>
-      <input name="article_${n}">
-    </td>
-
-    <td>
-      <input name="name_${n}">
-    </td>
-
-    <td>
-      <input class="qtyInput"
-      name="qty_${n}"
-      type="number"
-      value="1"
-      oninput="calcGeneral()">
-    </td>
-
-    <td>
-      <input class="priceInput"
-      name="price_${n}"
-      type="number"
-      value="0"
-      oninput="calcGeneral()">
-    </td>
-
-    <td>
-      <input class="subtotalItem"
-      type="text"
-      value="0"
-      readonly>
-    </td>
-
+    <td><input name="article_${n}"></td>
+    <td><input name="name_${n}"></td>
+    <td><input class="qtyInput" name="qty_${n}" type="number" step="0.01" value="1" oninput="calcGeneral()"></td>
+    <td><input class="priceInput" name="price_${n}" type="number" step="0.01" value="0" oninput="calcGeneral()"></td>
+    <td><input class="subtotalItem" type="text" value="0" readonly></td>
   </tr>
-
   `);
 
   calcGeneral();
-}
-
-function calcGeneral(){
-
-  let subtotal = 0;
-
-  let rows = document.querySelectorAll('#items tr');
-
-  rows.forEach((row,index)=>{
-
-    if(index===0) return;
-
-    let qty = row.querySelector('.qtyInput');
-    let price = row.querySelector('.priceInput');
-    let subtotalBox = row.querySelector('.subtotalItem');
-
-    if(qty && price && subtotalBox){
-
-      let sub = (parseFloat(qty.value)||0) * (parseFloat(price.value)||0);
-
-      subtotalBox.value = sub.toFixed(2);
-
-      subtotal += sub;
-    }
-
-  });
-
-  let discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
-  let deposit = parseFloat(document.querySelector('[name="deposit"]').value) || 0;
-
-  let total = Math.max(0, subtotal - discount);
-  let balance = Math.max(0, total - deposit);
-
-  document.getElementById('subtotalInput').value = subtotal;
-
-  document.getElementById('subtotalBox').innerText = '$' + subtotal.toFixed(2);
-
-  document.getElementById('totalBox').innerText = '$' + total.toFixed(2);
-
-  document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
-}
-  calc();
 }
 
 function calc(){
@@ -263,8 +175,33 @@ function calc(){
     subtotal += parseFloat(x.value) || 0;
   });
 
+  updateTotals(subtotal);
+}
+
+function calcGeneral(){
+  let subtotal = 0;
+
+  document.querySelectorAll('#items tr').forEach((row,index)=>{
+    if(index === 0) return;
+
+    let qty = row.querySelector('.qtyInput');
+    let price = row.querySelector('.priceInput');
+    let subtotalBox = row.querySelector('.subtotalItem');
+
+    if(qty && price && subtotalBox){
+      let sub = (parseFloat(qty.value) || 0) * (parseFloat(price.value) || 0);
+      subtotalBox.value = sub.toFixed(2);
+      subtotal += sub;
+    }
+  });
+
+  updateTotals(subtotal);
+}
+
+function updateTotals(subtotal){
   let discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
   let deposit = parseFloat(document.querySelector('[name="deposit"]').value) || 0;
+
   let total = Math.max(0, subtotal - discount);
   let balance = Math.max(0, total - deposit);
 
@@ -274,11 +211,15 @@ function calc(){
   document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
 }
 
-if (document.querySelector('.qtyInput')) {
-  calcGeneral();
-} else {
-  calc();
+function recalcTotals(){
+  if(document.querySelector('.qtyInput')){
+    calcGeneral();
+  }else{
+    calc();
+  }
 }
+
+recalcTotals();
 </script>
 
 {% endblock %}
