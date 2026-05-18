@@ -337,14 +337,53 @@ def api_inventory(iid):
 @login_required
 def orders():
     q=(request.args.get('q') or '').strip()
-    con=db()
-    if q:
-        rows=con.execute("SELECT * FROM orders WHERE code LIKE ? OR client_name LIKE ? ORDER BY id DESC",(f'%{q}%',f'%{q}%')).fetchall()
-    else:
-        rows=con.execute('SELECT * FROM orders ORDER BY id DESC').fetchall()
-    con.close()
-    return render_template('orders.html',rows=rows,filter_name='Todos los pedidos',q=q)
+    status=(request.args.get('status') or '').strip()
+    delivery_date=(request.args.get('delivery_date') or '').strip()
+    order_by=(request.args.get('order_by') or 'id_desc').strip()
 
+    con=db()
+
+    where=[]
+    params=[]
+
+    if q:
+        where.append("(code LIKE ? OR client_name LIKE ?)")
+        params.extend([f'%{q}%',f'%{q}%'])
+
+    if status:
+        where.append("status=?")
+        params.append(status)
+
+    if delivery_date:
+        where.append("date_delivery=?")
+        params.append(delivery_date)
+
+    sql="SELECT * FROM orders"
+
+    if where:
+        sql += " WHERE " + " AND ".join(where)
+
+    if order_by == 'delivery_asc':
+        sql += " ORDER BY date_delivery ASC, id DESC"
+    elif order_by == 'delivery_desc':
+        sql += " ORDER BY date_delivery DESC, id DESC"
+    else:
+        sql += " ORDER BY id DESC"
+
+    rows=con.execute(sql,tuple(params)).fetchall()
+
+    con.close()
+
+    return render_template(
+        'orders.html',
+        rows=rows,
+        filter_name='Todos los pedidos',
+        q=q,
+        status=status,
+        delivery_date=delivery_date,
+        order_by=order_by
+    )
+    
 @app.route('/orders/new/general',methods=['GET','POST'])
 @login_required
 def new_general():
