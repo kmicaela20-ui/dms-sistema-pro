@@ -513,11 +513,17 @@ def edit_order(oid):
             name = request.form.get(f'name_{i}') or ''
             upper_size = request.form.get(f'upper_{i}') or ''
             lower_size = request.form.get(f'lower_{i}') or ''
+            qty = money(request.form.get(f'qty_{i}')) or 1
             price = money(request.form.get(f'price_{i}'))
 
             if article or name or upper_size or lower_size or price > 0:
-                subtotal += price
-                item_rows.append((article,name,upper_size,lower_size,price))
+                if order['order_module'] == 'General':
+                    subtotal_item = qty * price
+                    subtotal += subtotal_item
+                    item_rows.append((article,name,qty,price,subtotal_item))
+                else:
+                    subtotal += price
+                    item_rows.append((article,name,upper_size,lower_size,price))
 
         discount = money(request.form.get('discount'))
         total = max(0, subtotal - discount)
@@ -571,13 +577,10 @@ def edit_order(oid):
         if order['order_module'] == 'General':
             cur.execute('DELETE FROM general_items WHERE order_id=?',(oid,))
             for row in item_rows:
-                article,name,upper_size,lower_size,price = row
-                detail = name
-                qty = 1
-                subtotal_item = price
+                article,name,qty,price,subtotal_item = row
                 cur.execute(
                     'INSERT INTO general_items(order_id,inventory_id,product,detail,qty,unit_price,subtotal) VALUES(?,?,?,?,?,?,?)',
-                    (oid,None,article,detail,qty,price,subtotal_item)
+                    (oid,None,article,name,qty,price,subtotal_item)
                 )
 
         elif order['order_module'] == 'Indumentaria':
@@ -592,12 +595,9 @@ def edit_order(oid):
             cur.execute('DELETE FROM grad_items WHERE order_id=?',(oid,))
             for row in item_rows:
                 article,name,upper_size,lower_size,price = row
-                cap_size = upper_size
-                stole_size = lower_size
-                note = article
                 cur.execute(
                     'INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,note,price) VALUES(?,?,?,?,?,?)',
-                    (oid,name,cap_size,stole_size,note,price)
+                    (oid,name,upper_size,lower_size,article,price)
                 )
 
         con.commit()
@@ -608,13 +608,38 @@ def edit_order(oid):
     items=[]
 
     if order['order_module'] == 'General':
-        items=cur.execute('SELECT product AS article, detail AS person_name, unit_price AS price FROM general_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+        items=cur.execute('''
+            SELECT
+            product AS article,
+            detail AS person_name,
+            qty,
+            unit_price AS price,
+            subtotal
+            FROM general_items
+            WHERE order_id=?
+            ORDER BY id
+        ''',(oid,)).fetchall()
 
     elif order['order_module'] == 'Indumentaria':
-        items=cur.execute('SELECT article, person_name, upper_size, lower_size, price FROM apparel_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+        items=cur.execute('''
+            SELECT article, person_name, upper_size, lower_size, price
+            FROM apparel_items
+            WHERE order_id=?
+            ORDER BY id
+        ''',(oid,)).fetchall()
 
     elif order['order_module'] == 'Birretes/Estolas':
-        items=cur.execute('SELECT note AS article, person_name, cap_size AS upper_size, stole_size AS lower_size, price FROM grad_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+        items=cur.execute('''
+            SELECT
+            note AS article,
+            person_name,
+            cap_size AS upper_size,
+            stole_size AS lower_size,
+            price
+            FROM grad_items
+            WHERE order_id=?
+            ORDER BY id
+        ''',(oid,)).fetchall()
 
     con.close()
 
