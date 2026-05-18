@@ -568,12 +568,36 @@ def edit_order(oid):
             oid
         ))
 
-        if order['order_module'] == 'Indumentaria':
+        if order['order_module'] == 'General':
+            cur.execute('DELETE FROM general_items WHERE order_id=?',(oid,))
+            for row in item_rows:
+                article,name,upper_size,lower_size,price = row
+                detail = name
+                qty = 1
+                subtotal_item = price
+                cur.execute(
+                    'INSERT INTO general_items(order_id,inventory_id,product,detail,qty,unit_price,subtotal) VALUES(?,?,?,?,?,?,?)',
+                    (oid,None,article,detail,qty,price,subtotal_item)
+                )
+
+        elif order['order_module'] == 'Indumentaria':
             cur.execute('DELETE FROM apparel_items WHERE order_id=?',(oid,))
             for row in item_rows:
                 cur.execute(
                     'INSERT INTO apparel_items(order_id,article,person_name,upper_size,lower_size,price) VALUES(?,?,?,?,?,?)',
                     (oid,*row)
+                )
+
+        elif order['order_module'] == 'Birretes/Estolas':
+            cur.execute('DELETE FROM grad_items WHERE order_id=?',(oid,))
+            for row in item_rows:
+                article,name,upper_size,lower_size,price = row
+                cap_size = upper_size
+                stole_size = lower_size
+                note = article
+                cur.execute(
+                    'INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,note,price) VALUES(?,?,?,?,?,?)',
+                    (oid,name,cap_size,stole_size,note,price)
                 )
 
         con.commit()
@@ -583,8 +607,14 @@ def edit_order(oid):
 
     items=[]
 
-    if order['order_module'] == 'Indumentaria':
-        items=cur.execute('SELECT * FROM apparel_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+    if order['order_module'] == 'General':
+        items=cur.execute('SELECT product AS article, detail AS person_name, unit_price AS price FROM general_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+
+    elif order['order_module'] == 'Indumentaria':
+        items=cur.execute('SELECT article, person_name, upper_size, lower_size, price FROM apparel_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
+
+    elif order['order_module'] == 'Birretes/Estolas':
+        items=cur.execute('SELECT note AS article, person_name, cap_size AS upper_size, stole_size AS lower_size, price FROM grad_items WHERE order_id=? ORDER BY id',(oid,)).fetchall()
 
     con.close()
 
