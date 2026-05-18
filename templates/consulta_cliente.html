@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Consultar pedido - DMS</title>
+
+<style>
+
+body{
+    font-family:Arial;
+    background:#f4f6f9;
+    margin:0;
+    padding:30px;
+}
+
+.box{
+    max-width:700px;
+    margin:auto;
+    background:white;
+    padding:30px;
+    border-radius:15px;
+    box-shadow:0 0 15px rgba(0,0,0,.1);
+}
+
+h1{
+    text-align:center;
+    color:#111827;
+}
+
+.logo{
+    text-align:center;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:12px;
+    margin-top:10px;
+    border:1px solid #ccc;
+    border-radius:10px;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    margin-top:15px;
+    border:none;
+    border-radius:10px;
+    background:#2563eb;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+}
+
+.estado{
+    margin-top:25px;
+    padding:20px;
+    border-radius:12px;
+    background:#f9fafb;
+}
+
+.ok{
+    color:green;
+    font-weight:bold;
+}
+
+.wait{
+    color:#555;
+}
+
+.info{
+    margin-top:10px;
+    font-size:18px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<div class="logo">
+<h1>DMS Sublimaciones</h1>
+<p>Seguimiento de pedidos</p>
+</div>
+
+<form method="post">
+
+<input
+name="code"
+placeholder="Número de pedido">
+
+<input
+name="phone"
+placeholder="Teléfono del cliente">
+
+<button>
+Consultar pedido
+</button>
+
+</form>
+
+{% if pedido %}
+
+<div class="estado">
+
+<h2>
+Pedido {{pedido.code}}
+</h2>
+
+<div class="info">
+<b>Cliente:</b>
+{{pedido.client_name}}
+</div>
+
+<div class="info">
+<b>Estado actual:</b>
+{{pedido.status}}
+</div>
+
+<div class="info">
+<b>Fecha de entrega:</b>
+{{pedido.date_delivery}}
+</div>
+
+<div class="info">
+<b>Saldo pendiente:</b>
+${{"%.2f"|format(pedido.balance)}}
+</div>
+
+<br>
+
+<div class="ok">✅ Ingreso</div>
+
+<div class="{% if pedido.status in ['En diseño','En producción','Terminado','Entregado'] %}ok{% else %}wait{% endif %}">
+{% if pedido.status in ['En diseño','En producción','Terminado','Entregado'] %}
+✅
+{% else %}
+⬜
+{% endif %}
+En diseño
+</div>
+
+<div class="{% if pedido.status in ['En producción','Terminado','Entregado'] %}ok{% else %}wait{% endif %}">
+{% if pedido.status in ['En producción','Terminado','Entregado'] %}
+✅
+{% else %}
+⬜
+{% endif %}
+En producción
+</div>
+
+<div class="{% if pedido.status in ['Terminado','Entregado'] %}ok{% else %}wait{% endif %}">
+{% if pedido.status in ['Terminado','Entregado'] %}
+✅
+{% else %}
+⬜
+{% endif %}
+Terminado
+</div>
+
+<div class="{% if pedido.status == 'Entregado' %}ok{% else %}wait{% endif %}">
+{% if pedido.status == 'Entregado' %}
+✅
+{% else %}
+⬜
+{% endif %}
+Entregado
+</div>
+
+</div>
+
+{% endif %}
+
+</div>
+
+</body>
+</html>
