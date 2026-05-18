@@ -408,6 +408,39 @@ def orders():
 
     rows=con.execute(sql,tuple(params)).fetchall()
 
+    current_month=today()[:7]
+
+    calendar_orders=con.execute(
+        '''
+        SELECT code, client_name, date_delivery, status
+        FROM orders
+        WHERE substr(date_delivery,1,7)=?
+        ORDER BY date_delivery ASC
+        ''',
+        (current_month,)
+    ).fetchall()
+
+    calendar_days={}
+
+    for o in calendar_orders:
+        d=o['date_delivery']
+        if d:
+            calendar_days.setdefault(d,[]).append(o)
+
+    con.close()
+
+    return render_template(
+        'orders.html',
+        rows=rows,
+        filter_name='Todos los pedidos',
+        q=q,
+        status=status,
+        delivery_date=delivery_date,
+        order_by=order_by,
+        current_month=current_month,
+        calendar_days=calendar_days
+    )
+
     con.close()
 
     return render_template(
