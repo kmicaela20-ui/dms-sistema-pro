@@ -379,7 +379,7 @@ def orders():
 
     con=db()
 
-    where=[]
+    where=["status!='Entregado'"]
     params=[]
 
     if q:
@@ -394,10 +394,7 @@ def orders():
         where.append("date_delivery=?")
         params.append(delivery_date)
 
-    sql="SELECT * FROM orders"
-
-    if where:
-        sql += " WHERE " + " AND ".join(where)
+    sql="SELECT * FROM orders WHERE " + " AND ".join(where)
 
     if order_by == 'delivery_asc':
         sql += " ORDER BY date_delivery ASC, id DESC"
@@ -415,6 +412,7 @@ def orders():
         SELECT code, client_name, date_delivery, status
         FROM orders
         WHERE substr(date_delivery,1,7)=?
+        AND status!='Entregado'
         ORDER BY date_delivery ASC
         ''',
         (current_month,)
@@ -439,18 +437,6 @@ def orders():
         order_by=order_by,
         current_month=current_month,
         calendar_days=calendar_days
-    )
-
-    con.close()
-
-    return render_template(
-        'orders.html',
-        rows=rows,
-        filter_name='Todos los pedidos',
-        q=q,
-        status=status,
-        delivery_date=delivery_date,
-        order_by=order_by
     )
     
 @app.route('/orders/new/general',methods=['GET','POST'])
