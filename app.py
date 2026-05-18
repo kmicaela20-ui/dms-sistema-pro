@@ -208,6 +208,33 @@ def whatsapp_message_for_order(order):
         return f"Hola {name} 👋%0ATu pedido {code} se encuentra en etapa de diseño.%0ATe avisaremos cuando avance.%0A%0ADMS Sublimaciones."
     return f"Hola {name} 👋%0ATe informamos que tu pedido {code} está en estado: {status}.%0ATotal: ${total:.2f}%0ASaldo pendiente: ${balance:.2f}.%0A%0ADMS Sublimaciones."
 
+@app.route('/consulta', methods=['GET','POST'])
+def consulta_cliente():
+
+    pedido=None
+
+    if request.method=='POST':
+
+        code=(request.form.get('code') or '').strip()
+        phone=(request.form.get('phone') or '').strip()
+
+        con=db()
+
+        pedido=con.execute(
+            '''
+            SELECT * FROM orders
+            WHERE code=? AND client_phone=?
+            ''',
+            (code,phone)
+        ).fetchone()
+
+        con.close()
+
+    return render_template(
+        'consulta_cliente.html',
+        pedido=pedido
+    )
+    
 @app.route('/login',methods=['GET','POST'])
 def login():
     if request.method=='POST':
