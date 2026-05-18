@@ -601,7 +601,7 @@ def cash():
     ef,tr,gef,gtr=day_totals(cur,today())
     open_cash=cur.execute("SELECT * FROM cash_sessions WHERE date=? AND status='Abierta' ORDER BY id DESC LIMIT 1",(today(),)).fetchone()
     con.close()
-    return render_template('cash.html',moves=moves,efectivo=ef,transferencia=tr,gastos=gef+gtr,gastos_ef=gef,gastos_tr=gtr,saldo_efectivo=ef-gef,q=q,found=found,open_cash=open_cash)
+    return render_template('cash.html',moves=moves,efectivo=ef,transferencia=tr,gastos=gef+gtr,gastos_ef=gef,gastos_tr=gtr,saldo_efectivo=ef-gef,saldo_transferencia=tr-gtr,q=q,found=found,open_cash=open_cash)
 
 @app.route('/cash/charge/<int:oid>',methods=['POST'])
 @login_required
