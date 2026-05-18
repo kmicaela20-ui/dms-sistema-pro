@@ -166,19 +166,18 @@ def common_order_insert(cur, doc, module, subtotal, extra):
     cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
     oid=cur.lastrowid
 
-if deposit>0:
-    register_cash_payment(
-        cur,
-        oid,
-        code,
-        f'[{module}] Seña',
-        deposit,
-        request.form.get('payment_method'),
-        request.form.get('payment_note')
-    )
+    if deposit>0:
+        register_cash_payment(
+            cur,
+            oid,
+            code,
+            f'[{module}] Seña',
+            deposit,
+            request.form.get('payment_method'),
+            request.form.get('payment_note')
+        )
 
-return oid,code
-
+    return oid,code
 def whatsapp_url(order, msg=None):
     phone=(order['client_phone'] or '').replace(' ','').replace('-','')
     if not phone: return ''
