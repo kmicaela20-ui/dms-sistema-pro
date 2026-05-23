@@ -379,7 +379,7 @@ def orders():
 
     con=db()
 
-    where=["status!='Entregado'"]
+    where=["status!='Entregado'", "document_type='Pedido/Factura'"]
     params=[]
 
     if q:
@@ -413,6 +413,7 @@ def orders():
         FROM orders
         WHERE substr(date_delivery,1,7)=?
         AND status!='Entregado'
+        AND document_type='Pedido/Factura'
         ORDER BY date_delivery ASC
         ''',
         (current_month,)
@@ -437,6 +438,45 @@ def orders():
         order_by=order_by,
         current_month=current_month,
         calendar_days=calendar_days
+    )
+
+
+@app.route('/presupuestos')
+@login_required
+def presupuestos():
+
+    q=(request.args.get('q') or '').strip()
+
+    con=db()
+
+    if q:
+        rows=con.execute(
+            """
+            SELECT *
+            FROM orders
+            WHERE document_type='Presupuesto'
+            AND (code LIKE ? OR client_name LIKE ?)
+            ORDER BY id DESC
+            """,
+            (f'%{q}%',f'%{q}%')
+        ).fetchall()
+
+    else:
+        rows=con.execute(
+            """
+            SELECT *
+            FROM orders
+            WHERE document_type='Presupuesto'
+            ORDER BY id DESC
+            """
+        ).fetchall()
+
+    con.close()
+
+    return render_template(
+        'presupuestos.html',
+        rows=rows,
+        q=q
     )
     
 @app.route('/orders/new/general',methods=['GET','POST'])
