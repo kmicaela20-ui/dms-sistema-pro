@@ -478,6 +478,27 @@ def presupuestos():
         rows=rows,
         q=q
     )
+
+
+@app.route('/presupuestos/<int:oid>/convert', methods=['POST'])
+@login_required
+def convert_presupuesto(oid):
+
+    con=db()
+
+    con.execute(
+        """
+        UPDATE orders
+        SET document_type='Pedido/Factura'
+        WHERE id=?
+        """,
+        (oid,)
+    )
+
+    con.commit()
+    con.close()
+
+    return redirect('/orders')
     
 @app.route('/orders/new/general',methods=['GET','POST'])
 @login_required
