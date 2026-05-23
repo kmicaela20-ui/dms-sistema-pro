@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Presupuestos</h1>
+
+<section class="panel">
+<form method="get" class="searchbar">
+<input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de presupuesto o cliente">
+<button>Buscar</button>
+<a class="btn grey" href="/presupuestos">Limpiar</a>
+</form>
+
+<table>
+<tr>
+<th>Nº</th>
+<th>Cliente</th>
+<th>Entrega</th>
+<th>Total</th>
+<th>Acciones</th>
+</tr>
+
+{% for r in rows %}
+<tr>
+<td>{{r.code}}</td>
+<td>{{r.client_name}}</td>
+<td>{{r.date_delivery}}</td>
+<td>${{"%.2f"|format(r.total)}}</td>
+<td>
+<a href="/orders/{{r.id}}">Ver</a>
+<a href="/orders/{{r.id}}/edit">Editar</a>
+</td>
+</tr>
+{% endfor %}
+</table>
+</section>
+
+{% endblock %}
