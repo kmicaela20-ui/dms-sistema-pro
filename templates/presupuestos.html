@@ -4,13 +4,26 @@
 <h1>Presupuestos</h1>
 
 <section class="panel">
+
 <form method="get" class="searchbar">
-<input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de presupuesto o cliente">
-<button>Buscar</button>
-<a class="btn grey" href="/presupuestos">Limpiar</a>
+
+<input
+name="q"
+value="{{q or ''}}"
+placeholder="Buscar por Nº de presupuesto o cliente">
+
+<button>
+Buscar
+</button>
+
+<a class="btn grey" href="/presupuestos">
+Limpiar
+</a>
+
 </form>
 
 <table>
+
 <tr>
 <th>Nº</th>
 <th>Cliente</th>
@@ -20,18 +33,48 @@
 </tr>
 
 {% for r in rows %}
+
 <tr>
+
 <td>{{r.code}}</td>
+
 <td>{{r.client_name}}</td>
+
 <td>{{r.date_delivery}}</td>
-<td>${{"%.2f"|format(r.total)}}</td>
+
 <td>
-<a href="/orders/{{r.id}}">Ver</a>
-<a href="/orders/{{r.id}}/edit">Editar</a>
+${{"%.2f"|format(r.total)}}
 </td>
+
+<td>
+
+<a href="/orders/{{r.id}}">
+Ver
+</a>
+
+<a href="/orders/{{r.id}}/edit">
+Editar
+</a>
+
+<form method="post"
+      action="/presupuestos/{{r.id}}/convert"
+      style="display:inline;"
+      onsubmit="return confirm('¿Convertir este presupuesto en Pedido/Factura?')">
+
+<button type="submit" class="btn green">
+Convertir
+</button>
+
+</form>
+
+</td>
+
 </tr>
+
 {% endfor %}
+
 </table>
+
 </section>
 
 {% endblock %}
