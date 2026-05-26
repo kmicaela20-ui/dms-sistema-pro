@@ -89,7 +89,7 @@ def init():
     CREATE TABLE IF NOT EXISTS inventory(id INTEGER PRIMARY KEY, sku TEXT, category TEXT, item TEXT, detail TEXT, unit TEXT, cost_price REAL, retail_price REAL, wholesale_price REAL, stock_qty REAL, min_stock REAL, active TEXT);
     CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY, code TEXT, document_type TEXT, order_module TEXT, reception_channel TEXT, client_id INTEGER, client_name TEXT, client_phone TEXT, client_address TEXT, date_taken TEXT, date_delivery TEXT, status TEXT, receptionist TEXT, client_notes TEXT, school_name TEXT, school_grade TEXT, fabric_type TEXT, team_design_notes TEXT, discount REAL, subtotal REAL, total REAL, deposit REAL, balance REAL, payment_method TEXT, payment_note TEXT, created_at TEXT);
     CREATE TABLE IF NOT EXISTS general_items(id INTEGER PRIMARY KEY, order_id INTEGER, inventory_id INTEGER, product TEXT, detail TEXT, qty REAL, unit_price REAL, subtotal REAL);
-    CREATE TABLE IF NOT EXISTS apparel_items(id INTEGER PRIMARY KEY, order_id INTEGER, article TEXT, person_name TEXT, upper_size TEXT, lower_size TEXT, price REAL);
+    CREATE TABLE IF NOT EXISTS apparel_items(id INTEGER PRIMARY KEY, order_id INTEGER, article TEXT, person_name TEXT, number TEXT, upper_size TEXT, lower_size TEXT, price REAL);
     CREATE TABLE IF NOT EXISTS apparel_sponsors(id INTEGER PRIMARY KEY, order_id INTEGER, garment_part TEXT, location TEXT, sponsor_name TEXT, note TEXT);
     CREATE TABLE IF NOT EXISTS grad_items(id INTEGER PRIMARY KEY, order_id INTEGER, person_name TEXT, cap_size TEXT, stole_size TEXT, note TEXT, price REAL);
     CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY, order_id INTEGER, dt TEXT, concept TEXT, amount REAL, method TEXT, note TEXT, user TEXT);
@@ -526,23 +526,72 @@ def new_general():
 @login_required
 def new_indumentaria():
     articles=['Remera sola','Musculosa mujer','Musculosa hombre','Conjunto invierno','Conjunto verano','Chomba pique','Chomba algodon','Buzo full print','Buzo algodon','Campera algodon','Campera full print']
-    sizes=['','4','6','8','10','12','14','16','S','M','L','XL','XXL','XXXL']
+    sizes=['','XS','4','6','8','10','12','14','16','S','M','L','XL','XXL','XXXL']
     upper=['Manga derecha','Manga izquierda','Espalda superior','Espalda inferior','Espalda central','Frente izquierdo','Frente derecho','Frente central','Frente inferior','Hombro derecho','Hombro izquierdo']
     lower=['Frente derecho','Frente izquierdo','Espalda derecho','Espalda izquierdo']
+
     if request.method=='POST':
-        con=db(); cur=con.cursor(); doc=request.form.get('document_type')
-        subtotal=0; item_rows=[]
+        con=db()
+        cur=con.cursor()
+        doc=request.form.get('document_type')
+
+        subtotal=0
+        item_rows=[]
+
         for i in range(1,int(request.form.get('item_count','1'))+1):
-            article=request.form.get(f'article_{i}') or ''; name=request.form.get(f'name_{i}') or ''; upper_size=request.form.get(f'upper_{i}') or ''; lower_size=request.form.get(f'lower_{i}') or ''; price=money(request.form.get(f'price_{i}'))
-            if article or name or upper_size or lower_size or price>0:
-                subtotal+=price; item_rows.append((article,name,upper_size,lower_size,price))
-        oid,code=common_order_insert(cur,doc,'Indumentaria',subtotal,{'fabric_type':request.form.get('fabric_type'),'team_design_notes':request.form.get('team_design_notes')})
-        for row in item_rows: cur.execute('INSERT INTO apparel_items(order_id,article,person_name,upper_size,lower_size,price) VALUES(?,?,?,?,?,?)',(oid,*row))
+            article=request.form.get(f'article_{i}') or ''
+            name=request.form.get(f'name_{i}') or ''
+            number=request.form.get(f'numero_{i}') or ''
+            upper_size=request.form.get(f'upper_{i}') or ''
+            lower_size=request.form.get(f'lower_{i}') or ''
+            price=money(request.form.get(f'price_{i}'))
+
+            if article or name or number or upper_size or lower_size or price>0:
+                subtotal+=price
+                item_rows.append((article,name,number,upper_size,lower_size,price))
+
+        oid,code=common_order_insert(
+            cur,
+            doc,
+            'Indumentaria',
+            subtotal,
+            {
+                'fabric_type':request.form.get('fabric_type'),
+                'team_design_notes':request.form.get('team_design_notes')
+            }
+        )
+
+        for row in item_rows:
+            cur.execute(
+                'INSERT INTO apparel_items(order_id,article,person_name,number,upper_size,lower_size,price) VALUES(?,?,?,?,?,?,?)',
+                (oid,*row)
+            )
+
         for i in range(1,int(request.form.get('sponsor_count','1'))+1):
-            gp=request.form.get(f'sponsor_part_{i}') or ''; loc=request.form.get(f'sponsor_location_{i}') or ''; sp=request.form.get(f'sponsor_name_{i}') or ''; note=request.form.get(f'sponsor_note_{i}') or ''
-            if loc or sp: cur.execute('INSERT INTO apparel_sponsors(order_id,garment_part,location,sponsor_name,note) VALUES(?,?,?,?,?)',(oid,gp,loc,sp,note))
-        con.commit(); con.close(); return redirect(f'/orders/{oid}')
-    return render_template('new_indumentaria.html',today=today(),articles=articles,sizes=sizes,upper_locations=upper,lower_locations=lower)
+            gp=request.form.get(f'sponsor_part_{i}') or ''
+            loc=request.form.get(f'sponsor_location_{i}') or ''
+            sp=request.form.get(f'sponsor_name_{i}') or ''
+            note=request.form.get(f'sponsor_note_{i}') or ''
+
+            if loc or sp:
+                cur.execute(
+                    'INSERT INTO apparel_sponsors(order_id,garment_part,location,sponsor_name,note) VALUES(?,?,?,?,?)',
+                    (oid,gp,loc,sp,note)
+                )
+
+        con.commit()
+        con.close()
+
+        return redirect(f'/orders/{oid}')
+
+    return render_template(
+        'new_indumentaria.html',
+        today=today(),
+        articles=articles,
+        sizes=sizes,
+        upper_locations=upper,
+        lower_locations=lower
+    )
 
 @app.route('/orders/new/egresados',methods=['GET','POST'])
 @login_required
