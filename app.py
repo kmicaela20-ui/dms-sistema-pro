@@ -97,7 +97,7 @@ def init():
     CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
     CREATE TABLE IF NOT EXISTS whatsapp_templates(id INTEGER PRIMARY KEY, status_key TEXT UNIQUE, title TEXT, message TEXT);
     """)
-    try:
+try:
     cur.execute("ALTER TABLE apparel_items ADD COLUMN number TEXT")
 except:
     pass
