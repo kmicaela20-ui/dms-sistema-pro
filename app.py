@@ -96,6 +96,7 @@ def init():
     CREATE TABLE IF NOT EXISTS cash(id INTEGER PRIMARY KEY, date TEXT, dt TEXT, type TEXT, concept TEXT, amount REAL, method TEXT, order_id INTEGER, user TEXT, note TEXT);
     CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
     """)
+    CREATE TABLE IF NOT EXISTS whatsapp_templates(id INTEGER PRIMARY KEY, status_key TEXT UNIQUE, title TEXT, message TEXT);
     try:
     cur.execute("ALTER TABLE apparel_items ADD COLUMN number TEXT")
 except:
@@ -259,10 +260,60 @@ def logout():
 @login_required
 def whatsapp_templates():
 
+    con=db()
+    cur=con.cursor()
+
+    defaults=[
+        ('ingresado','Pedido ingresado','Hola {cliente}, tu pedido #{pedido} fue registrado correctamente. Total: ${total}. Seña: ${deposito}. Saldo: ${saldo}.'),
+        ('diseno','En diseño','Hola {cliente}, tu pedido #{pedido} ya se encuentra en diseño.'),
+        ('produccion','En producción','Hola {cliente}, tu pedido #{pedido} ya pasó a producción.'),
+        ('terminado','Terminado','Hola {cliente}, tu pedido #{pedido} ya está terminado. Saldo pendiente: ${saldo}.'),
+        ('entregado','Entregado','Hola {cliente}, gracias por retirar tu pedido #{pedido}.')
+    ]
+
+    for status_key,title,message in defaults:
+        old=cur.execute(
+            'SELECT * FROM whatsapp_templates WHERE status_key=?',
+            (status_key,)
+        ).fetchone()
+
+        if not old:
+            cur.execute(
+                'INSERT INTO whatsapp_templates(status_key,title,message) VALUES(?,?,?)',
+                (status_key,title,message)
+            )
+
     if request.method=='POST':
+
+        status_key=request.form.get('status_key')
+        title=request.form.get('title')
+        message=request.form.get('message')
+
+        cur.execute(
+            '''
+            UPDATE whatsapp_templates
+            SET title=?, message=?
+            WHERE status_key=?
+            ''',
+            (title,message,status_key)
+        )
+
+        con.commit()
+        con.close()
+
         return redirect('/whatsapp-templates')
 
-    return render_template('whatsapp_templates.html'))
+    rows=cur.execute(
+        'SELECT * FROM whatsapp_templates ORDER BY id'
+    ).fetchall()
+
+    con.commit()
+    con.close()
+
+    return render_template(
+        'whatsapp_templates.html',
+        rows=rows
+    )
     
 @app.route('/')
 @login_required
