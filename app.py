@@ -255,9 +255,14 @@ def login():
 def logout():
     session.clear(); return redirect('/login')
 
-@app.route('/whatsapp-templates')
+@app.route('/whatsapp-templates', methods=['GET','POST'])
+@login_required
 def whatsapp_templates():
-    return render_template('whatsapp_templates.html')
+
+    if request.method=='POST':
+        return redirect('/whatsapp-templates')
+
+    return render_template('whatsapp_templates.html'))
     
 @app.route('/')
 @login_required
