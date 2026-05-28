@@ -81,7 +81,9 @@ def next_inventory_code(cur, category, category_prefix=None):
     return f"{prefix}-{n:03d}"
 
 def init():
-    con=db(); cur=con.cursor()
+    con=db()
+    cur=con.cursor()
+
     cur.executescript("""
     CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, role TEXT, active TEXT);
     CREATE TABLE IF NOT EXISTS clients(id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT);
@@ -97,6 +99,7 @@ def init():
     CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
     CREATE TABLE IF NOT EXISTS whatsapp_templates(id INTEGER PRIMARY KEY, status_key TEXT UNIQUE, title TEXT, message TEXT);
     """)
+
     try:
         cur.execute("ALTER TABLE apparel_items ADD COLUMN number TEXT")
     except:
