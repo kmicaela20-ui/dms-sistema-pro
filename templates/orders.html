@@ -84,15 +84,31 @@ Limpiar
 .calendar-order{
   display:block;
   font-size:10px;
-  background:#eef2ff;
   padding:3px;
   border-radius:4px;
   margin-bottom:3px;
   text-decoration:none;
-  color:#111827;
+  color:white;
   overflow:hidden;
   white-space:nowrap;
   text-overflow:ellipsis;
+  font-weight:bold;
+}
+
+.status-ingreso{
+  background:#eab308;
+}
+
+.status-diseno{
+  background:#2563eb;
+}
+
+.status-produccion{
+  background:#ea580c;
+}
+
+.status-terminado{
+  background:#16a34a;
 }
 
 </style>
@@ -123,9 +139,15 @@ Limpiar
 
           {% if o.status != 'Entregado' %}
 
-          <div class="calendar-order"
-               title="Cliente: {{o.client_name}} | Estado: {{o.status}}">
-            📦 {{o.code}}
+          <div class="calendar-order
+              {% if o.status=='Ingreso' %}status-ingreso{% endif %}
+              {% if o.status=='En diseño' %}status-diseno{% endif %}
+              {% if o.status=='En producción' %}status-produccion{% endif %}
+              {% if o.status=='Terminado' %}status-terminado{% endif %}"
+              title="Cliente: {{o.client_name}} | Estado: {{o.status}}">
+
+            {{o.code}}
+
           </div>
 
           {% endif %}
