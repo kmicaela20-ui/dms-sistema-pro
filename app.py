@@ -104,12 +104,12 @@ def init():
         cur.execute("ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT")
         con.commit()
     except:
-        con.rollback()
+        pass
     try:
         cur.execute("ALTER TABLE orders ADD COLUMN finished_at TEXT")
         con.commit()
     except:
-        con.rollback()
+        pass
     if cur.execute('SELECT COUNT(*) c FROM users').fetchone()['c']==0:
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(os.environ.get('ADMIN_USERNAME','admin'),generate_password_hash(os.environ.get('ADMIN_PASSWORD','admin')),'Admin','Sí'))
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('caja',generate_password_hash('caja123'),'Caja','Sí'))
