@@ -105,6 +105,11 @@ def init():
         con.commit()
     except:
         con.rollback()
+    try:
+        cur.execute("ALTER TABLE orders ADD COLUMN finished_at TEXT")
+        con.commit()
+    except:
+        con.rollback()
     if cur.execute('SELECT COUNT(*) c FROM users').fetchone()['c']==0:
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(os.environ.get('ADMIN_USERNAME','admin'),generate_password_hash(os.environ.get('ADMIN_PASSWORD','admin')),'Admin','Sí'))
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('caja',generate_password_hash('caja123'),'Caja','Sí'))
@@ -696,6 +701,17 @@ def edit_order(oid):
     order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
 
     if request.method=='POST':
+
+        new_status = request.form.get('status')
+
+        finished_at = order['finished_at'] if 'finished_at' in order.keys() else None
+
+        if new_status == 'Terminado' and not finished_at:
+            finished_at = now()
+
+        if new_status != 'Terminado':
+            finished_at = None
+            
         subtotal = 0
         item_rows = []
 
@@ -742,7 +758,8 @@ def edit_order(oid):
             deposit=?,
             balance=?,
             payment_method=?,
-            payment_note=?
+            payment_note=?,
+            finished_at=?
             WHERE id=?
         ''',
         (
@@ -764,6 +781,7 @@ def edit_order(oid):
             balance,
             request.form.get('payment_method'),
             request.form.get('payment_note'),
+            finished_at,
             oid
         ))
 
