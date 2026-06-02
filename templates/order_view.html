@@ -88,6 +88,20 @@ PRESUPUESTO VÁLIDO POR 7 DÍAS HÁBILES
 
 </div>
 
+{% if order.client_notes %}
+
+<div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;">
+
+<b>OBSERVACIONES DEL PEDIDO:</b>
+
+<br><br>
+
+{{order.client_notes}}
+
+</div>
+
+{% endif %}
+
 {% if general %}
 
 <h2>Artículos</h2>
