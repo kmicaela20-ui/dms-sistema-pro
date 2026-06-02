@@ -474,6 +474,27 @@ def orders():
 
     rows=con.execute(sql,tuple(params)).fetchall()
 
+    for r in rows:
+
+        try:
+
+            r['days_finished'] = None
+
+            if r['finished_at']:
+
+               finished = datetime.datetime.fromisoformat(
+                   str(r['finished_at'])
+               )
+
+               days = (
+                   datetime.datetime.now() - finished
+               ).days
+
+               r['days_finished'] = days
+
+        except:
+            pass
+
     current_month=today()[:7]
 
     calendar_orders=con.execute(
