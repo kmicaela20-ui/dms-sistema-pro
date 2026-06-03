@@ -500,7 +500,11 @@ def orders():
                        float(r.get('balance') or 0)
                        * 0.10
                        * weeks_late
-                   )                  
+                   )
+                   r['total_due_today'] = (
+                       float(r.get('balance') or 0)
+                       + float(r.get('late_fee') or 0)
+                   )
 
         except Exception as e:
             print("ERROR days_finished:", e)
