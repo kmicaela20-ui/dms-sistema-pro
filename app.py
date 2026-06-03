@@ -918,7 +918,18 @@ def update_status(oid):
     con=db()
     cur=con.cursor()
 
-    cur.execute('UPDATE orders SET status=? WHERE id=?',(status,oid))
+    if status == 'Terminado':
+
+        cur.execute(
+            'UPDATE orders SET status=?, finished_at=? WHERE id=?',
+            (status, now(), oid)
+        )
+    elif status != 'Terminado':
+        cur.execute(
+            'UPDATE orders SET status=? WHERE id=?',
+            (status, oid)
+        ) 
+        
     con.commit()
 
     order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
