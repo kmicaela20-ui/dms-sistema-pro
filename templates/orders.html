@@ -271,12 +271,12 @@ Limpiar
 
   <td class="actions">
 
-    <a href="/orders/{{r.id}}">
-      Comprobante
+    <a href="/orders/{{r.id}}" title="Comprobante">
+      📄
     </a>
 
-    <a href="/orders/{{r.id}}/edit">
-      Editar
+    <a href="/orders/{{r.id}}/edit" title="Editar pedido">
+      ✏️
     </a>
 
     <form method="post"
@@ -284,20 +284,25 @@ Limpiar
           style="display:inline;"
           onsubmit="return confirm('¿Seguro que querés eliminar este pedido?')">
 
-      <button type="submit" class="btn red">
-        Eliminar
+      <button type="submit"
+              class="btn red"
+              title="Eliminar pedido">
+        🗑️
       </button>
 
     </form>
 
     {% if r.order_module=='Indumentaria' %}
 
-      <a href="/orders/{{r.id}}/workshop" target="_blank">
-        Hoja taller
+      <a href="/orders/{{r.id}}/workshop"
+        target="_blank"
+        title="Hoja de taller">
+        🏭
       </a>
 
-      <a href="/orders/{{r.id}}/edit">
-        Editar taller
+      <a href="/orders/{{r.id}}/edit"
+        title="Editar taller">
+        🧵
       </a>
 
     {% endif %}
