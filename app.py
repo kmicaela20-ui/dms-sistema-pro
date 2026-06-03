@@ -954,7 +954,7 @@ def update_status(oid):
 
     url=whatsapp_url(order,mensaje)
 
-    return redirect(url or '/orders')
+    return redirect('/orders')
 
 @app.route('/orders/<int:oid>/workshop')
 @login_required
