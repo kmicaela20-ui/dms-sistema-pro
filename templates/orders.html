@@ -223,10 +223,14 @@ Limpiar
 {% endif %}
 
 </td>
+      
+<td>
+${{"%.0f"|format(r.late_fee or 0)}}
+</td>
 
   <td>
 
-    <form method="post"
+  <form method="post"
           action="/orders/{{r.id}}/status"
           class="inline">
 
@@ -292,11 +296,7 @@ Limpiar
 
   {% endif %}
 
-  </td>
-        
-  <td>
-  ${{"%.0f"|format(r.late_fee or 0)}}
-  </td>      
+  </td>  
 
   <td class="actions">
 
