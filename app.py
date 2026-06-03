@@ -106,10 +106,11 @@ def init():
     except:
         pass
     try:
-        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT")
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT"))
         con.commit()
-    except:
-        pass
+        print("OK finished_at")
+    except Exception as e:
+        print("ERROR finished_at:", e)
     if cur.execute('SELECT COUNT(*) c FROM users').fetchone()['c']==0:
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(os.environ.get('ADMIN_USERNAME','admin'),generate_password_hash(os.environ.get('ADMIN_PASSWORD','admin')),'Admin','Sí'))
         cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('caja',generate_password_hash('caja123'),'Caja','Sí'))
