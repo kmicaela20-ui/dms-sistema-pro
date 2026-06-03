@@ -176,6 +176,7 @@ Limpiar
   <th>Entrega</th>
   <th>Total</th>
   <th>Saldo</th>
+  <th>Días terminado</th>
   <th>Estado / WhatsApp</th>
   <th>Acciones</th>
 </tr>
@@ -191,6 +192,8 @@ Limpiar
   <td>{{r.date_delivery}}</td>
   <td>${{"%.2f"|format(r.total)}}</td>
   <td class="red">${{"%.2f"|format(r.balance)}}</td>
+
+  <td>{{r.days_finished}}</td>
 
   <td>
 
