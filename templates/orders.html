@@ -178,6 +178,7 @@ Limpiar
   <th>Saldo</th>
   <th>Días terminado</th>
   <th>💰 Recargo</th>
+  <th>💵 Total Hoy</th>
   <th>Estado / WhatsApp</th>
   <th>Acciones</th>
 </tr>
@@ -226,6 +227,9 @@ Limpiar
       
 <td>
 ${{"%.0f"|format(r.late_fee or 0)}}
+</td>
+<td style="font-weight:bold;color:#008000;">
+${{"%.0f"|format(r.total_due_today or 0)}}
 </td>
 
   <td>
