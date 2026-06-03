@@ -195,10 +195,34 @@ Limpiar
   <td class="red">${{"%.2f"|format(r.balance)}}</td>
 
   <td>
-  {{r.days_finished}}
-  <br>
-  {{r.finished_at}}
-  </td>
+
+{% if r.status=='Terminado' and r.days_finished is not none %}
+
+    {% if r.days_finished < 7 %}
+
+        <span style="color:green;font-weight:bold;">
+            ✅ {{r.days_finished}} días
+        </span>
+
+    {% elif r.days_finished < 14 %}
+
+        <span style="color:orange;font-weight:bold;">
+            ⚠️ {{r.days_finished}} días
+        </span>
+
+    {% else %}
+
+        <span style="color:red;font-weight:bold;">
+            🔴 {{r.days_finished}} días
+        </span>
+
+    {% endif %}
+
+{% else %}
+    —
+{% endif %}
+
+</td>
 
   <td>
 
