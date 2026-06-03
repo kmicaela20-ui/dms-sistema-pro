@@ -483,8 +483,6 @@ def orders():
 
             if r.get('finished_at'):
 
-            if r['finished_at']:
-
                finished = datetime.datetime.strptime(
                    str(r['finished_at'])[:19],
                    '%Y-%m-%d %H:%M:%S'
