@@ -491,6 +491,16 @@ def orders():
                r['days_finished'] = (
                    datetime.datetime.now() - finished
                ).days
+                
+               if r['days_finished'] > 7:
+
+                   weeks_late = (r['days_finished'] - 1) // 7
+                   
+                   r['late_fee'] = (
+                       float(r.get('balance') or 0)
+                       * 0.10
+                       * weeks_late
+                   )                  
 
         except Exception as e:
             print("ERROR days_finished:", e)
