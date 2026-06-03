@@ -106,7 +106,7 @@ def init():
     except:
         pass
     try:
-        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT"))
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT")
         con.commit()
         print("OK finished_at")
     except Exception as e:
