@@ -728,7 +728,7 @@ def edit_order(oid):
 
         finished_at = order['finished_at'] if 'finished_at' in order.keys() else None
 
-        if new_status == 'Terminado' and not finished_at:
+        if new_status == 'Terminado':
             finished_at = now()
 
         if new_status != 'Terminado':
