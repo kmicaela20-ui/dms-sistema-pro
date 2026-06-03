@@ -477,24 +477,25 @@ def orders():
 
     for r in rows:
 
+        r['days_finished'] = None
+        
         try:
 
-            r['days_finished'] = None
+            if r.get('finished_at'):
 
             if r['finished_at']:
 
-               finished = datetime.datetime.fromisoformat(
-                   str(r['finished_at'])
+               finished = datetime.datetime.strptime(
+                   str(r['finished_at'])[:19],
+                   '%Y-%m-%d %H:%M:%S'
                )
 
-               days = (
+               r['days_finished'] = (
                    datetime.datetime.now() - finished
                ).days
 
-               r['days_finished'] = days
-
-        except:
-            pass
+        except Exception as e:
+            print("ERROR days_finished:", e)
 
     current_month=today()[:7]
 
