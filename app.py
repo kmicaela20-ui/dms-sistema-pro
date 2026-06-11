@@ -209,19 +209,43 @@ def day_totals(cur, date):
 
 
 def whatsapp_message_for_order(order):
-    status = (order.get('status') or 'Ingreso').strip()
-    code = order.get('code') or ''
-    name = order.get('client_name') or 'cliente'
-    total = float(order.get('total') or 0)
-    balance = float(order.get('balance') or 0)
-    status_low = status.lower()
-    if status_low in ['listo','terminado','entregado']:
-        return f"Hola {name} 👋%0A%0ATu pedido {code} ya está {status}.%0ASaldo pendiente: ${balance:.2f}.%0A%0ADMS Sublimaciones."
-    if status_low in ['producción','produccion','en producción','en produccion']:
-        return f"Hola {name} 👋%0ATe informamos que tu pedido {code} ya está en producción.%0A%0ADMS Sublimaciones."
-    if status_low in ['diseño','diseno','en diseño','en diseno']:
-        return f"Hola {name} 👋%0ATu pedido {code} se encuentra en etapa de diseño.%0ATe avisaremos cuando avance.%0A%0ADMS Sublimaciones."
-    return f"Hola {name} 👋%0ATe informamos que tu pedido {code} está en estado: {status}.%0ATotal: ${total:.2f}%0ASaldo pendiente: ${balance:.2f}.%0A%0ADMS Sublimaciones."
+
+    status = (order.get('status') or '').strip().lower()
+
+    key_map = {
+        'ingreso': 'ingresado',
+        'en diseño': 'diseno',
+        'en diseno': 'diseno',
+        'en producción': 'produccion',
+        'en produccion': 'produccion',
+        'terminado': 'terminado',
+        'entregado': 'entregado'
+    }
+
+    status_key = key_map.get(status, 'ingresado')
+
+    con = db()
+    cur = con.cursor()
+
+    tpl = cur.execute(
+        'SELECT message FROM whatsapp_templates WHERE status_key=?',
+        (status_key,)
+    ).fetchone()
+
+    con.close()
+
+    if not tpl:
+        return "Hola"
+
+    msg = tpl['message']
+
+    msg = msg.replace('{cliente}', str(order.get('client_name') or ''))
+    msg = msg.replace('{pedido}', str(order.get('code') or ''))
+    msg = msg.replace('{total}', f"{float(order.get('total') or 0):.2f}")
+    msg = msg.replace('{deposito}', f"{float(order.get('deposit') or 0):.2f}")
+    msg = msg.replace('{saldo}', f"{float(order.get('balance') or 0):.2f}")
+
+    return urllib.parse.quote(msg)
 
 @app.route('/consulta', methods=['GET','POST'])
 def consulta_cliente():
