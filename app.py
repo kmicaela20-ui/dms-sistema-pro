@@ -818,6 +818,7 @@ def edit_order(oid):
         for i in range(1,count+1):
             article = request.form.get(f'article_{i}') or ''
             name = request.form.get(f'name_{i}') or ''
+            number = request.form.get(f'numero_{i}') or ''
             upper_size = request.form.get(f'upper_{i}') or ''
             lower_size = request.form.get(f'lower_{i}') or ''
             qty = money(request.form.get(f'qty_{i}')) or 1
@@ -830,7 +831,7 @@ def edit_order(oid):
                     item_rows.append((article,name,qty,price,subtotal_item))
                 else:
                     subtotal += price
-                    item_rows.append((article,name,upper_size,lower_size,price))
+                    item_rows.append((article,name,number,upper_size,lower_size,price))
 
         discount = money(request.form.get('discount'))
         total = max(0, subtotal - discount)
@@ -896,7 +897,7 @@ def edit_order(oid):
             cur.execute('DELETE FROM apparel_items WHERE order_id=?',(oid,))
             for row in item_rows:
                 cur.execute(
-                    'INSERT INTO apparel_items(order_id,article,person_name,upper_size,lower_size,price) VALUES(?,?,?,?,?,?)',
+                    'INSERT INTO apparel_items(order_id,article,person_name,number,upper_size,lower_size,price) VALUES(?,?,?,?,?,?,?)',
                     (oid,*row)
                 )
 
