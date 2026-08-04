@@ -47,8 +47,6 @@ Diseño general del equipo
 
 <td>1</td>
 
-<td>1</td>
-
 <td>
 <input type="text"
        id="code_1"
@@ -69,7 +67,9 @@ Diseño general del equipo
 </td>
 
 <td>
-<input type="text" name="numero_1" placeholder="Número">
+<input type="text"
+       name="numero_1"
+       placeholder="Número">
 </td>
 
 <td>
@@ -91,10 +91,11 @@ Diseño general del equipo
 
 <td>
 <input class="itemPrice"
-name="price_1"
-type="text"
-placeholder="Precio"
-oninput="calc()">
+       id="price_1"
+       name="price_1"
+       type="text"
+       placeholder="Precio"
+       oninput="calc()">
 </td>
 
 </tr>
@@ -107,15 +108,20 @@ oninput="calc()">
 
 </section>
 
+
 <section class="panel">
 
 <h2>Ubicación de sponsors</h2>
 
-<input type="hidden" name="sponsor_count" id="sponsor_count" value="1">
+<input type="hidden"
+       name="sponsor_count"
+       id="sponsor_count"
+       value="1">
 
 <table id="sponsors">
 
 <tr>
+<th>#</th>
 <th>Prenda</th>
 <th>Ubicación</th>
 <th>Sponsor</th>
@@ -127,14 +133,18 @@ oninput="calc()">
 <td>1</td>
 
 <td>
-<select name="sponsor_part_1" onchange="setLoc(1)" id="part1">
+<select name="sponsor_part_1"
+        onchange="setLoc(1)"
+        id="part1">
 <option>Prenda superior</option>
 <option>Prenda inferior</option>
 </select>
 </td>
 
 <td>
-<select name="sponsor_location_1" id="loc1"></select>
+<select name="sponsor_location_1"
+        id="loc1">
+</select>
 </td>
 
 <td>
@@ -149,15 +159,20 @@ oninput="calc()">
 
 </table>
 
-<button type="button" class="btn" onclick="addSponsor()">
+<button type="button"
+        class="btn"
+        onclick="addSponsor()">
 + Agregar sponsor
 </button>
 
 </section>
 
-<button class="savebtn">Guardar</button>
+<button class="savebtn">
+Guardar
+</button>
 
 </form>
+
 
 <script>
 
@@ -166,46 +181,78 @@ sizes={{sizes|tojson}},
 upper={{upper_locations|tojson}},
 lower={{lower_locations|tojson}};
 
+
 function options(arr){
-return arr.map(x=>`<option>${x}</option>`).join('')
+    return arr.map(x=>`<option>${x}</option>`).join('')
 }
+
+
+/* =========================
+   BUSCAR PRODUCTO POR CODIGO
+   ========================= */
 
 async function loadCode(n){
 
-    let code = document.getElementById('code_' + n).value.trim();
+    let codeInput = document.getElementById('code_' + n);
+    let articleInput = document.getElementById('article_' + n);
+    let priceInput = document.getElementById('price_' + n);
 
-    if(!code) return;
+    let code = codeInput.value.trim();
+
+    if(!code){
+        articleInput.value = '';
+        priceInput.value = '';
+        calc();
+        return;
+    }
 
     try{
 
-        let r = await fetch('/api/inventory/code/' + encodeURIComponent(code));
+        let r = await fetch(
+            '/api/inventory/code/' + encodeURIComponent(code)
+        );
+
         let p = await r.json();
 
         if(!p || !p.id){
+
             alert('Código no encontrado en inventario');
-            document.getElementById('article_' + n).value = '';
-            document.getElementById('price_' + n).value = '';
+
+            articleInput.value = '';
+            priceInput.value = '';
+
             calc();
             return;
         }
 
-        document.getElementById('article_' + n).value = p.item || '';
-        document.getElementById('price_' + n).value = p.retail_price || 0;
+        articleInput.value = p.item || '';
+        priceInput.value = p.retail_price || 0;
 
         calc();
 
     }catch(error){
+
         alert('Error al buscar el código');
+
         console.error(error);
+
     }
 }
-  
+
+
+/* =========================
+   AGREGAR ARTICULO
+   ========================= */
+
 function addItem(){
 
-let n=+item_count.value+1;
-item_count.value=n;
+    let n = +document.getElementById('item_count').value + 1;
 
-items.insertAdjacentHTML('beforeend',`
+    document.getElementById('item_count').value = n;
+
+    document.getElementById('items').insertAdjacentHTML(
+        'beforeend',
+        `
 
 <tr>
 
@@ -260,29 +307,43 @@ ${options(sizes)}
 
 </tr>
 
-`)
+`
+    );
+
 }
+
+
+/* =========================
+   AGREGAR SPONSOR
+   ========================= */
 
 function addSponsor(){
 
-let n=+sponsor_count.value+1;
-sponsor_count.value=n;
+    let n = +document.getElementById('sponsor_count').value + 1;
 
-sponsors.insertAdjacentHTML('beforeend',`
+    document.getElementById('sponsor_count').value = n;
+
+    document.getElementById('sponsors').insertAdjacentHTML(
+        'beforeend',
+        `
 
 <tr>
 
 <td>${n}</td>
 
 <td>
-<select name="sponsor_part_${n}" onchange="setLoc(${n})" id="part${n}">
+<select name="sponsor_part_${n}"
+        onchange="setLoc(${n})"
+        id="part${n}">
 <option>Prenda superior</option>
 <option>Prenda inferior</option>
 </select>
 </td>
 
 <td>
-<select name="sponsor_location_${n}" id="loc${n}"></select>
+<select name="sponsor_location_${n}"
+        id="loc${n}">
+</select>
 </td>
 
 <td>
@@ -295,48 +356,67 @@ sponsors.insertAdjacentHTML('beforeend',`
 
 </tr>
 
-`);
+`
+    );
 
-setLoc(n)
+    setLoc(n);
 
 }
+
+
+/* =========================
+   UBICACIONES SPONSOR
+   ========================= */
 
 function setLoc(n){
 
-let arr=document.getElementById('part'+n).value==='Prenda superior'
-? upper
-: lower;
+    let arr =
+        document.getElementById('part'+n).value === 'Prenda superior'
+        ? upper
+        : lower;
 
-document.getElementById('loc'+n).innerHTML=options(arr)
+    document.getElementById('loc'+n).innerHTML =
+        options(arr);
 
 }
+
+
+/* =========================
+   CALCULAR TOTAL
+   ========================= */
 
 function calc(){
 
-let st=0;
+    let st = 0;
 
-document.querySelectorAll('.itemPrice').forEach(
-x=>st+=+x.value||0
-);
+    document.querySelectorAll('.itemPrice').forEach(
+        x => st += +x.value || 0
+    );
 
-let d=+discount.value||0;
+    let d = +discount.value || 0;
 
-let t=Math.max(0,st-d);
+    let t = Math.max(0, st-d);
 
-let dep=(document_type.value==='Presupuesto')
-? 0
-: (+deposit.value||0);
+    let dep =
+        (document_type.value === 'Presupuesto')
+        ? 0
+        : (+deposit.value || 0);
 
-if(document_type.value==='Presupuesto')
-deposit.value=0;
+    if(document_type.value === 'Presupuesto'){
+        deposit.value = 0;
+    }
 
-subtotalBox.innerText='$'+st.toFixed(2);
+    subtotalBox.innerText =
+        '$' + st.toFixed(2);
 
-totalBox.innerText='$'+t.toFixed(2);
+    totalBox.innerText =
+        '$' + t.toFixed(2);
 
-balanceBox.innerText='$'+Math.max(0,t-dep).toFixed(2)
+    balanceBox.innerText =
+        '$' + Math.max(0,t-dep).toFixed(2);
 
 }
+
 
 setLoc(1);
 
