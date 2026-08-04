@@ -502,6 +502,20 @@ def api_inventory(iid):
     con=db(); r=con.execute('SELECT * FROM inventory WHERE id=?',(iid,)).fetchone(); con.close()
     return jsonify(dict(r) if r else {})
 
+
+@app.route('/api/inventory/code/<string:code>')
+@login_required
+def api_inventory_code(code):
+    con = db()
+    cur = con.cursor()
+    item = cur.execute(
+        'SELECT * FROM inventory WHERE UPPER(code)=UPPER(?)',
+        (code.strip(),)
+    ).fetchone()
+    con.close()
+    return jsonify(dict(item) if item else {})
+
+
 @app.route('/orders')
 @login_required
 def orders():
