@@ -438,6 +438,45 @@ def inventory_category_add():
     con.close()
     return redirect('/inventory')
 
+@app.route('/inventory/category/<int:cid>/delete', methods=['POST'])
+@role_required('Admin')
+def inventory_category_delete(cid):
+    con = db()
+    cur = con.cursor()
+
+    categoria = cur.execute(
+        'SELECT * FROM inventory_categories WHERE id=?',
+        (cid,)
+    ).fetchone()
+
+    if not categoria:
+        con.close()
+        flash('La categoría no existe.')
+        return redirect('/inventory')
+
+    articulos = cur.execute(
+        "SELECT COUNT(*) c FROM inventory WHERE category=? AND active!='No'",
+        (categoria['name'],)
+    ).fetchone()['c']
+
+    if articulos > 0:
+        con.close()
+        flash(
+            f"No se puede eliminar la categoría {categoria['name']} porque tiene {articulos} artículo(s) cargado(s)."
+        )
+        return redirect('/inventory')
+
+    cur.execute(
+        'DELETE FROM inventory_categories WHERE id=?',
+        (cid,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash('Categoría eliminada correctamente.')
+    return redirect('/inventory')
+
 @app.route('/inventory/<int:iid>/delete',methods=['POST'])
 @role_required('Admin')
 def inventory_delete(iid):
