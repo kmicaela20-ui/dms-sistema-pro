@@ -508,11 +508,15 @@ def api_inventory(iid):
 def api_inventory_code(code):
     con = db()
     cur = con.cursor()
-    item = cur.execute(
-        'SELECT * FROM inventory WHERE UPPER(code)=UPPER(?)',
+
+    cur.execute(
+        'SELECT * FROM inventory WHERE UPPER(code)=UPPER(%s)',
         (code.strip(),)
-    ).fetchone()
+    )
+
+    item = cur.fetchone()
     con.close()
+
     return jsonify(dict(item) if item else {})
 
 
