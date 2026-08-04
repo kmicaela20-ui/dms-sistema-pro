@@ -84,6 +84,7 @@
 <th>#</th>
 <th>Artículo</th>
 <th>Nombre / Detalle</th>
+<th>Número</th>
 <th>Talle superior</th>
 <th>Talle inferior</th>
 <th>Precio</th>
@@ -95,6 +96,7 @@
 <td>{{loop.index}}</td>
 <td><input name="article_{{loop.index}}" value="{{it.article}}"></td>
 <td><input name="name_{{loop.index}}" value="{{it.person_name}}"></td>
+<td><input name="numero_{{loop.index}}" value="{{it.number or ''}}"></td>
 <td><input name="upper_{{loop.index}}" value="{{it.upper_size}}"></td>
 <td><input name="lower_{{loop.index}}" value="{{it.lower_size}}"></td>
 <td><input class="itemPrice" name="price_{{loop.index}}" type="number" step="0.01" value="{{it.price}}" oninput="calc()"></td>
@@ -105,6 +107,7 @@
 <td>1</td>
 <td><input name="article_1"></td>
 <td><input name="name_1"></td>
+<td><input name="numero_1" placeholder="Número"></td>
 <td><input name="upper_1"></td>
 <td><input name="lower_1"></td>
 <td><input class="itemPrice" name="price_1" type="number" step="0.01" value="0" oninput="calc()"></td>
@@ -141,6 +144,7 @@ function addItem(){
     <td>${n}</td>
     <td><input name="article_${n}"></td>
     <td><input name="name_${n}"></td>
+    <td><input name="numero_${n}" placeholder="Número"></td>
     <td><input name="upper_${n}"></td>
     <td><input name="lower_${n}"></td>
     <td><input class="itemPrice" name="price_${n}" type="number" step="0.01" value="0" oninput="calc()"></td>
