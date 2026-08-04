@@ -1,7 +1,273 @@
-{% extends "base.html" %}{% import "form_parts.html" as parts %}{% block content %}<h1>Nuevo Pedido General</h1><form method="post" enctype="multipart/form-data">{{ parts.common_fields(today) }}<section class="panel"><h2>Artículos</h2><table><tr><th>#</th><th>Producto</th><th>Detalle</th><th>Cantidad</th><th>Precio</th><th>Subtotal</th></tr>{% for i in range(1,16) %}<tr class="itemRow" style="{% if i>1 %}display:none{% endif %}"><td>{{i}}</td><td><select name="inv_id_{{i}}" id="inv{{i}}" onchange="loadInv({{i}})"><option value="">Elegir</option>{% for p in inv %}<option value="{{p.id}}">{{p.sku}} — {{p.item}}</option>{% endfor %}</select><input name="product_{{i}}" id="prod{{i}}" placeholder="Manual"></td><td><input name="detail_{{i}}" id="det{{i}}"></td><td><input id="qty{{i}}" name="qty_{{i}}" type="number" value="0" step="0.01" oninput="calc()"></td><td><input id="price{{i}}" name="price_{{i}}" type="number" value="0" step="0.01" oninput="calc()"></td><td id="sub{{i}}">$0</td></tr>{% endfor %}</table><button type="button" onclick="addRow()" class="btn">+ Agregar artículo</button></section>
+{% extends "base.html" %}
+{% import "form_parts.html" as parts %}
+{% block content %}
+
+<h1>Nuevo Pedido General</h1>
+
+<form method="post" enctype="multipart/form-data">
+
+{{ parts.common_fields(today) }}
+
 <section class="panel">
-<h2>Archivos / diseños del pedido</h2>
-<label>Subir logos, imágenes o diseños<input type="file" name="design_files" multiple accept="image/*,.pdf,.ai,.cdr,.psd,.svg"></label>
-<small>Estos archivos quedarán guardados dentro del pedido para producción.</small>
+<h2>Artículos</h2>
+
+<table>
+<tr>
+<th>#</th>
+<th>Código</th>
+<th>Producto</th>
+<th>Detalle</th>
+<th>Cantidad</th>
+<th>Precio</th>
+<th>Subtotal</th>
+</tr>
+
+{% for i in range(1,16) %}
+<tr class="itemRow" style="{% if i>1 %}display:none{% endif %}">
+
+<td>{{i}}</td>
+
+<td>
+<input
+    type="text"
+    id="code{{i}}"
+    placeholder="Ej: REM-001"
+    oninput="buscarCodigo({{i}})"
+    onblur="buscarCodigo({{i}})"
+    autocomplete="off">
+</td>
+
+<td>
+<select
+    name="inv_id_{{i}}"
+    id="inv{{i}}"
+    onchange="loadInv({{i}})">
+
+<option value="">Elegir</option>
+
+{% for p in inv %}
+<option
+    value="{{p.id}}"
+    data-sku="{{p.sku}}">
+    {{p.sku}} — {{p.item}}
+</option>
+{% endfor %}
+
+</select>
+
+<input
+    name="product_{{i}}"
+    id="prod{{i}}"
+    placeholder="Manual">
+</td>
+
+<td>
+<input
+    name="detail_{{i}}"
+    id="det{{i}}">
+</td>
+
+<td>
+<input
+    id="qty{{i}}"
+    name="qty_{{i}}"
+    type="number"
+    value="0"
+    step="0.01"
+    oninput="calc()">
+</td>
+
+<td>
+<input
+    id="price{{i}}"
+    name="price_{{i}}"
+    type="number"
+    value="0"
+    step="0.01"
+    oninput="calc()">
+</td>
+
+<td id="sub{{i}}">$0.00</td>
+
+</tr>
+{% endfor %}
+
+</table>
+
+<button type="button" onclick="addRow()" class="btn">
++ Agregar artículo
+</button>
+
 </section>
-<button class="savebtn">Guardar</button></form><script>let row=1;function addRow(){if(row<15){row++;document.querySelectorAll('.itemRow')[row-1].style.display='table-row'}}async function loadInv(i){let id=document.getElementById('inv'+i).value;if(!id)return;let r=await fetch('/api/inventory/'+id);let p=await r.json();document.getElementById('prod'+i).value=p.item||'';document.getElementById('det'+i).value=p.detail||'';document.getElementById('price'+i).value=p.retail_price||0;calc()}function calc(){let st=0;for(let i=1;i<=15;i++){let q=+document.getElementById('qty'+i).value||0,p=+document.getElementById('price'+i).value||0,s=q*p;st+=s;document.getElementById('sub'+i).innerText='$'+s.toFixed(2)}let d=+discount.value||0,t=Math.max(0,st-d),dep=(document_type.value==='Presupuesto')?0:(+deposit.value||0);if(document_type.value==='Presupuesto')deposit.value=0;subtotalBox.innerText='$'+st.toFixed(2);totalBox.innerText='$'+t.toFixed(2);balanceBox.innerText='$'+Math.max(0,t-dep).toFixed(2)}calc()</script>{% endblock %}
+
+
+<section class="panel">
+
+<h2>Archivos / diseños del pedido</h2>
+
+<label>
+Subir logos, imágenes o diseños
+<input
+    type="file"
+    name="design_files"
+    multiple
+    accept="image/*,.pdf,.ai,.cdr,.psd,.svg">
+</label>
+
+<small>
+Estos archivos quedarán guardados dentro del pedido para producción.
+</small>
+
+</section>
+
+
+<button class="savebtn">Guardar</button>
+
+</form>
+
+
+<script>
+
+let row = 1;
+
+function addRow(){
+
+    if(row < 15){
+
+        row++;
+
+        document.querySelectorAll('.itemRow')[row-1].style.display='table-row';
+
+    }
+
+}
+
+
+/* BUSCAR PRODUCTO POR CÓDIGO */
+
+function buscarCodigo(i){
+
+    let codigo = document
+        .getElementById('code'+i)
+        .value
+        .trim()
+        .toUpperCase();
+
+    if(!codigo) return;
+
+    let select = document.getElementById('inv'+i);
+
+    let encontrado = false;
+
+    for(let opcion of select.options){
+
+        let sku = (opcion.dataset.sku || '')
+            .trim()
+            .toUpperCase();
+
+        if(sku === codigo){
+
+            select.value = opcion.value;
+
+            encontrado = true;
+
+            loadInv(i);
+
+            break;
+
+        }
+
+    }
+
+}
+
+
+/* CARGAR PRODUCTO DESDE INVENTARIO */
+
+async function loadInv(i){
+
+    let select = document.getElementById('inv'+i);
+
+    let id = select.value;
+
+    if(!id) return;
+
+    let opcion = select.options[select.selectedIndex];
+
+    if(opcion && opcion.dataset.sku){
+
+        document.getElementById('code'+i).value =
+            opcion.dataset.sku;
+
+    }
+
+    let r = await fetch('/api/inventory/'+id);
+
+    let p = await r.json();
+
+    document.getElementById('prod'+i).value =
+        p.item || '';
+
+    document.getElementById('det'+i).value =
+        p.detail || '';
+
+    document.getElementById('price'+i).value =
+        p.retail_price || 0;
+
+    calc();
+
+}
+
+
+/* CALCULAR TOTALES */
+
+function calc(){
+
+    let st = 0;
+
+    for(let i=1;i<=15;i++){
+
+        let q =
+            +document.getElementById('qty'+i).value || 0;
+
+        let p =
+            +document.getElementById('price'+i).value || 0;
+
+        let s = q * p;
+
+        st += s;
+
+        document.getElementById('sub'+i).innerText =
+            '$' + s.toFixed(2);
+
+    }
+
+    let d = +discount.value || 0;
+
+    let t = Math.max(0,st-d);
+
+    let dep =
+        (document_type.value === 'Presupuesto')
+        ? 0
+        : (+deposit.value || 0);
+
+    if(document_type.value === 'Presupuesto'){
+        deposit.value = 0;
+    }
+
+    subtotalBox.innerText =
+        '$' + st.toFixed(2);
+
+    totalBox.innerText =
+        '$' + t.toFixed(2);
+
+    balanceBox.innerText =
+        '$' + Math.max(0,t-dep).toFixed(2);
+
+}
+
+calc();
+
+</script>
+
+{% endblock %}
