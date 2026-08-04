@@ -17,7 +17,33 @@
 <button>Guardar categoría</button>
 </form>
 </section>
+<section class="panel">
+<h2>Categorías cargadas</h2>
 
+<table>
+<tr>
+<th>Categoría</th>
+<th>Código</th>
+<th>Acciones</th>
+</tr>
+
+{% for c in categories %}
+<tr>
+<td><b>{{c.name}}</b></td>
+<td>{{c.code}}</td>
+<td class="actions">
+<form method="post"
+      action="/inventory/category/{{c.id}}/delete"
+      onsubmit="return confirm('¿Seguro que deseas eliminar la categoría {{c.name}}?')"
+      style="display:inline">
+<button class="danger" type="submit">🗑️ Eliminar</button>
+</form>
+</td>
+</tr>
+{% endfor %}
+
+</table>
+</section>
 <section class="panel">
 <h2>Agregar artículo</h2>
 <form method="post" class="formgrid">
