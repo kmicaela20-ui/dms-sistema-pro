@@ -34,6 +34,7 @@ Diseño general del equipo
 
 <tr>
 <th>#</th>
+<th>Código</th>
 <th>Artículo</th>
 <th>Nombre</th>
 <th>Número</th>
@@ -46,12 +47,21 @@ Diseño general del equipo
 
 <td>1</td>
 
+<td>1</td>
+
 <td>
-<select name="article_1">
-{% for a in articles %}
-<option>{{a}}</option>
-{% endfor %}
-</select>
+<input type="text"
+       id="code_1"
+       name="code_1"
+       placeholder="Código"
+       onchange="loadCode(1)">
+</td>
+
+<td>
+<input type="text"
+       id="article_1"
+       name="article_1"
+       readonly>
 </td>
 
 <td>
@@ -160,6 +170,36 @@ function options(arr){
 return arr.map(x=>`<option>${x}</option>`).join('')
 }
 
+async function loadCode(n){
+
+    let code = document.getElementById('code_' + n).value.trim();
+
+    if(!code) return;
+
+    try{
+
+        let r = await fetch('/api/inventory/code/' + encodeURIComponent(code));
+        let p = await r.json();
+
+        if(!p || !p.id){
+            alert('Código no encontrado en inventario');
+            document.getElementById('article_' + n).value = '';
+            document.getElementById('price_' + n).value = '';
+            calc();
+            return;
+        }
+
+        document.getElementById('article_' + n).value = p.item || '';
+        document.getElementById('price_' + n).value = p.retail_price || 0;
+
+        calc();
+
+    }catch(error){
+        alert('Error al buscar el código');
+        console.error(error);
+    }
+}
+  
 function addItem(){
 
 let n=+item_count.value+1;
@@ -172,9 +212,18 @@ items.insertAdjacentHTML('beforeend',`
 <td>${n}</td>
 
 <td>
-<select name="article_${n}">
-${options(articles)}
-</select>
+<input type="text"
+       id="code_${n}"
+       name="code_${n}"
+       placeholder="Código"
+       onchange="loadCode(${n})">
+</td>
+
+<td>
+<input type="text"
+       id="article_${n}"
+       name="article_${n}"
+       readonly>
 </td>
 
 <td>
@@ -182,7 +231,9 @@ ${options(articles)}
 </td>
 
 <td>
-<input type="text" name="numero_${n}" placeholder="Número">
+<input type="text"
+       name="numero_${n}"
+       placeholder="Número">
 </td>
 
 <td>
@@ -200,10 +251,11 @@ ${options(sizes)}
 
 <td>
 <input class="itemPrice"
-name="price_${n}"
-type="text"
-placeholder="Precio"
-oninput="calc()">
+       id="price_${n}"
+       name="price_${n}"
+       type="text"
+       placeholder="Precio"
+       oninput="calc()">
 </td>
 
 </tr>
