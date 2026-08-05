@@ -598,6 +598,23 @@ def orders():
 
     for r in rows:
 
+                # Saldo real para pedidos de Egresaditos
+        if r.get('order_module') == 'Egresaditos':
+            payment_row = con.execute(
+                '''
+                SELECT COALESCE(SUM(amount), 0) AS total_paid
+                FROM egresaditos_payments
+                WHERE order_id=?
+                ''',
+                (r['id'],)
+            ).fetchone()
+
+            total_paid = float(payment_row['total_paid'] or 0)
+            total_order = float(r.get('total') or 0)
+
+            r['deposit'] = total_paid
+            r['balance'] = max(total_order - total_paid, 0)
+            
         r['days_finished'] = None
         
         try:
