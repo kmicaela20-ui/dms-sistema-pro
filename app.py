@@ -1163,7 +1163,6 @@ def new_egresaditos():
 
         except Exception as e:
 
-            con.rollback()
             con.close()
 
             print(
