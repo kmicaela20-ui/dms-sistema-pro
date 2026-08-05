@@ -1225,9 +1225,49 @@ def view_order(oid):
     general=con.execute('SELECT * FROM general_items WHERE order_id=?',(oid,)).fetchall()
     apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
     sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
-    grads=con.execute('SELECT * FROM grad_items WHERE order_id=?',(oid,)).fetchall()
+        grads = con.execute(
+        'SELECT * FROM grad_items WHERE order_id=?',
+        (oid,)
+    ).fetchall()
+
+    # Datos especiales para comprobante de Egresaditos
+    students = []
+    egresaditos_payments = []
+
+    if order['order_module'] == 'Egresaditos':
+
+        students = con.execute(
+            '''
+            SELECT *
+            FROM egresaditos_students
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
+        egresaditos_payments = con.execute(
+            '''
+            SELECT *
+            FROM egresaditos_payments
+            WHERE order_id=?
+            ORDER BY payment_date, id
+            ''',
+            (oid,)
+        ).fetchall()
+
     con.close()
-    return render_template('order_view.html',order=order,general=general,apparel=apparel,sponsors=sponsors,grads=grads,wa=whatsapp_url(order),business_phone=PHONE)
+
+    return render_template(
+        'order_view.html',
+        order=order,
+        general=general,
+        apparel=apparel,
+        sponsors=sponsors,
+        grads=grads,
+        students=students,
+        egresaditos_payments=egresaditos_payments
+    )
 
 @app.route('/orders/<int:oid>/edit',methods=['GET','POST'])
 @login_required
