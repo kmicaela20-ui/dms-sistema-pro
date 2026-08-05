@@ -1373,6 +1373,39 @@ def edit_order(oid):
             ORDER BY id
         ''',(oid,)).fetchall()
 
+    elif order['order_module'] == 'Egresaditos':
+
+        students = cur.execute('''
+            SELECT *
+            FROM egresaditos_students
+            WHERE order_id=?
+            ORDER BY id
+        ''', (oid,)).fetchall()
+
+        installments = cur.execute('''
+            SELECT *
+            FROM egresaditos_installments
+            WHERE order_id=?
+            ORDER BY installment_number
+        ''', (oid,)).fetchall()
+
+        payments = cur.execute('''
+            SELECT *
+            FROM egresaditos_payments
+            WHERE order_id=?
+            ORDER BY id
+        ''', (oid,)).fetchall()
+
+        con.close()
+
+        return render_template(
+            'edit_egresaditos.html',
+            order=order,
+            students=students,
+            installments=installments,
+            payments=payments
+        )
+        
     con.close()
 
     return render_template('edit_order.html',order=order,items=items)
