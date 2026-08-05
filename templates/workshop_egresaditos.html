@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Hoja de Taller - {{ order['code'] }}</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: Arial, sans-serif;
+        margin: 25px;
+        color: #111;
+        background: white;
+    }
+
+    .top-actions {
+        margin-bottom: 20px;
+    }
+
+    .btn {
+        display: inline-block;
+        padding: 10px 18px;
+        background: #1769ff;
+        color: white;
+        text-decoration: none;
+        border: none;
+        border-radius: 7px;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        border-bottom: 3px solid #111;
+        padding-bottom: 15px;
+        margin-bottom: 20px;
+    }
+
+    .header h1 {
+        margin: 0 0 6px 0;
+        font-size: 26px;
+    }
+
+    .header h2 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: normal;
+    }
+
+    .order-code {
+        text-align: right;
+        font-size: 18px;
+        font-weight: bold;
+    }
+
+    .info {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 30px;
+        margin-bottom: 25px;
+        font-size: 15px;
+    }
+
+    .info div {
+        padding: 4px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 13px;
+    }
+
+    th {
+        background: #eeeeee;
+        border: 1px solid #333;
+        padding: 9px 6px;
+        text-align: center;
+    }
+
+    td {
+        border: 1px solid #333;
+        padding: 9px 6px;
+        vertical-align: middle;
+    }
+
+    .center {
+        text-align: center;
+    }
+
+    .student {
+        font-weight: bold;
+    }
+
+    .summary {
+        margin-top: 18px;
+        font-size: 15px;
+    }
+
+    .notes {
+        margin-top: 25px;
+        border: 1px solid #555;
+        min-height: 90px;
+        padding: 10px;
+    }
+
+    .notes h3 {
+        margin: 0 0 10px 0;
+        font-size: 15px;
+    }
+
+    @media print {
+
+        body {
+            margin: 10mm;
+        }
+
+        .top-actions {
+            display: none;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 8mm;
+        }
+
+        table {
+            font-size: 11px;
+        }
+
+        th, td {
+            padding: 6px 4px;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
+    }
+</style>
+
+</head>
+
+<body>
+
+<div class="top-actions">
+    <button class="btn" onclick="window.print()">
+        🖨️ Imprimir hoja taller
+    </button>
+
+    <a class="btn" href="/orders/{{ order['id'] }}">
+        ← Volver al pedido
+    </a>
+</div>
+
+
+<div class="header">
+
+    <div>
+        <h1>DMS Sublimaciones</h1>
+        <h2>HOJA DE TALLER — EGRESADITOS</h2>
+    </div>
+
+    <div class="order-code">
+        PEDIDO<br>
+        {{ order['code'] }}
+    </div>
+
+</div>
+
+
+<div class="info">
+
+    <div>
+        <strong>Cliente:</strong>
+        {{ order['client_name'] or '-' }}
+    </div>
+
+    <div>
+        <strong>Teléfono:</strong>
+        {{ order['client_phone'] or '-' }}
+    </div>
+
+    <div>
+        <strong>Fecha de entrega:</strong>
+        {{ order['date_delivery'] or '-' }}
+    </div>
+
+    <div>
+        <strong>Estado:</strong>
+        {{ order['status'] or '-' }}
+    </div>
+
+</div>
+
+
+<h2>Listado de alumnos / Producción</h2>
+
+<table>
+
+<thead>
+<tr>
+    <th style="width:4%;">N°</th>
+    <th style="width:20%;">ALUMNO</th>
+    <th style="width:17%;">PRENDA</th>
+    <th style="width:11%;">TALLE CHOMBA</th>
+    <th style="width:11%;">TALLE CAMPERA</th>
+    <th style="width:27%;">DETALLE</th>
+    <th style="width:10%;">CONTROL</th>
+</tr>
+</thead>
+
+<tbody>
+
+{% for student in students %}
+
+<tr>
+
+    <td class="center">
+        {{ loop.index }}
+    </td>
+
+    <td class="student">
+        {{ student['student_name'] or '-' }}
+    </td>
+
+    <td>
+        {{ student['garment_name'] or '-' }}
+    </td>
+
+    <td class="center">
+        {{ student['shirt_size'] or '-' }}
+    </td>
+
+    <td class="center">
+        {{ student['jacket_size'] or '-' }}
+    </td>
+
+    <td>
+        {{ student['detail'] or '-' }}
+    </td>
+
+    <td class="center">
+        ☐
+    </td>
+
+</tr>
+
+{% endfor %}
+
+</tbody>
+
+</table>
+
+
+<div class="summary">
+    <strong>Total de alumnos:</strong> {{ students|length }}
+</div>
+
+
+<div class="notes">
+
+    <h3>OBSERVACIONES DEL TALLER</h3>
+
+    ___________________________________________________________________________
+
+    <br><br>
+
+    ___________________________________________________________________________
+
+</div>
+
+
+</body>
+</html>
