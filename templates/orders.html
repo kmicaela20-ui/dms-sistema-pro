@@ -7,6 +7,7 @@
   <a href="/orders/new/general">📦 Nuevo General</a>
   <a href="/orders/new/indumentaria">👕 Nueva Indumentaria</a>
   <a href="/orders/new/egresados">🎓 Nuevo Birrete/Estola</a>
+  <a href="/orders/new/egresaditos">🎒 Nuevo Egresaditos</a>
 </div>
 
 <section class="panel no-print">
@@ -228,15 +229,16 @@ Limpiar
 <td>
 ${{"%.0f"|format(r.late_fee or 0)}}
 </td>
+
 <td style="font-weight:bold;color:#008000;">
 ${{"%.0f"|format(r.total_due_today or 0)}}
 </td>
 
-  <td>
+<td>
 
   <form method="post"
-          action="/orders/{{r.id}}/status"
-          class="inline">
+        action="/orders/{{r.id}}/status"
+        class="inline">
 
       <select name="status">
 
@@ -298,11 +300,11 @@ ${{"%.0f"|format(r.total_due_today or 0)}}
 
       {% endif %}
 
-  {% endif %}
+    {% endif %}
 
-  </td>  
+</td>  
 
-  <td class="actions">
+<td class="actions">
 
     <a href="/orders/{{r.id}}" title="Comprobante">
       📄
@@ -328,19 +330,19 @@ ${{"%.0f"|format(r.total_due_today or 0)}}
     {% if r.order_module=='Indumentaria' %}
 
       <a href="/orders/{{r.id}}/workshop"
-        target="_blank"
-        title="Hoja de taller">
+         target="_blank"
+         title="Hoja de taller">
         🏭
       </a>
 
       <a href="/orders/{{r.id}}/edit"
-        title="Editar taller">
+         title="Editar taller">
         🧵
       </a>
 
     {% endif %}
 
-  </td>
+</td>
 
 </tr>
 
