@@ -186,7 +186,7 @@ def next_code(doc,module):
     con=db()
     n=con.execute('SELECT COUNT(*) c FROM orders WHERE document_type=? AND order_module=?',(doc,module)).fetchone()['c']+1
     con.close()
-    mod={'General':'GEN','Indumentaria':'IND','Birretes/Estolas':'EGR'}[module]
+    mod={'General':'GEN','Indumentaria':'IND','Birretes/Estolas':'EGR','Egresaditos':'EGA'}[module]
     return f'{prefix(doc)}-{mod}-{n:06d}'
 
 def save_client(cur,name,phone,address):
