@@ -98,6 +98,38 @@ def init():
     CREATE TABLE IF NOT EXISTS cash(id INTEGER PRIMARY KEY, date TEXT, dt TEXT, type TEXT, concept TEXT, amount REAL, method TEXT, order_id INTEGER, user TEXT, note TEXT);
     CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
     CREATE TABLE IF NOT EXISTS whatsapp_templates(id INTEGER PRIMARY KEY, status_key TEXT UNIQUE, title TEXT, message TEXT);
+    CREATE TABLE IF NOT EXISTS egresaditos_students(
+    id INTEGER PRIMARY KEY,
+    order_id INTEGER,
+    student_name TEXT,
+    garment_name TEXT,
+    shirt_size TEXT,
+    jacket_size TEXT,
+    detail TEXT,
+    payment_type TEXT,
+    normal_price REAL DEFAULT 0,
+    final_price REAL DEFAULT 0,
+    reservation_plan REAL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS egresaditos_installments(
+    id INTEGER PRIMARY KEY,
+    order_id INTEGER,
+    installment_number INTEGER,
+    due_date TEXT
+);
+
+CREATE TABLE IF NOT EXISTS egresaditos_payments(
+    id INTEGER PRIMARY KEY,
+    order_id INTEGER,
+    student_id INTEGER,
+    payment_type TEXT,
+    installment_number INTEGER,
+    amount REAL DEFAULT 0,
+    payment_date TEXT,
+    payment_method TEXT,
+    note TEXT
+);
     """)
 
     try:
