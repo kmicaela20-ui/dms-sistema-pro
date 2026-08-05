@@ -1597,9 +1597,19 @@ def workshop(oid):
     apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
     sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
     grads=con.execute('SELECT * FROM grad_items WHERE order_id=?',(oid,)).fetchall()
+    students=con.execute(
+    'SELECT * FROM egresaditos_students WHERE order_id=? ORDER BY id',
+    (oid,)
+    ).fetchall()
     con.close()
     if order['order_module']=='Indumentaria': return render_template('workshop_indumentaria.html',order=order,apparel=apparel,sponsors=sponsors)
     if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads)
+    if order['order_module']=='Egresaditos':
+    return render_template(
+        'workshop_egresaditos.html',
+        order=order,
+        students=students
+    )    
     return redirect(f'/orders/{oid}')
 
 @app.route('/clients')
