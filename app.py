@@ -517,8 +517,16 @@ def api_inventory_code(code):
     item = cur.fetchone()
     con.close()
 
-    return jsonify(dict(item) if item else {})
+    if not item:
+        return jsonify({})
 
+    return jsonify({
+        'id': item['id'],
+        'code': item['code'],
+        'item': item['item'],
+        'retail_price': float(item['retail_price'] or 0),
+        'wholesale_price': float(item['wholesale_price'] or 0)
+    })
 
 @app.route('/orders')
 @login_required
