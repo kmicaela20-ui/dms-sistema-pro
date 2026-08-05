@@ -1220,12 +1220,33 @@ def new_egresados():
 @app.route('/orders/<int:oid>')
 @login_required
 def view_order(oid):
-    con=db()
-    order=con.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
-    general=con.execute('SELECT * FROM general_items WHERE order_id=?',(oid,)).fetchall()
-    apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
-    sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
-        grads = con.execute(
+    con = db()
+
+    order = con.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
+    if not order:
+        con.close()
+        return redirect('/orders')
+
+    general = con.execute(
+        'SELECT * FROM general_items WHERE order_id=?',
+        (oid,)
+    ).fetchall()
+
+    apparel = con.execute(
+        'SELECT * FROM apparel_items WHERE order_id=?',
+        (oid,)
+    ).fetchall()
+
+    sponsors = con.execute(
+        'SELECT * FROM apparel_sponsors WHERE order_id=?',
+        (oid,)
+    ).fetchall()
+
+    grads = con.execute(
         'SELECT * FROM grad_items WHERE order_id=?',
         (oid,)
     ).fetchall()
@@ -1251,7 +1272,7 @@ def view_order(oid):
             SELECT *
             FROM egresaditos_payments
             WHERE order_id=?
-            ORDER BY payment_date, id
+            ORDER BY id
             ''',
             (oid,)
         ).fetchall()
@@ -1268,7 +1289,7 @@ def view_order(oid):
         students=students,
         egresaditos_payments=egresaditos_payments
     )
-
+    
 @app.route('/orders/<int:oid>/edit',methods=['GET','POST'])
 @login_required
 def edit_order(oid):
