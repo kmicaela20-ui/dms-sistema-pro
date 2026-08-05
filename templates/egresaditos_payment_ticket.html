@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Comprobante de Pago - DMS Sublimaciones</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            color: #111;
+        }
+
+        .ticket {
+            width: 420px;
+            max-width: 100%;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+        }
+
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            max-width: 130px;
+            margin-bottom: 8px;
+        }
+
+        .header h2 {
+            margin: 5px 0;
+        }
+
+        .header p {
+            margin: 4px 0;
+            font-size: 14px;
+        }
+
+        .dato {
+            margin: 10px 0;
+            font-size: 15px;
+        }
+
+        .alumno {
+            margin-top: 20px;
+            padding: 15px;
+            border: 2px solid #222;
+            border-radius: 8px;
+        }
+
+        .alumno h3 {
+            margin: 0 0 12px 0;
+            text-align: center;
+        }
+
+        .pago-actual {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            margin: 15px 0;
+            background: #f2f2f2;
+            border-radius: 8px;
+        }
+
+        .resumen {
+            margin-top: 15px;
+        }
+
+        .fila {
+            display: flex;
+            justify-content: space-between;
+            padding: 7px 0;
+            border-bottom: 1px dashed #aaa;
+        }
+
+        .saldo {
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .pedido {
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 2px solid #000;
+        }
+
+        .pedido h3 {
+            text-align: center;
+            margin-top: 0;
+        }
+
+        .gracias {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+        }
+
+        .acciones {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 10px 18px;
+            background: #1266f1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 15px;
+            text-decoration: none;
+        }
+
+        @media print {
+
+            body {
+                background: white;
+                padding: 0;
+            }
+
+            .acciones {
+                display: none;
+            }
+
+            .ticket {
+                border: none;
+                box-shadow: none;
+                width: 100%;
+                max-width: 420px;
+                padding: 5px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="acciones">
+    <button class="btn" onclick="window.print()">
+        🖨 Imprimir ticket
+    </button>
+</div>
+
+<div class="ticket">
+
+    <div class="header">
+
+        <img
+            src="{{ url_for('static', filename='logo.png') }}"
+            class="logo"
+            alt="DMS Sublimaciones"
+        >
+
+        <h2>DMS Sublimaciones</h2>
+
+        <p>COMPROBANTE DE PAGO</p>
+
+        {% if order %}
+        <p>Pedido: <b>{{ order.code }}</b></p>
+        {% endif %}
+
+    </div>
+
+
+    <div class="dato">
+        <b>Alumno:</b>
+        {{ student.full_name }}
+    </div>
+
+
+    {% if payment.payment_date %}
+    <div class="dato">
+        <b>Fecha del pago:</b>
+        {{ payment.payment_date }}
+    </div>
+    {% endif %}
+
+
+    {% if payment.payment_method %}
+    <div class="dato">
+        <b>Forma de pago:</b>
+        {{ payment.payment_method }}
+    </div>
+    {% endif %}
+
+
+    <div class="alumno">
+
+        <h3>{{ student.full_name }}</h3>
+
+        <div class="pago-actual">
+            Pago realizado<br>
+            ${{ "%.2f"|format(payment.amount or 0) }}
+        </div>
+
+
+        <div class="resumen">
+
+            <div class="fila">
+                <span>Total del alumno:</span>
+
+                <b>
+                    ${{ "%.2f"|format(student.total or 0) }}
+                </b>
+            </div>
+
+
+            <div class="fila">
+                <span>Total pagado por el alumno:</span>
+
+                <b>
+                    ${{ "%.2f"|format(total_paid_student or 0) }}
+                </b>
+            </div>
+
+
+            <div class="fila saldo">
+                <span>Saldo del alumno:</span>
+
+                <span>
+                    ${{ "%.2f"|format((student.total or 0) - (total_paid_student or 0)) }}
+                </span>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="pedido">
+
+        <h3>Resumen general del pedido</h3>
+
+        <div class="fila">
+            <span>Total del pedido:</span>
+
+            <b>
+                ${{ "%.2f"|format(order.total or 0) }}
+            </b>
+        </div>
+
+
+        <div class="fila">
+            <span>Total pagado:</span>
+
+            <b>
+                ${{ "%.2f"|format(total_course_paid or 0) }}
+            </b>
+        </div>
+
+
+        <div class="fila saldo">
+            <span>Saldo total:</span>
+
+            <span>
+                ${{ "%.2f"|format(course_balance or 0) }}
+            </span>
+        </div>
+
+    </div>
+
+
+    {% if payment.note %}
+
+    <div class="dato" style="margin-top:20px;">
+        <b>Observación:</b><br>
+        {{ payment.note }}
+    </div>
+
+    {% endif %}
+
+
+    <div class="gracias">
+
+        Gracias por confiar en<br>
+
+        <b>DMS Sublimaciones</b>
+
+    </div>
+
+</div>
+
+</body>
+</html>
