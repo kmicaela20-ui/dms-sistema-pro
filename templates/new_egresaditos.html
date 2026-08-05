@@ -1,1 +1,630 @@
+{% extends "base.html" %}
+{% import "form_parts.html" as parts %}
 
+{% block content %}
+
+<h1>🎓 Nuevo Pedido Egresaditos</h1>
+
+<form method="post" id="egresaditosForm">
+
+{{ parts.common_fields(today) }}
+
+<!-- =========================
+     DATOS GENERALES
+========================= -->
+
+<section class="panel">
+
+<h2>🏫 Datos del curso</h2>
+
+<div class="grid">
+
+<label>
+Escuela / Institución
+<input type="text"
+       name="school_name"
+       placeholder="Ej: Escuela N° 123"
+       required>
+</label>
+
+<label>
+Curso / Sala
+<input type="text"
+       name="course"
+       placeholder="Ej: Sala de 5 - Turno Mañana">
+</label>
+
+<label>
+Combo elegido
+<input type="text"
+       name="combo_name"
+       placeholder="Ej: Campera + Chomba">
+</label>
+
+<label>
+Precio por alumno
+<input type="number"
+       id="price_per_student"
+       name="price_per_student"
+       min="0"
+       step="0.01"
+       value="0"
+       oninput="recalculateAll()">
+</label>
+
+<label>
+Reserva / Seña por alumno
+<input type="number"
+       id="reservation_amount"
+       name="reservation_amount"
+       min="0"
+       step="0.01"
+       value="0"
+       oninput="recalculateAll()">
+</label>
+
+<label>
+Cantidad de cuotas
+<select id="installment_count"
+        name="installment_count"
+        onchange="changeInstallments()">
+
+<option value="1">1 cuota</option>
+<option value="2">2 cuotas</option>
+<option value="3" selected>3 cuotas</option>
+<option value="4">4 cuotas</option>
+<option value="5">5 cuotas</option>
+<option value="6">6 cuotas</option>
+
+</select>
+</label>
+
+</div>
+
+<label>
+Promoción / Regalo
+<input type="text"
+       name="promotion"
+       placeholder="Ej: Reservando hasta el 30/08 recibe gorra de regalo">
+</label>
+
+<label>
+Observaciones generales
+<textarea name="general_notes"
+          placeholder="Ej: Bordado en pecho, espalda sublimada, colores, detalles del curso..."></textarea>
+</label>
+
+</section>
+
+
+<!-- =========================
+     VENCIMIENTOS
+========================= -->
+
+<section class="panel">
+
+<h2>📅 Fechas de pago</h2>
+
+<p>
+La reserva se cobra primero. El saldo restante se divide
+automáticamente según la cantidad de cuotas seleccionadas.
+</p>
+
+<div id="dueDates"></div>
+
+</section>
+
+
+<!-- =========================
+     ALUMNOS
+========================= -->
+
+<section class="panel">
+
+<h2>👧👦 Lista de alumnos</h2>
+
+<input type="hidden"
+       id="student_count"
+       name="student_count"
+       value="1">
+
+<div style="overflow-x:auto;">
+
+<table id="studentsTable">
+
+<thead>
+
+<tr>
+
+<th>#</th>
+<th>Nombre completo</th>
+<th>Nombre en la prenda</th>
+<th>Talle chomba</th>
+<th>Talle campera</th>
+<th>Detalle</th>
+<th>Forma de pago</th>
+<th>Total</th>
+<th>Reserva</th>
+<th class="installmentColumn">Cuota 1</th>
+<th class="installmentColumn">Cuota 2</th>
+<th class="installmentColumn">Cuota 3</th>
+<th class="installmentColumn">Cuota 4</th>
+<th class="installmentColumn">Cuota 5</th>
+<th class="installmentColumn">Cuota 6</th>
+<th>Total pagado</th>
+<th>Saldo</th>
+
+</tr>
+
+</thead>
+
+<tbody id="studentsBody">
+
+<tr id="studentRow_1">
+
+<td>1</td>
+
+<td>
+<input type="text"
+       name="student_name_1"
+       placeholder="Nombre y apellido">
+</td>
+
+<td>
+<input type="text"
+       name="garment_name_1"
+       placeholder="Nombre en prenda">
+</td>
+
+<td>
+<input type="text"
+       name="shirt_size_1"
+       placeholder="Talle">
+</td>
+
+<td>
+<input type="text"
+       name="jacket_size_1"
+       placeholder="Talle">
+</td>
+
+<td>
+<input type="text"
+       name="detail_1"
+       placeholder="Detalle">
+</td>
+
+<td>
+
+<select name="payment_type_1"
+        id="payment_type_1"
+        onchange="calculateStudent(1)">
+
+<option value="installments">Cuotas</option>
+<option value="cash">Contado - 5% descuento</option>
+
+</select>
+
+</td>
+
+<td>
+<input type="text"
+       id="total_1"
+       name="total_1"
+       readonly>
+</td>
+
+<td>
+<input type="number"
+       id="reservation_1"
+       name="reservation_1"
+       value="0"
+       min="0"
+       step="0.01"
+       oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_1_1" name="installment_1_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_2_1" name="installment_2_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_3_1" name="installment_3_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_4_1" name="installment_4_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_5_1" name="installment_5_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td class="installmentCell">
+<input type="number" id="installment_6_1" name="installment_6_1" value="0" oninput="calculateStudent(1)">
+</td>
+
+<td>
+<input type="text"
+       id="paid_1"
+       name="paid_1"
+       readonly>
+</td>
+
+<td>
+<input type="text"
+       id="balance_1"
+       name="balance_1"
+       readonly>
+</td>
+
+</tr>
+
+</tbody>
+
+</table>
+
+</div>
+
+<br>
+
+<button type="button"
+        class="btn"
+        onclick="addStudent()">
++ Agregar alumno
+</button>
+
+</section>
+
+
+<!-- =========================
+     RESUMEN
+========================= -->
+
+<section class="panel">
+
+<h2>💰 Resumen del curso</h2>
+
+<p>
+<strong>Cantidad de alumnos:</strong>
+<span id="studentTotal">1</span>
+</p>
+
+<p>
+<strong>Total del pedido:</strong>
+<span id="orderTotal">$0.00</span>
+</p>
+
+<p>
+<strong>Total cobrado:</strong>
+<span id="orderPaid">$0.00</span>
+</p>
+
+<p>
+<strong>Saldo pendiente:</strong>
+<span id="orderBalance">$0.00</span>
+</p>
+
+</section>
+
+
+<button type="submit" class="savebtn">
+Guardar pedido de Egresaditos
+</button>
+
+</form>
+
+
+<script>
+
+/* =========================
+   FECHAS DE CUOTAS
+========================= */
+
+function changeInstallments(){
+
+    const count =
+        parseInt(document.getElementById('installment_count').value);
+
+    let html = '';
+
+    for(let i=1; i<=count; i++){
+
+        html += `
+        <label style="display:inline-block;margin-right:15px;">
+            Vencimiento cuota ${i}
+            <input type="date"
+                   name="due_date_${i}">
+        </label>
+        `;
+
+    }
+
+    document.getElementById('dueDates').innerHTML = html;
+
+    updateInstallmentColumns();
+
+    recalculateAll();
+}
+
+
+/* =========================
+   MOSTRAR CUOTAS
+========================= */
+
+function updateInstallmentColumns(){
+
+    const count =
+        parseInt(document.getElementById('installment_count').value);
+
+    document.querySelectorAll('.installmentColumn').forEach(
+        (column,index) => {
+
+            column.style.display =
+                index < count ? '' : 'none';
+
+        }
+    );
+
+    document.querySelectorAll('#studentsBody tr').forEach(row => {
+
+        row.querySelectorAll('.installmentCell').forEach(
+            (cell,index) => {
+
+                cell.style.display =
+                    index < count ? '' : 'none';
+
+            }
+        );
+
+    });
+
+}
+
+
+/* =========================
+   AGREGAR ALUMNO
+========================= */
+
+function addStudent(){
+
+    let n =
+        parseInt(document.getElementById('student_count').value) + 1;
+
+    document.getElementById('student_count').value = n;
+
+    let html = `
+
+<tr id="studentRow_${n}">
+
+<td>${n}</td>
+
+<td>
+<input type="text"
+       name="student_name_${n}"
+       placeholder="Nombre y apellido">
+</td>
+
+<td>
+<input type="text"
+       name="garment_name_${n}"
+       placeholder="Nombre en prenda">
+</td>
+
+<td>
+<input type="text"
+       name="shirt_size_${n}"
+       placeholder="Talle">
+</td>
+
+<td>
+<input type="text"
+       name="jacket_size_${n}"
+       placeholder="Talle">
+</td>
+
+<td>
+<input type="text"
+       name="detail_${n}"
+       placeholder="Detalle">
+</td>
+
+<td>
+
+<select name="payment_type_${n}"
+        id="payment_type_${n}"
+        onchange="calculateStudent(${n})">
+
+<option value="installments">Cuotas</option>
+<option value="cash">Contado - 5% descuento</option>
+
+</select>
+
+</td>
+
+<td>
+<input type="text"
+       id="total_${n}"
+       name="total_${n}"
+       readonly>
+</td>
+
+<td>
+<input type="number"
+       id="reservation_${n}"
+       name="reservation_${n}"
+       value="0"
+       min="0"
+       step="0.01"
+       oninput="calculateStudent(${n})">
+</td>
+
+`;
+
+    for(let i=1;i<=6;i++){
+
+        html += `
+
+<td class="installmentCell">
+
+<input type="number"
+       id="installment_${i}_${n}"
+       name="installment_${i}_${n}"
+       value="0"
+       min="0"
+       step="0.01"
+       oninput="calculateStudent(${n})">
+
+</td>
+
+`;
+
+    }
+
+    html += `
+
+<td>
+<input type="text"
+       id="paid_${n}"
+       name="paid_${n}"
+       readonly>
+</td>
+
+<td>
+<input type="text"
+       id="balance_${n}"
+       name="balance_${n}"
+       readonly>
+</td>
+
+</tr>
+
+`;
+
+    document.getElementById('studentsBody')
+        .insertAdjacentHTML('beforeend',html);
+
+    updateInstallmentColumns();
+
+    calculateStudent(n);
+
+    updateSummary();
+}
+
+
+/* =========================
+   CALCULAR ALUMNO
+========================= */
+
+function calculateStudent(n){
+
+    const normalPrice =
+        parseFloat(document.getElementById('price_per_student').value) || 0;
+
+    const paymentType =
+        document.getElementById('payment_type_' + n).value;
+
+    let total = normalPrice;
+
+    if(paymentType === 'cash'){
+        total = normalPrice * 0.95;
+    }
+
+    document.getElementById('total_' + n).value =
+        total.toFixed(2);
+
+    let paid =
+        parseFloat(document.getElementById('reservation_' + n).value) || 0;
+
+    for(let i=1;i<=6;i++){
+
+        let field =
+            document.getElementById(`installment_${i}_${n}`);
+
+        if(field){
+            paid += parseFloat(field.value) || 0;
+        }
+
+    }
+
+    document.getElementById('paid_' + n).value =
+        paid.toFixed(2);
+
+    document.getElementById('balance_' + n).value =
+        Math.max(0,total-paid).toFixed(2);
+
+    updateSummary();
+}
+
+
+/* =========================
+   RECALCULAR TODO
+========================= */
+
+function recalculateAll(){
+
+    let count =
+        parseInt(document.getElementById('student_count').value);
+
+    for(let i=1;i<=count;i++){
+        calculateStudent(i);
+    }
+
+}
+
+
+/* =========================
+   RESUMEN GENERAL
+========================= */
+
+function updateSummary(){
+
+    const count =
+        parseInt(document.getElementById('student_count').value);
+
+    let total = 0;
+    let paid = 0;
+    let balance = 0;
+
+    for(let i=1;i<=count;i++){
+
+        total +=
+            parseFloat(document.getElementById('total_' + i)?.value) || 0;
+
+        paid +=
+            parseFloat(document.getElementById('paid_' + i)?.value) || 0;
+
+        balance +=
+            parseFloat(document.getElementById('balance_' + i)?.value) || 0;
+
+    }
+
+    document.getElementById('studentTotal').innerText = count;
+
+    document.getElementById('orderTotal').innerText =
+        '$' + total.toFixed(2);
+
+    document.getElementById('orderPaid').innerText =
+        '$' + paid.toFixed(2);
+
+    document.getElementById('orderBalance').innerText =
+        '$' + balance.toFixed(2);
+
+}
+
+
+/* =========================
+   INICIAR
+========================= */
+
+changeInstallments();
+
+recalculateAll();
+
+</script>
+
+{% endblock %}
