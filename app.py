@@ -1908,6 +1908,78 @@ def order_whatsapp(oid):
     msg=whatsapp_message_for_order(order)
     return redirect('https://wa.me/54'+phone+'?text='+msg)
 
+@app.route('/egresaditos/payment/<int:payment_id>/ticket')
+@login_required
+def egresaditos_payment_ticket(payment_id):
+    con = db()
+
+    payment = con.execute(
+        '''
+        SELECT *
+        FROM egresaditos_payments
+        WHERE id=?
+        ''',
+        (payment_id,)
+    ).fetchone()
+
+    if not payment:
+        con.close()
+        return "Pago no encontrado", 404
+
+    order = con.execute(
+        '''
+        SELECT *
+        FROM orders
+        WHERE id=?
+        ''',
+        (payment['order_id'],)
+    ).fetchone()
+
+    student = con.execute(
+        '''
+        SELECT *
+        FROM egresaditos_students
+        WHERE id=?
+        ''',
+        (payment['student_id'],)
+    ).fetchone()
+
+    paid_row = con.execute(
+        '''
+        SELECT COALESCE(SUM(amount), 0) AS total_paid
+        FROM egresaditos_payments
+        WHERE order_id=? AND student_id=?
+        ''',
+        (payment['order_id'], payment['student_id'])
+    ).fetchone()
+
+    total_paid_student = float(paid_row['total_paid'] or 0)
+
+    course_paid_row = con.execute(
+        '''
+        SELECT COALESCE(SUM(amount), 0) AS total_paid
+        FROM egresaditos_payments
+        WHERE order_id=?
+        ''',
+        (payment['order_id'],)
+    ).fetchone()
+
+    total_course_paid = float(course_paid_row['total_paid'] or 0)
+    total_order = float(order['total'] or 0)
+    course_balance = max(total_order - total_course_paid, 0)
+
+    con.close()
+
+    return render_template(
+        'egresaditos_payment_ticket.html',
+        payment=payment,
+        order=order,
+        student=student,
+        total_paid_student=total_paid_student,
+        total_course_paid=total_course_paid,
+        course_balance=course_balance
+    )
+
 
 init()
 
