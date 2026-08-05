@@ -786,6 +786,20 @@ def new_indumentaria():
         lower_locations=lower
     )
 
+
+@app.route('/orders/new/egresaditos', methods=['GET', 'POST'])
+@login_required
+def new_egresaditos():
+
+    if request.method == 'POST':
+        pass
+
+    return render_template(
+        'new_egresaditos.html',
+        today=today()
+    )
+
+
 @app.route('/orders/new/egresados',methods=['GET','POST'])
 @login_required
 def new_egresados():
