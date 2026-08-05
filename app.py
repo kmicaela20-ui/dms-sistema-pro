@@ -510,7 +510,7 @@ def api_inventory_code(code):
     cur = con.cursor()
 
     cur.execute(
-        'SELECT * FROM inventory WHERE UPPER(code)=UPPER(%s)',
+        'SELECT * FROM inventory WHERE UPPER(sku)=UPPER(%s)',
         (code.strip(),)
     )
 
@@ -522,7 +522,7 @@ def api_inventory_code(code):
 
     return jsonify({
         'id': item['id'],
-        'code': item['code'],
+        'code': item['sku'],
         'item': item['item'],
         'retail_price': float(item['retail_price'] or 0),
         'wholesale_price': float(item['wholesale_price'] or 0)
