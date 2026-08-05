@@ -207,7 +207,7 @@ def common_order_insert(cur, doc, module, subtotal, extra):
     code=next_code(doc,module)
     cid=save_client(cur, request.form.get('client_name'), request.form.get('client_phone'), request.form.get('client_address'))
     discount=money(request.form.get('discount')); total=max(0,subtotal-discount)
-    deposit=0 if doc=='Presupuesto' else money(request.form.get('deposit'))
+    deposit = 0 if doc == 'Presupuesto' or module == 'Egresaditos' else money(request.form.get('deposit'))
     balance=max(0,total-deposit)
     vals=(code,doc,module,request.form.get('reception_channel'),cid,request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('date_taken') or today(),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),extra.get('school_name'),extra.get('school_grade'),extra.get('fabric_type'),extra.get('team_design_notes'),discount,subtotal,total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),now())
     cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
@@ -824,7 +824,358 @@ def new_indumentaria():
 def new_egresaditos():
 
     if request.method == 'POST':
-        pass
+
+        con = db()
+        cur = con.cursor()
+
+        try:
+            doc = request.form.get('document_type') or 'Pedido/Factura'
+
+            school_name = request.form.get('school_name') or ''
+            course = request.form.get('course') or ''
+            combo_name = request.form.get('combo_name') or ''
+            promotion = request.form.get('promotion') or ''
+            general_notes = request.form.get('general_notes') or ''
+
+            price_per_student = money(
+                request.form.get('price_per_student')
+            )
+
+            reservation_plan = money(
+                request.form.get('reservation_amount')
+            )
+
+            installment_count = int(
+                request.form.get('installment_count') or 1
+            )
+
+            student_count = int(
+                request.form.get('student_count') or 1
+            )
+
+            # ==========================================
+            # PRIMERO LEEMOS TODOS LOS ALUMNOS
+            # ==========================================
+
+            students = []
+            subtotal = 0
+
+            for i in range(1, student_count + 1):
+
+                student_name = (
+                    request.form.get(f'student_name_{i}') or ''
+                ).strip()
+
+                garment_name = (
+                    request.form.get(f'garment_name_{i}') or ''
+                ).strip()
+
+                shirt_size = (
+                    request.form.get(f'shirt_size_{i}') or ''
+                ).strip()
+
+                jacket_size = (
+                    request.form.get(f'jacket_size_{i}') or ''
+                ).strip()
+
+                detail = (
+                    request.form.get(f'detail_{i}') or ''
+                ).strip()
+
+                payment_type = (
+                    request.form.get(f'payment_type_{i}')
+                    or 'installments'
+                )
+
+                # Si no hay nombre, no cargamos esa fila
+                if not student_name:
+                    continue
+
+                normal_price = price_per_student
+
+                # CONTADO = 5% DESCUENTO AUTOMATICO
+                if payment_type == 'cash':
+                    final_price = round(normal_price * 0.95, 2)
+                else:
+                    final_price = normal_price
+
+                subtotal += final_price
+
+                reservation_paid = money(
+                    request.form.get(f'reservation_{i}')
+                )
+
+                installments_paid = []
+
+                for cuota in range(1, 7):
+
+                    amount = money(
+                        request.form.get(
+                            f'installment_{cuota}_{i}'
+                        )
+                    )
+
+                    installments_paid.append(amount)
+
+                students.append({
+                    'student_name': student_name,
+                    'garment_name': garment_name,
+                    'shirt_size': shirt_size,
+                    'jacket_size': jacket_size,
+                    'detail': detail,
+                    'payment_type': payment_type,
+                    'normal_price': normal_price,
+                    'final_price': final_price,
+                    'reservation_plan': reservation_plan,
+                    'reservation_paid': reservation_paid,
+                    'installments_paid': installments_paid
+                })
+
+            if not students:
+                raise Exception(
+                    'Debe cargar al menos un alumno.'
+                )
+
+            # ==========================================
+            # CREAR PEDIDO PRINCIPAL
+            # ==========================================
+            #
+            # IMPORTANTE:
+            # No usamos la seña general del common_fields.
+            # Los pagos se controlan por alumno.
+            #
+
+            original_deposit = request.form.get('deposit')
+
+            # Evitamos que common_order_insert registre
+            # una seña general duplicada.
+            if 'deposit' in request.form:
+                pass
+
+            extra = {
+                'school_name': school_name,
+                'course': course,
+                'combo_name': combo_name,
+                'promotion': promotion,
+                'general_notes': general_notes,
+                'price_per_student': price_per_student,
+                'reservation_amount': reservation_plan,
+                'installment_count': installment_count
+            }
+
+            # Guardamos temporalmente deposit en 0
+            # usando una copia del formulario no es posible,
+            # por eso creamos el pedido normalmente y luego
+            # corregimos depósito/saldo.
+
+            oid, code = common_order_insert(
+                cur,
+                doc,
+                'Egresaditos',
+                subtotal,
+                extra
+            )
+
+            # ==========================================
+            # CORREGIR PEDIDO PRINCIPAL
+            # ==========================================
+
+            # El saldo general será recalculado según
+            # los pagos reales de cada alumno.
+
+            total_paid_order = 0
+
+            # ==========================================
+            # GUARDAR ALUMNOS
+            # ==========================================
+
+            for student in students:
+
+                cur.execute(
+                    """
+                    INSERT INTO egresaditos_students(
+                        order_id,
+                        student_name,
+                        garment_name,
+                        shirt_size,
+                        jacket_size,
+                        detail,
+                        payment_type,
+                        normal_price,
+                        final_price,
+                        reservation_plan
+                    )
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    RETURNING id
+                    """,
+                    (
+                        oid,
+                        student['student_name'],
+                        student['garment_name'],
+                        student['shirt_size'],
+                        student['jacket_size'],
+                        student['detail'],
+                        student['payment_type'],
+                        student['normal_price'],
+                        student['final_price'],
+                        student['reservation_plan']
+                    )
+                )
+
+                student_row = cur.fetchone()
+
+                if isinstance(student_row, dict):
+                    student_id = student_row['id']
+                else:
+                    student_id = student_row[0]
+
+                # ======================================
+                # RESERVA PAGADA
+                # ======================================
+
+                reservation_paid = student['reservation_paid']
+
+                if reservation_paid > 0:
+
+                    cur.execute(
+                        """
+                        INSERT INTO egresaditos_payments(
+                            order_id,
+                            student_id,
+                            payment_type,
+                            installment_number,
+                            amount,
+                            payment_date,
+                            payment_method,
+                            note
+                        )
+                        VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+                        """,
+                        (
+                            oid,
+                            student_id,
+                            'Reserva',
+                            0,
+                            reservation_paid,
+                            today(),
+                            request.form.get('payment_method') or 'Efectivo',
+                            'Reserva / Seña'
+                        )
+                    )
+
+                    total_paid_order += reservation_paid
+
+                # ======================================
+                # CUOTAS PAGADAS
+                # ======================================
+
+                for cuota in range(1, installment_count + 1):
+
+                    amount = student['installments_paid'][cuota - 1]
+
+                    if amount > 0:
+
+                        cur.execute(
+                            """
+                            INSERT INTO egresaditos_payments(
+                                order_id,
+                                student_id,
+                                payment_type,
+                                installment_number,
+                                amount,
+                                payment_date,
+                                payment_method,
+                                note
+                            )
+                            VALUES(%s,%s,%s,%s,%s,%s,%s,%s)
+                            """,
+                            (
+                                oid,
+                                student_id,
+                                'Cuota',
+                                cuota,
+                                amount,
+                                today(),
+                                request.form.get('payment_method') or 'Efectivo',
+                                f'Cuota {cuota}'
+                            )
+                        )
+
+                        total_paid_order += amount
+
+            # ==========================================
+            # GUARDAR VENCIMIENTOS
+            # ==========================================
+
+            for cuota in range(1, installment_count + 1):
+
+                due_date = request.form.get(
+                    f'due_date_{cuota}'
+                )
+
+                cur.execute(
+                    """
+                    INSERT INTO egresaditos_installments(
+                        order_id,
+                        installment_number,
+                        due_date
+                    )
+                    VALUES(%s,%s,%s)
+                    """,
+                    (
+                        oid,
+                        cuota,
+                        due_date or ''
+                    )
+                )
+
+            # ==========================================
+            # ACTUALIZAR TOTAL Y SALDO DEL PEDIDO
+            # ==========================================
+
+            balance = max(
+                0,
+                subtotal - total_paid_order
+            )
+
+            cur.execute(
+                """
+                UPDATE orders
+                SET subtotal=%s,
+                    total=%s,
+                    deposit=%s,
+                    balance=%s
+                WHERE id=%s
+                """,
+                (
+                    subtotal,
+                    subtotal,
+                    total_paid_order,
+                    balance,
+                    oid
+                )
+            )
+
+            con.commit()
+            con.close()
+
+            return redirect(f'/orders/{oid}')
+
+        except Exception as e:
+
+            con.rollback()
+            con.close()
+
+            print(
+                'ERROR GUARDANDO EGRESADITOS:',
+                e
+            )
+
+            return (
+                'Error guardando pedido de Egresaditos: '
+                + str(e),
+                500
+            )
 
     return render_template(
         'new_egresaditos.html',
