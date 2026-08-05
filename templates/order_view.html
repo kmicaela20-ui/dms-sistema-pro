@@ -3,295 +3,564 @@
 
 <div class="titlebar no-print">
 
-<h1>
-{{order.code}} - {{order.document_type}}
-</h1>
+    <h1>
+        {{ order.code }} - {{ order.document_type }}
+    </h1>
 
-<div>
+    <div>
 
-<a class="btn green"
-href="{{wa}}"
-target="_blank">
-WhatsApp
-</a>
+        <a class="btn green"
+           href="{{ wa }}"
+           target="_blank">
+            WhatsApp
+        </a>
 
-{% if order.order_module!='General' %}
+        {% if order.order_module != 'General' %}
 
-<a class="btn"
-href="/orders/{{order.id}}/workshop"
-target="_blank">
-Imprimir lista taller
-</a>
+        <a class="btn"
+           href="/orders/{{ order.id }}/workshop"
+           target="_blank">
+            Imprimir lista taller
+        </a>
 
-{% endif %}
+        {% endif %}
 
-<button onclick="window.print()" class="btn">
-Imprimir comprobante
-</button>
+        <button onclick="window.print()" class="btn">
+            Imprimir comprobante
+        </button>
+
+    </div>
 
 </div>
 
-</div>
 
 <section class="receipt">
 
-<div class="receipt-head">
+    <!-- ==========================================
+         ENCABEZADO
+    ========================================== -->
 
-<img src="{{ url_for('static', filename='logo.png') }}">
+    <div class="receipt-head">
 
-<div>
-<h2>DMS Sublimaciones</h2>
-<p>{{business_phone}}</p>
-</div>
+        <img src="{{ url_for('static', filename='logo.png') }}">
 
-<div>
-<h2>{{order.document_type}}</h2>
-<h3>{{order.code}}</h3>
-<p>{{order.date_taken}}</p>
-</div>
+        <div>
+            <h2>DMS Sublimaciones</h2>
+            <p>{{ business_phone }}</p>
+        </div>
 
-</div>
+        <div>
+            <h2>{{ order.document_type }}</h2>
+            <h3>{{ order.code }}</h3>
+            <p>{{ order.date_taken }}</p>
+        </div>
 
-{% if order.document_type=='Presupuesto' %}
+    </div>
 
-<div class="validity">
-PRESUPUESTO VÁLIDO POR 7 DÍAS HÁBILES
-</div>
 
-{% endif %}
+    {% if order.document_type == 'Presupuesto' %}
 
-<div class="receipt-grid">
+    <div class="validity">
+        PRESUPUESTO VÁLIDO POR 7 DÍAS HÁBILES
+    </div>
 
-<div>
-<b>Cliente:</b> {{order.client_name}}
-</div>
+    {% endif %}
 
-<div>
-<b>Tel:</b> {{order.client_phone}}
-</div>
 
-<div>
-<b>Dirección:</b> {{order.client_address}}
-</div>
+    <!-- ==========================================
+         DATOS DEL CLIENTE
+    ========================================== -->
 
-<div>
-<b>Entrega:</b> {{order.date_delivery}}
-</div>
+    <div class="receipt-grid">
 
-<div>
-<b>Módulo:</b> {{order.order_module}}
-</div>
+        <div>
+            <b>Cliente:</b>
+            {{ order.client_name }}
+        </div>
 
-<div>
-<b>Recepciona:</b> {{order.receptionist}}
-</div>
+        <div>
+            <b>Tel:</b>
+            {{ order.client_phone }}
+        </div>
 
-</div>
+        <div>
+            <b>Dirección:</b>
+            {{ order.client_address }}
+        </div>
 
-{% if order.client_notes %}
+        <div>
+            <b>Entrega:</b>
+            {{ order.date_delivery }}
+        </div>
 
-<div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;">
+        <div>
+            <b>Módulo:</b>
+            {{ order.order_module }}
+        </div>
 
-<b>OBSERVACIONES DEL PEDIDO:</b>
+        <div>
+            <b>Recepciona:</b>
+            {{ order.receptionist }}
+        </div>
 
-<br><br>
+    </div>
 
-{{order.client_notes}}
 
-</div>
+    {% if order.client_notes %}
 
-{% endif %}
+    <div style="
+        margin-top:20px;
+        padding:12px;
+        border:1px solid #999;
+        border-radius:8px;
+    ">
 
-{% if general %}
+        <b>OBSERVACIONES DEL PEDIDO:</b>
 
-<h2>Artículos</h2>
+        <br><br>
 
-<table>
+        {{ order.client_notes }}
 
-<tr>
-<th>Producto</th>
-<th>Detalle</th>
-<th>Cant.</th>
-<th>Precio</th>
-<th>Subtotal</th>
-</tr>
+    </div>
 
-{% for i in general %}
+    {% endif %}
 
-<tr>
-<td>{{i.product}}</td>
-<td>{{i.detail}}</td>
-<td>{{i.qty}}</td>
-<td>${{"%.2f"|format(i.unit_price)}}</td>
-<td>${{"%.2f"|format(i.subtotal)}}</td>
-</tr>
 
-{% endfor %}
+    <!-- ==========================================
+         EGRESADITOS
+    ========================================== -->
 
-</table>
+    {% if order.order_module == 'Egresaditos' %}
 
-{% endif %}
+    <h2 style="margin-top:30px;">
+        Detalle de alumnos
+    </h2>
 
-{% if apparel %}
+    {% set resumen = namespace(total=0, pagado=0) %}
 
-<h2>Indumentaria</h2>
+    <table>
 
-<p>
-<b>Tipo de tela:</b>
-{{order.fabric_type}}
-</p>
+        <thead>
+            <tr>
+                <th>Alumno</th>
+                <th>Total alumno</th>
+                <th>Pagado</th>
+                <th>Saldo</th>
+            </tr>
+        </thead>
 
-<table>
+        <tbody>
 
-<tr>
-<th>Artículo</th>
-<th>Nombre</th>
-<th>Superior</th>
-<th>Inferior</th>
-<th>Precio</th>
-</tr>
+        {% for student in students %}
 
-{% for i in apparel %}
+            {% set alumno = namespace(pagado=0) %}
 
-<tr>
-<td>{{i.article}}</td>
-<td>{{i.person_name}}</td>
-<td>{{i.upper_size}}</td>
-<td>{{i.lower_size}}</td>
-<td>${{"%.2f"|format(i.price)}}</td>
-</tr>
+            {% for payment in egresaditos_payments %}
 
-{% endfor %}
+                {% if payment.student_id == student.id %}
 
-</table>
+                    {% set alumno.pagado =
+                        alumno.pagado + (payment.amount or 0)
+                    %}
 
-{% endif %}
+                {% endif %}
 
-{% if grads %}
+            {% endfor %}
 
-<h2>Birretes / Estolas</h2>
 
-<p>
-<b>Escuela:</b> {{order.school_name}}
-|
-<b>Grado/Año:</b> {{order.school_grade}}
-</p>
+            {% set precio = student.final_price or 0 %}
 
-<table>
+            {% set saldo_alumno =
+                precio - alumno.pagado
+            %}
 
-<tr>
-<th>Nombre</th>
-<th>Talle birrete</th>
-<th>Talle estola</th>
-<th>Obs.</th>
-<th>Precio</th>
-</tr>
 
-{% for i in grads %}
+            {% set resumen.total =
+                resumen.total + precio
+            %}
 
-<tr>
-<td>{{i.person_name}}</td>
-<td>{{i.cap_size}}</td>
-<td>{{i.stole_size}}</td>
-<td>{{i.note}}</td>
-<td>${{"%.2f"|format(i.price)}}</td>
-</tr>
+            {% set resumen.pagado =
+                resumen.pagado + alumno.pagado
+            %}
 
-{% endfor %}
 
-</table>
+            <tr>
 
-{% endif %}
+                <td>
+                    <b>
+                        {{ student.student_name }}
+                    </b>
+                </td>
 
-<div class="totals">
+                <td>
+                    ${{ "%.2f"|format(precio) }}
+                </td>
 
-<p>
-Subtotal:
-<b>${{"%.2f"|format(order.subtotal)}}</b>
-</p>
+                <td>
+                    <b>
+                        ${{ "%.2f"|format(alumno.pagado) }}
+                    </b>
+                </td>
 
-<p>
-Descuento:
-<b>${{"%.2f"|format(order.discount)}}</b>
-</p>
+                <td>
+                    <b>
+                        ${{ "%.2f"|format([saldo_alumno, 0]|max) }}
+                    </b>
+                </td>
 
-<p>
-Total:
-<b>${{"%.2f"|format(order.total)}}</b>
-</p>
+            </tr>
 
-{% if order.document_type!='Presupuesto' %}
+        {% endfor %}
 
-<p>
-Seña:
-<b>${{"%.2f"|format(order.deposit)}}</b>
-</p>
+        </tbody>
 
-<p>
-Saldo:
-<b>${{"%.2f"|format(order.balance)}}</b>
-</p>
+    </table>
 
-{% endif %}
 
-</div>
+    <!-- RESUMEN EGRESADITOS -->
 
-<div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;font-size:12px;line-height:1.4;">
+    <div class="totals">
 
-<b>IMPORTANTE:</b><br><br>
+        <p>
+            Total del pedido:
+            <b>
+                ${{ "%.2f"|format(resumen.total) }}
+            </b>
+        </p>
 
-Una vez informado que el pedido se encuentra TERMINADO,
-el cliente contará con un plazo de 7 días corridos para retirarlo y/o cancelar el saldo pendiente.<br><br>
+        <p>
+            Total pagado:
+            <b>
+                ${{ "%.2f"|format(resumen.pagado) }}
+            </b>
+        </p>
 
-Pasado dicho plazo,
-se aplicará un recargo del 10% semanal sobre el saldo restante hasta el momento de su retiro y cancelación total.<br><br>
+        <p>
+            Saldo total:
+            <b>
+                ${{ "%.2f"|format(
+                    [resumen.total - resumen.pagado, 0]|max
+                ) }}
+            </b>
+        </p>
 
-Gracias por confiar en DMS Sublimaciones.
+    </div>
 
-</div>
+
+    <!-- ==========================================
+         OTROS MÓDULOS
+    ========================================== -->
+
+    {% else %}
+
+
+        <!-- ARTÍCULOS GENERALES -->
+
+        {% if general %}
+
+        <h2>Artículos</h2>
+
+        <table>
+
+            <tr>
+                <th>Producto</th>
+                <th>Detalle</th>
+                <th>Cant.</th>
+                <th>Precio</th>
+                <th>Subtotal</th>
+            </tr>
+
+            {% for i in general %}
+
+            <tr>
+
+                <td>
+                    {{ i.product }}
+                </td>
+
+                <td>
+                    {{ i.detail }}
+                </td>
+
+                <td>
+                    {{ i.qty }}
+                </td>
+
+                <td>
+                    ${{ "%.2f"|format(i.unit_price) }}
+                </td>
+
+                <td>
+                    ${{ "%.2f"|format(i.subtotal) }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% endif %}
+
+
+        <!-- INDUMENTARIA -->
+
+        {% if apparel %}
+
+        <h2>Indumentaria</h2>
+
+        <p>
+            <b>Tipo de tela:</b>
+            {{ order.fabric_type }}
+        </p>
+
+        <table>
+
+            <tr>
+                <th>Artículo</th>
+                <th>Nombre</th>
+                <th>Superior</th>
+                <th>Inferior</th>
+                <th>Precio</th>
+            </tr>
+
+            {% for i in apparel %}
+
+            <tr>
+
+                <td>
+                    {{ i.article }}
+                </td>
+
+                <td>
+                    {{ i.person_name }}
+                </td>
+
+                <td>
+                    {{ i.upper_size }}
+                </td>
+
+                <td>
+                    {{ i.lower_size }}
+                </td>
+
+                <td>
+                    ${{ "%.2f"|format(i.price) }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% endif %}
+
+
+        <!-- BIRRETES / ESTOLAS -->
+
+        {% if grads %}
+
+        <h2>Birretes / Estolas</h2>
+
+        <p>
+
+            <b>Escuela:</b>
+            {{ order.school_name }}
+
+            |
+
+            <b>Grado/Año:</b>
+            {{ order.school_grade }}
+
+        </p>
+
+        <table>
+
+            <tr>
+                <th>Nombre</th>
+                <th>Talle birrete</th>
+                <th>Talle estola</th>
+                <th>Obs.</th>
+                <th>Precio</th>
+            </tr>
+
+            {% for i in grads %}
+
+            <tr>
+
+                <td>
+                    {{ i.person_name }}
+                </td>
+
+                <td>
+                    {{ i.cap_size }}
+                </td>
+
+                <td>
+                    {{ i.stole_size }}
+                </td>
+
+                <td>
+                    {{ i.note }}
+                </td>
+
+                <td>
+                    ${{ "%.2f"|format(i.price) }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+        {% endif %}
+
+
+        <!-- TOTALES NORMALES -->
+
+        <div class="totals">
+
+            <p>
+                Subtotal:
+                <b>
+                    ${{ "%.2f"|format(order.subtotal) }}
+                </b>
+            </p>
+
+            <p>
+                Descuento:
+                <b>
+                    ${{ "%.2f"|format(order.discount) }}
+                </b>
+            </p>
+
+            <p>
+                Total:
+                <b>
+                    ${{ "%.2f"|format(order.total) }}
+                </b>
+            </p>
+
+
+            {% if order.document_type != 'Presupuesto' %}
+
+            <p>
+                Seña:
+                <b>
+                    ${{ "%.2f"|format(order.deposit) }}
+                </b>
+            </p>
+
+            <p>
+                Saldo:
+                <b>
+                    ${{ "%.2f"|format(order.balance) }}
+                </b>
+            </p>
+
+            {% endif %}
+
+        </div>
+
+
+    {% endif %}
+
+
+    <!-- ==========================================
+         IMPORTANTE
+    ========================================== -->
+
+    <div style="
+        margin-top:20px;
+        padding:12px;
+        border:1px solid #999;
+        border-radius:8px;
+        font-size:12px;
+        line-height:1.4;
+    ">
+
+        <b>IMPORTANTE:</b>
+
+        <br><br>
+
+        Una vez informado que el pedido se encuentra TERMINADO,
+        el cliente contará con un plazo de 7 días corridos para
+        retirarlo y/o cancelar el saldo pendiente.
+
+        <br><br>
+
+        Pasado dicho plazo,
+        se aplicará un recargo del 10% semanal sobre el saldo
+        restante hasta el momento de su retiro y cancelación total.
+
+        <br><br>
+
+        Gracias por confiar en DMS Sublimaciones.
+
+    </div>
 
 </section>
+
+
+<!-- ==========================================
+     ARCHIVOS
+========================================== -->
 
 {% if files %}
 
 <section class="panel">
 
-<h2>Archivos del pedido</h2>
+    <h2>Archivos del pedido</h2>
 
-<div class="filegrid">
+    <div class="filegrid">
 
-{% for f in files %}
+        {% for f in files %}
 
-<a href="/static/{{f.file_path}}" target="_blank">
-📎 {{f.original_name}}
-</a>
+        <a href="/static/{{ f.file_path }}"
+           target="_blank">
 
-{% endfor %}
+            📎 {{ f.original_name }}
 
-</div>
+        </a>
+
+        {% endfor %}
+
+    </div>
 
 </section>
 
 {% endif %}
+
+
+<!-- ==========================================
+     COSTOS
+========================================== -->
 
 {% if order.calculated_cost %}
 
 <section class="panel">
 
-<h2>Costos automáticos</h2>
+    <h2>Costos automáticos</h2>
 
-<p>
-<b>Costo calculado:</b>
-${{"%.2f"|format(order.calculated_cost or 0)}}
+    <p>
 
-|
+        <b>Costo calculado:</b>
 
-<b>Ganancia:</b>
-${{"%.2f"|format(order.calculated_profit or 0)}}
-</p>
+        ${{ "%.2f"|format(order.calculated_cost or 0) }}
+
+        |
+
+        <b>Ganancia:</b>
+
+        ${{ "%.2f"|format(order.calculated_profit or 0) }}
+
+    </p>
 
 </section>
 
 {% endif %}
+
 
 {% endblock %}
