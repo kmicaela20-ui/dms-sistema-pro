@@ -1410,6 +1410,89 @@ def edit_order(oid):
 
     return render_template('edit_order.html',order=order,items=items)
     
+@app.route('/egresaditos/<int:oid>/student/<int:student_id>/payment', methods=['POST'])
+@login_required
+def egresaditos_add_payment(oid, student_id):
+    con = db()
+    cur = con.cursor()
+
+    try:
+        payment_type = request.form.get('payment_type') or 'other'
+        installment_number = request.form.get('installment_number')
+        amount = money(request.form.get('amount'))
+        payment_date = request.form.get('payment_date') or today()
+        payment_method = request.form.get('payment_method') or ''
+        note = request.form.get('note') or ''
+
+        if installment_number in (None, '', '0'):
+            installment_number = None
+        else:
+            installment_number = int(installment_number)
+
+        if amount <= 0:
+            con.close()
+            return 'El importe del pago debe ser mayor a 0.', 400
+
+        student = cur.execute(
+            '''
+            SELECT *
+            FROM egresaditos_students
+            WHERE id=? AND order_id=?
+            ''',
+            (student_id, oid)
+        ).fetchone()
+
+        if not student:
+            con.close()
+            return 'Alumno no encontrado.', 404
+
+        cur.execute(
+            '''
+            INSERT INTO egresaditos_payments(
+                order_id,
+                student_id,
+                payment_type,
+                installment_number,
+                amount,
+                payment_date,
+                payment_method,
+                note
+            )
+            VALUES(?,?,?,?,?,?,?,?)
+            ''',
+            (
+                oid,
+                student_id,
+                payment_type,
+                installment_number,
+                amount,
+                payment_date,
+                payment_method,
+                note
+            )
+        )
+
+        con.commit()
+        con.close()
+
+        return redirect(url_for('edit_order', oid=oid))
+
+    except Exception as e:
+        try:
+            con.rollback()
+        except:
+            pass
+
+        try:
+            con.close()
+        except:
+            pass
+
+        print('ERROR REGISTRANDO PAGO EGRESADITOS:', e)
+
+        return 'Error registrando pago: ' + str(e), 500
+
+
 @app.route('/orders/<int:oid>/delete', methods=['POST'])
 @login_required
 def delete_order(oid):
