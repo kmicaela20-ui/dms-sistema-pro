@@ -1605,11 +1605,11 @@ def workshop(oid):
     if order['order_module']=='Indumentaria': return render_template('workshop_indumentaria.html',order=order,apparel=apparel,sponsors=sponsors)
     if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads)
     if order['order_module']=='Egresaditos':
-    return render_template(
-        'workshop_egresaditos.html',
-        order=order,
-        students=students
-    )    
+        return render_template(
+            'workshop_egresaditos.html',
+            order=order,
+            students=students
+        )    
     return redirect(f'/orders/{oid}')
 
 @app.route('/clients')
