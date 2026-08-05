@@ -10,25 +10,32 @@
 {{ parts.common_fields(today) }}
 
 <section class="panel">
+
 <h2>Extra de indumentaria</h2>
 
 <label>
 Tipo de tela
-<input name="fabric_type" placeholder="Ej: tela deportiva premium, dry fit, algodón">
+<input name="fabric_type"
+       placeholder="Ej: tela deportiva premium, dry fit, algodón">
 </label>
 
 <label>
 Diseño general del equipo
-<textarea name="team_design_notes" placeholder="Observaciones generales, colores, estilo, referencias"></textarea>
+<textarea name="team_design_notes"
+          placeholder="Observaciones generales, colores, estilo, referencias"></textarea>
 </label>
 
 </section>
+
 
 <section class="panel">
 
 <h2>Lista de artículos</h2>
 
-<input type="hidden" name="item_count" id="item_count" value="1">
+<input type="hidden"
+       name="item_count"
+       id="item_count"
+       value="1">
 
 <table id="items">
 
@@ -74,18 +81,23 @@ Diseño general del equipo
 
 <td>
 <select name="upper_1">
+
 <option value="XS">XS</option>
+
 {% for s in sizes %}
 <option>{{s}}</option>
 {% endfor %}
+
 </select>
 </td>
 
 <td>
 <select name="lower_1">
+
 {% for s in sizes %}
 <option>{{s}}</option>
 {% endfor %}
+
 </select>
 </td>
 
@@ -95,14 +107,17 @@ Diseño general del equipo
        name="price_1"
        type="text"
        placeholder="Precio"
-       oninput="calc()">
+       readonly>
 </td>
 
 </tr>
 
 </table>
 
-<button type="button" class="btn" onclick="addItem()">
+
+<button type="button"
+        class="btn"
+        onclick="addItem()">
 + Agregar artículo
 </button>
 
@@ -136,8 +151,10 @@ Diseño general del equipo
 <select name="sponsor_part_1"
         onchange="setLoc(1)"
         id="part1">
+
 <option>Prenda superior</option>
 <option>Prenda inferior</option>
+
 </select>
 </td>
 
@@ -159,6 +176,7 @@ Diseño general del equipo
 
 </table>
 
+
 <button type="button"
         class="btn"
         onclick="addSponsor()">
@@ -166,6 +184,7 @@ Diseño general del equipo
 </button>
 
 </section>
+
 
 <button class="savebtn">
 Guardar
@@ -176,81 +195,136 @@ Guardar
 
 <script>
 
-const articles={{articles|tojson}},
-sizes={{sizes|tojson}},
-upper={{upper_locations|tojson}},
-lower={{lower_locations|tojson}};
+const articles = {{articles|tojson}};
+const sizes = {{sizes|tojson}};
+const upper = {{upper_locations|tojson}};
+const lower = {{lower_locations|tojson}};
 
 
 function options(arr){
-    return arr.map(x=>`<option>${x}</option>`).join('')
+
+    return arr.map(
+        x => `<option>${x}</option>`
+    ).join('');
+
 }
 
 
-/* =========================
-   BUSCAR PRODUCTO POR CODIGO
-   ========================= */
+/* =====================================
+   BUSCAR PRODUCTO POR CÓDIGO
+   ===================================== */
 
 async function loadCode(n){
 
-    let codeInput = document.getElementById('code_' + n);
-    let articleInput = document.getElementById('article_' + n);
-    let priceInput = document.getElementById('price_' + n);
+    let codeInput =
+        document.getElementById('code_' + n);
+
+    let articleInput =
+        document.getElementById('article_' + n);
+
+    let priceInput =
+        document.getElementById('price_' + n);
+
 
     let code = codeInput.value.trim();
 
+
     if(!code){
+
         articleInput.value = '';
         priceInput.value = '';
+
         calc();
+
         return;
+
     }
+
 
     try{
 
         let r = await fetch(
-            '/api/inventory/code/' + encodeURIComponent(code)
+            '/api/inventory/code/' +
+            encodeURIComponent(code)
         );
+
+
+        if(!r.ok){
+
+            throw new Error(
+                'Error HTTP: ' + r.status
+            );
+
+        }
+
 
         let p = await r.json();
 
+
         if(!p || !p.id){
 
-            alert('Código no encontrado en inventario');
+            alert(
+                'Código no encontrado en inventario'
+            );
 
             articleInput.value = '';
             priceInput.value = '';
 
             calc();
+
             return;
+
         }
 
-        articleInput.value = p.item || '';
-        priceInput.value = p.retail_price || 0;
+
+        /* COMPLETAR ARTÍCULO */
+
+        articleInput.value =
+            p.item || '';
+
+
+        /* PRECIO MAYOR DEL INVENTARIO */
+
+        priceInput.value =
+            p.wholesale_price || 0;
+
 
         calc();
 
+
     }catch(error){
 
-        alert('Error al buscar el código');
+        alert(
+            'Error al buscar el código'
+        );
 
         console.error(error);
 
     }
+
 }
 
 
-/* =========================
-   AGREGAR ARTICULO
-   ========================= */
+/* =====================================
+   AGREGAR ARTÍCULO
+   ===================================== */
 
 function addItem(){
 
-    let n = +document.getElementById('item_count').value + 1;
+    let n =
+        +document.getElementById(
+            'item_count'
+        ).value + 1;
 
-    document.getElementById('item_count').value = n;
 
-    document.getElementById('items').insertAdjacentHTML(
+    document.getElementById(
+        'item_count'
+    ).value = n;
+
+
+    document.getElementById(
+        'items'
+    ).insertAdjacentHTML(
         'beforeend',
         `
 
@@ -259,50 +333,75 @@ function addItem(){
 <td>${n}</td>
 
 <td>
+
 <input type="text"
        id="code_${n}"
        name="code_${n}"
        placeholder="Código"
        onchange="loadCode(${n})">
+
 </td>
 
+
 <td>
+
 <input type="text"
        id="article_${n}"
        name="article_${n}"
        readonly>
+
 </td>
 
+
 <td>
+
 <input name="name_${n}">
+
 </td>
 
+
 <td>
+
 <input type="text"
        name="numero_${n}"
        placeholder="Número">
+
 </td>
 
+
 <td>
+
 <select name="upper_${n}">
+
 <option value="XS">XS</option>
+
 ${options(sizes)}
+
 </select>
+
 </td>
 
+
 <td>
+
 <select name="lower_${n}">
+
 ${options(sizes)}
+
 </select>
+
 </td>
 
+
 <td>
+
 <input class="itemPrice"
        id="price_${n}"
        name="price_${n}"
        type="text"
        placeholder="Precio"
-       oninput="calc()">
+       readonly>
+
 </td>
 
 </tr>
@@ -313,17 +412,26 @@ ${options(sizes)}
 }
 
 
-/* =========================
+/* =====================================
    AGREGAR SPONSOR
-   ========================= */
+   ===================================== */
 
 function addSponsor(){
 
-    let n = +document.getElementById('sponsor_count').value + 1;
+    let n =
+        +document.getElementById(
+            'sponsor_count'
+        ).value + 1;
 
-    document.getElementById('sponsor_count').value = n;
 
-    document.getElementById('sponsors').insertAdjacentHTML(
+    document.getElementById(
+        'sponsor_count'
+    ).value = n;
+
+
+    document.getElementById(
+        'sponsors'
+    ).insertAdjacentHTML(
         'beforeend',
         `
 
@@ -331,92 +439,145 @@ function addSponsor(){
 
 <td>${n}</td>
 
+
 <td>
+
 <select name="sponsor_part_${n}"
         onchange="setLoc(${n})"
         id="part${n}">
+
 <option>Prenda superior</option>
 <option>Prenda inferior</option>
+
 </select>
+
 </td>
 
+
 <td>
+
 <select name="sponsor_location_${n}"
         id="loc${n}">
 </select>
+
 </td>
 
+
 <td>
+
 <input name="sponsor_name_${n}">
+
 </td>
 
+
 <td>
+
 <input name="sponsor_note_${n}">
+
 </td>
 
 </tr>
 
 `
     );
+
 
     setLoc(n);
 
 }
 
 
-/* =========================
-   UBICACIONES SPONSOR
-   ========================= */
+/* =====================================
+   UBICACIONES DE SPONSOR
+   ===================================== */
 
 function setLoc(n){
 
     let arr =
-        document.getElementById('part'+n).value === 'Prenda superior'
+        document.getElementById(
+            'part' + n
+        ).value === 'Prenda superior'
+
         ? upper
+
         : lower;
 
-    document.getElementById('loc'+n).innerHTML =
-        options(arr);
+
+    document.getElementById(
+        'loc' + n
+    ).innerHTML = options(arr);
 
 }
 
 
-/* =========================
+/* =====================================
    CALCULAR TOTAL
-   ========================= */
+   ===================================== */
 
 function calc(){
 
     let st = 0;
 
-    document.querySelectorAll('.itemPrice').forEach(
-        x => st += +x.value || 0
+
+    document.querySelectorAll(
+        '.itemPrice'
+    ).forEach(
+
+        x => st +=
+        parseFloat(x.value) || 0
+
     );
 
-    let d = +discount.value || 0;
 
-    let t = Math.max(0, st-d);
+    let d =
+        parseFloat(discount.value) || 0;
+
+
+    let t =
+        Math.max(0, st - d);
+
 
     let dep =
-        (document_type.value === 'Presupuesto')
-        ? 0
-        : (+deposit.value || 0);
 
-    if(document_type.value === 'Presupuesto'){
+        (document_type.value ===
+        'Presupuesto')
+
+        ? 0
+
+        : (parseFloat(deposit.value) || 0);
+
+
+    if(
+        document_type.value ===
+        'Presupuesto'
+    ){
+
         deposit.value = 0;
+
     }
+
 
     subtotalBox.innerText =
         '$' + st.toFixed(2);
 
+
     totalBox.innerText =
         '$' + t.toFixed(2);
 
+
     balanceBox.innerText =
-        '$' + Math.max(0,t-dep).toFixed(2);
+        '$' +
+        Math.max(
+            0,
+            t - dep
+        ).toFixed(2);
 
 }
 
+
+/* =====================================
+   INICIAR
+   ===================================== */
 
 setLoc(1);
 
