@@ -1980,8 +1980,55 @@ def egresaditos_payment_ticket(payment_id):
         course_balance=course_balance
     )
 
+# ============================================================
+# ELIMINAR PAGO DE EGRESADITOS
+# ============================================================
+
+@app.route('/egresaditos/payment/<int:payment_id>/delete', methods=['POST'])
+@login_required
+def delete_egresaditos_payment(payment_id):
+
+    con = db()
+
+    # Buscar el pago
+    payment = con.execute(
+        '''
+        SELECT *
+        FROM egresaditos_payments
+        WHERE id=%s
+        ''',
+        (payment_id,)
+    ).fetchone()
+
+    # Si el pago no existe
+    if not payment:
+        con.close()
+        flash('El pago no existe o ya fue eliminado.')
+        return redirect('/orders')
+
+    # Guardamos el ID del pedido
+    order_id = payment['order_id']
+
+    # Eliminamos solamente este pago
+    con.execute(
+        '''
+        DELETE FROM egresaditos_payments
+        WHERE id=%s
+        ''',
+        (payment_id,)
+    )
+
+    con.commit()
+    con.close()
+
+    flash('Pago eliminado correctamente.')
+
+    # Volvemos al pedido
+    return redirect(f'/orders/{order_id}/edit')
+
 
 init()
 
-if __name__=='__main__':
-    app.run(host='0.0.0.0',port=int(os.environ.get('PORT',5000)))
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
