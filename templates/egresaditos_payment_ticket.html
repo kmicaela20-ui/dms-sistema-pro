@@ -5,9 +5,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Comprobante de Pago</title>
+    <title>Comprobante de Pago - DMS Sublimaciones</title>
 
     <style>
+
+        * {
+            box-sizing: border-box;
+        }
 
         body {
             font-family: Arial, sans-serif;
@@ -23,7 +27,7 @@
         }
 
         .btn {
-            padding: 10px 20px;
+            padding: 11px 20px;
             background: #1266f1;
             color: white;
             border: none;
@@ -33,7 +37,7 @@
         }
 
         .ticket {
-            width: 400px;
+            width: 450px;
             max-width: 100%;
             margin: auto;
             background: white;
@@ -45,17 +49,18 @@
         .header {
             text-align: center;
             border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+            padding-bottom: 18px;
             margin-bottom: 20px;
         }
 
         .logo {
             max-width: 120px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
         }
 
         .header h2 {
             margin: 5px 0;
+            font-size: 25px;
         }
 
         .header p {
@@ -63,18 +68,31 @@
             font-size: 13px;
         }
 
-        .alumno {
+        .alumno-box {
+            margin-bottom: 18px;
+            padding: 12px;
+            border: 1px solid #aaa;
+            border-radius: 7px;
             text-align: center;
+        }
+
+        .alumno-titulo {
+            font-size: 12px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .alumno-nombre {
             font-size: 18px;
             font-weight: bold;
-            margin-bottom: 20px;
         }
 
         .fila {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             gap: 15px;
-            padding: 9px 0;
+            padding: 10px 0;
             border-bottom: 1px dashed #aaa;
             font-size: 14px;
         }
@@ -85,8 +103,8 @@
         }
 
         .concepto {
-            margin-top: 15px;
-            padding: 12px;
+            margin-top: 18px;
+            padding: 13px;
             text-align: center;
             border: 1px solid #aaa;
             border-radius: 7px;
@@ -98,14 +116,15 @@
         }
 
         .concepto-valor {
-            font-size: 18px;
+            font-size: 19px;
             font-weight: bold;
-            margin-top: 5px;
+            margin-top: 6px;
+            text-transform: uppercase;
         }
 
         .pago {
             margin: 20px 0;
-            padding: 15px;
+            padding: 17px;
             text-align: center;
             background: #f2f2f2;
             border: 2px solid #222;
@@ -115,17 +134,30 @@
         .pago small {
             display: block;
             margin-bottom: 5px;
+            font-size: 13px;
         }
 
         .pago strong {
-            font-size: 26px;
+            font-size: 28px;
+        }
+
+        .resumen {
+            margin-top: 15px;
+        }
+
+        .resumen-titulo {
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 5px;
         }
 
         .saldo {
-            font-size: 17px;
-            font-weight: bold;
-            border-top: 2px solid #000;
             margin-top: 8px;
+            padding-top: 12px;
+            border-top: 2px solid #000;
+            border-bottom: none;
+            font-size: 18px;
+            font-weight: bold;
         }
 
         .gracias {
@@ -134,6 +166,7 @@
             padding-top: 15px;
             border-top: 1px solid #aaa;
             font-size: 12px;
+            line-height: 1.5;
         }
 
         @media print {
@@ -149,17 +182,20 @@
 
             .ticket {
                 border: none;
+                border-radius: 0;
                 width: 100%;
-                max-width: 400px;
+                max-width: 450px;
                 padding: 5px;
             }
 
         }
 
     </style>
+
 </head>
 
 <body>
+
 
 <div class="acciones">
 
@@ -171,6 +207,9 @@
 
 
 <div class="ticket">
+
+
+    <!-- ENCABEZADO -->
 
     <div class="header">
 
@@ -185,18 +224,28 @@
         <p>COMPROBANTE DE PAGO</p>
 
         {% if order %}
-        <p>Pedido {{ order.code }}</p>
+            <p>Pedido <b>{{ order.code }}</b></p>
         {% endif %}
 
     </div>
 
 
-    <div class="alumno">
+    <!-- ALUMNO -->
 
-        {{ student.full_name }}
+    <div class="alumno-box">
+
+        <div class="alumno-titulo">
+            ALUMNO
+        </div>
+
+        <div class="alumno-nombre">
+            {{ student.student_name }}
+        </div>
 
     </div>
 
+
+    <!-- FECHA -->
 
     <div class="fila">
 
@@ -209,6 +258,8 @@
     </div>
 
 
+    <!-- FORMA DE PAGO -->
+
     <div class="fila">
 
         <span>Forma de pago</span>
@@ -220,6 +271,8 @@
     </div>
 
 
+    <!-- CONCEPTO DEL PAGO -->
+
     <div class="concepto">
 
         <div class="concepto-titulo">
@@ -228,13 +281,23 @@
 
         <div class="concepto-valor">
 
-            {% if payment.payment_type == 'Reserva' %}
+            {% if payment.payment_type == 'reservation'
+                  or payment.payment_type == 'Reservation'
+                  or payment.payment_type == 'reserva'
+                  or payment.payment_type == 'Reserva' %}
 
                 RESERVA
 
             {% elif payment.installment_number %}
 
                 CUOTA N° {{ payment.installment_number }}
+
+            {% elif payment.payment_type == 'installment'
+                  or payment.payment_type == 'Installment'
+                  or payment.payment_type == 'cuota'
+                  or payment.payment_type == 'Cuota' %}
+
+                CUOTA
 
             {% else %}
 
@@ -247,6 +310,8 @@
     </div>
 
 
+    <!-- PAGO QUE SE ESTA IMPRIMIENDO -->
+
     <div class="pago">
 
         <small>PAGO REALIZADO</small>
@@ -258,38 +323,55 @@
     </div>
 
 
-    <div class="fila">
+    <!-- RESUMEN DEL ALUMNO -->
 
-        <span>Total del alumno</span>
+    <div class="resumen">
 
-        <span>
-            ${{ "%.2f"|format(student.total or 0) }}
-        </span>
+        <div class="resumen-titulo">
+            RESUMEN DEL ALUMNO
+        </div>
+
+
+        <div class="fila">
+
+            <span>Total del alumno</span>
+
+            <span>
+                ${{ "%.2f"|format(student.final_price or 0) }}
+            </span>
+
+        </div>
+
+
+        <div class="fila">
+
+            <span>Total pagado</span>
+
+            <span>
+                ${{ "%.2f"|format(total_paid_student or 0) }}
+            </span>
+
+        </div>
+
+
+        <div class="fila saldo">
+
+            <span>Saldo del alumno</span>
+
+            <span>
+                ${{ "%.2f"|format(
+                    (student.final_price or 0)
+                    -
+                    (total_paid_student or 0)
+                ) }}
+            </span>
+
+        </div>
 
     </div>
 
 
-    <div class="fila">
-
-        <span>Total pagado</span>
-
-        <span>
-            ${{ "%.2f"|format(total_paid_student or 0) }}
-        </span>
-
-    </div>
-
-
-    <div class="fila saldo">
-
-        <span>Saldo del alumno</span>
-
-        <span>
-            ${{ "%.2f"|format((student.total or 0) - (total_paid_student or 0)) }}
-        </span>
-
-    </div>
-
+    <!-- PIE -->
 
     <div class="gracias">
 
@@ -299,7 +381,9 @@
 
     </div>
 
+
 </div>
+
 
 </body>
 
