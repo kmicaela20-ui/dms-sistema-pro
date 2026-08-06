@@ -8,7 +8,6 @@
     <title>Comprobante de Pago - DMS Sublimaciones</title>
 
     <style>
-
         * {
             box-sizing: border-box;
         }
@@ -170,7 +169,6 @@
         }
 
         @media print {
-
             body {
                 background: white;
                 padding: 0;
@@ -187,27 +185,19 @@
                 max-width: 450px;
                 padding: 5px;
             }
-
         }
-
     </style>
-
 </head>
 
 <body>
 
-
 <div class="acciones">
-
     <button class="btn" onclick="window.print()">
         🖨 Imprimir comprobante
     </button>
-
 </div>
 
-
 <div class="ticket">
-
 
     <!-- ENCABEZADO -->
 
@@ -229,7 +219,6 @@
 
     </div>
 
-
     <!-- ALUMNO -->
 
     <div class="alumno-box">
@@ -244,8 +233,7 @@
 
     </div>
 
-
-    <!-- FECHA DE PAGO -->
+    <!-- FECHA -->
 
     <div class="fila">
 
@@ -256,7 +244,6 @@
         </span>
 
     </div>
-
 
     <!-- FORMA DE PAGO -->
 
@@ -270,8 +257,7 @@
 
     </div>
 
-
-    <!-- CONCEPTO DEL PAGO -->
+    <!-- CONCEPTO -->
 
     <div class="concepto">
 
@@ -281,10 +267,7 @@
 
         <div class="concepto-valor">
 
-            {% if payment.payment_type == 'reservation'
-                  or payment.payment_type == 'Reservation'
-                  or payment.payment_type == 'reserva'
-                  or payment.payment_type == 'Reserva' %}
+            {% if payment.payment_type in ['reservation', 'Reservation', 'reserva', 'Reserva'] %}
 
                 RESERVA
 
@@ -292,10 +275,7 @@
 
                 CUOTA N° {{ payment.installment_number }}
 
-            {% elif payment.payment_type == 'installment'
-                  or payment.payment_type == 'Installment'
-                  or payment.payment_type == 'cuota'
-                  or payment.payment_type == 'Cuota' %}
+            {% elif payment.payment_type in ['installment', 'Installment', 'cuota', 'Cuota'] %}
 
                 CUOTA
 
@@ -309,7 +289,6 @@
 
     </div>
 
-
     <!-- PAGO REALIZADO -->
 
     <div class="pago">
@@ -322,17 +301,13 @@
 
     </div>
 
-
-    <!-- RESUMEN DEL ALUMNO -->
+    <!-- RESUMEN -->
 
     <div class="resumen">
 
         <div class="resumen-titulo">
             RESUMEN DEL ALUMNO
         </div>
-
-
-        <!-- TOTAL DEL ALUMNO -->
 
         <div class="fila">
 
@@ -344,9 +319,6 @@
 
         </div>
 
-
-        <!-- TOTAL PAGADO -->
-
         <div class="fila">
 
             <span>Total pagado</span>
@@ -356,9 +328,6 @@
             </span>
 
         </div>
-
-
-        <!-- SALDO DEL ALUMNO -->
 
         <div class="fila saldo">
 
@@ -376,7 +345,6 @@
 
     </div>
 
-
     <!-- PIE -->
 
     <div class="gracias">
@@ -387,10 +355,7 @@
 
     </div>
 
-
 </div>
 
-
 </body>
-
 </html>
