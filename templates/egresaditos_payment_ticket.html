@@ -239,13 +239,13 @@
         </div>
 
         <div class="alumno-nombre">
-            {{ student.student_name }}
+            {{ student.student_name or '-' }}
         </div>
 
     </div>
 
 
-    <!-- FECHA -->
+    <!-- FECHA DE PAGO -->
 
     <div class="fila">
 
@@ -310,14 +310,14 @@
     </div>
 
 
-    <!-- PAGO QUE SE ESTA IMPRIMIENDO -->
+    <!-- PAGO REALIZADO -->
 
     <div class="pago">
 
         <small>PAGO REALIZADO</small>
 
         <strong>
-            ${{ "%.2f"|format(payment.amount or 0) }}
+            ${{ "%.2f"|format(payment.amount|float) }}
         </strong>
 
     </div>
@@ -332,27 +332,33 @@
         </div>
 
 
+        <!-- TOTAL DEL ALUMNO -->
+
         <div class="fila">
 
             <span>Total del alumno</span>
 
             <span>
-                ${{ "%.2f"|format(student.final_price or 0) }}
+                ${{ "%.2f"|format(student.final_price|float) }}
             </span>
 
         </div>
 
+
+        <!-- TOTAL PAGADO -->
 
         <div class="fila">
 
             <span>Total pagado</span>
 
             <span>
-                ${{ "%.2f"|format(total_paid_student or 0) }}
+                ${{ "%.2f"|format(total_paid_student|float) }}
             </span>
 
         </div>
 
+
+        <!-- SALDO DEL ALUMNO -->
 
         <div class="fila saldo">
 
@@ -360,9 +366,9 @@
 
             <span>
                 ${{ "%.2f"|format(
-                    (student.final_price or 0)
+                    (student.final_price|float)
                     -
-                    (total_paid_student or 0)
+                    (total_paid_student|float)
                 ) }}
             </span>
 
