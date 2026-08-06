@@ -372,6 +372,7 @@ Cuota {{ installment['installment_number'] }}
 <th>Forma de pago</th>
 <th>Nota</th>
 <th>Ticket</th>
+<th>Eliminar</th>
 </tr>
 
 </thead>
@@ -436,6 +437,9 @@ ${{ "%.2f"|format(payment['amount'] or 0) }}
 {{ payment['note'] or '-' }}
 </td>
 
+
+<!-- TICKET -->
+
 <td>
 
 <a class="btn"
@@ -443,6 +447,34 @@ ${{ "%.2f"|format(payment['amount'] or 0) }}
    target="_blank">
 🖨️ Ticket
 </a>
+
+</td>
+
+
+<!-- ELIMINAR PAGO -->
+
+<td>
+
+<form method="POST"
+      action="/egresaditos/payment/{{ payment['id'] }}/delete"
+      style="margin:0;"
+      onsubmit="return confirm('¿Seguro que querés eliminar este pago? Esta acción no se puede deshacer.');">
+
+    <button type="submit"
+            style="
+                background:#dc3545;
+                color:white;
+                border:none;
+                padding:9px 14px;
+                border-radius:7px;
+                cursor:pointer;
+                font-weight:bold;
+                white-space:nowrap;
+            ">
+        🗑️ Eliminar
+    </button>
+
+</form>
 
 </td>
 
