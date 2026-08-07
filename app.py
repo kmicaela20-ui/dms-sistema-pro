@@ -158,7 +158,18 @@ CREATE TABLE IF NOT EXISTS egresaditos_payments(
               ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
               ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
         cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-    con.commit(); con.close()
+    
+    # =====================================================
+    # COLUMNA PARA FECHA REAL DE ENTREGA
+    # =====================================================
+    try:
+        cur.execute(
+            'ALTER TABLE orders ADD COLUMN delivered_at TEXT'
+        )
+    except Exception:
+        pass
+    con.commit()
+    con.close()
 
 def login_required(fn):
     def wrap(*a,**k):
@@ -1697,6 +1708,101 @@ def update_status(oid):
         return redirect(url)
 
     return redirect('/orders')
+
+# ============================================================
+# CONFIRMAR ENTREGA DEL PEDIDO
+# ============================================================
+
+@app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
+@login_required
+def delivery_confirm(oid):
+
+    con = db()
+    cur = con.cursor()
+
+    order = cur.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
+    if not order:
+        con.close()
+        flash('Pedido no encontrado.')
+        return redirect('/orders')
+
+    # Datos económicos actuales del pedido
+    total = float(order.get('total') or 0)
+    saldo = float(order.get('balance') or 0)
+    pagado_anterior = max(total - saldo, 0)
+
+    # Fecha automática del día
+    fecha_entrega = datetime.now().strftime('%Y-%m-%d')
+
+    # ========================================================
+    # CONFIRMAR ENTREGA
+    # ========================================================
+
+    if request.method == 'POST':
+
+        payment_method = request.form.get('payment_method') or 'Efectivo'
+
+        # Volvemos a leer el saldo para evitar usar un dato viejo
+        order = cur.execute(
+            'SELECT * FROM orders WHERE id=?',
+            (oid,)
+        ).fetchone()
+
+        total = float(order.get('total') or 0)
+        saldo = float(order.get('balance') or 0)
+
+        # No permitimos saldo negativo
+        if saldo < 0:
+            saldo = 0
+
+        # El saldo pendiente se toma como pago final
+        pago_final = saldo
+
+        # Actualizamos el pedido:
+        # saldo = 0
+        # estado = Entregado
+        # fecha de entrega = hoy
+        cur.execute(
+            '''
+            UPDATE orders
+            SET status=?,
+                balance=?,
+                delivered_at=?
+            WHERE id=?
+            ''',
+            (
+                'Entregado',
+                0,
+                fecha_entrega,
+                oid
+            )
+        )
+
+        con.commit()
+        con.close()
+
+        # Guardamos los datos de la entrega temporalmente
+        # para mostrarlos en el comprobante
+        return redirect(
+            f'/orders/{oid}/delivery-ticket'
+            f'?payment={pago_final}'
+            f'&method={payment_method}'
+        )
+
+    con.close()
+
+    return render_template(
+        'delivery_confirm.html',
+        order=order,
+        total=total,
+        paid_before=pagado_anterior,
+        balance=saldo,
+        delivery_date=fecha_entrega
+    )
 
 
 @app.route('/orders/<int:oid>/workshop')
