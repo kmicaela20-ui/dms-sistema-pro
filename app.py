@@ -323,6 +323,16 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
             rows
         )
 
+    # =====================================================
+    # MINIMO DE CANTIDAD PARA PRECIO MAYORISTA
+    # =====================================================
+
+    try:
+        cur.execute(
+            'ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wholesale_min_qty INTEGER DEFAULT 1'
+        )
+    except Exception as e:
+        print("ERROR wholesale_min_qty:", e)
     # ============================================================
     # DATOS PERMANENTES DE ENTREGA
     # ============================================================
@@ -1956,7 +1966,7 @@ def delivery_confirm(oid):
         # saldo = 0
         # estado = Entregado
         # fecha de entrega = hoy
-        ccur.execute(
+        cur.execute(
     '''
     UPDATE orders
     SET status=?,
