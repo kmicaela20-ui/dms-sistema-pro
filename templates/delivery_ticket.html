@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Comprobante de Entrega - DMS Sublimaciones</title>
+
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #f2f2f2;
+    margin: 0;
+    padding: 20px;
+    color: #111;
+}
+
+.acciones {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.btn {
+    display: inline-block;
+    padding: 11px 18px;
+    margin: 4px;
+    background: #1266f1;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 15px;
+    text-decoration: none;
+}
+
+.ticket {
+    width: 450px;
+    max-width: 100%;
+    margin: auto;
+    background: white;
+    padding: 25px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+}
+
+.header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 18px;
+    margin-bottom: 20px;
+}
+
+.logo {
+    max-width: 120px;
+    margin-bottom: 8px;
+}
+
+.header h2 {
+    margin: 5px 0;
+    font-size: 25px;
+}
+
+.header p {
+    margin: 4px 0;
+    font-size: 13px;
+}
+
+.entregado {
+    text-align: center;
+    padding: 15px;
+    margin-bottom: 18px;
+    border: 2px solid #222;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.fila {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 10px 0;
+    border-bottom: 1px dashed #aaa;
+    font-size: 14px;
+}
+
+.fila span:last-child {
+    text-align: right;
+    font-weight: bold;
+}
+
+.pago-final {
+    margin: 20px 0;
+    padding: 17px;
+    text-align: center;
+    background: #f2f2f2;
+    border: 2px solid #222;
+    border-radius: 8px;
+}
+
+.pago-final small {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.pago-final strong {
+    font-size: 28px;
+}
+
+.saldo-cero {
+    margin-top: 18px;
+    padding: 15px;
+    text-align: center;
+    border: 2px solid #111;
+    border-radius: 8px;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+.gracias {
+    text-align: center;
+    margin-top: 25px;
+    padding-top: 15px;
+    border-top: 1px solid #aaa;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+@media print {
+
+    body {
+        background: white;
+        padding: 0;
+    }
+
+    .acciones {
+        display: none;
+    }
+
+    .ticket {
+        border: none;
+        border-radius: 0;
+        width: 100%;
+        max-width: 450px;
+        padding: 5px;
+    }
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="acciones">
+
+    <button class="btn" onclick="window.print()">
+        🖨 Imprimir comprobante
+    </button>
+
+    <a href="/orders" class="btn">
+        ⬅ Volver a pedidos
+    </a>
+
+</div>
+
+
+<div class="ticket">
+
+    <div class="header">
+
+        <img
+            src="{{ url_for('static', filename='logo.png') }}"
+            class="logo"
+            alt="DMS Sublimaciones"
+        >
+
+        <h2>DMS Sublimaciones</h2>
+
+        <p>COMPROBANTE DE ENTREGA</p>
+
+        <p>
+            Pedido <b>{{ order['code'] }}</b>
+        </p>
+
+    </div>
+
+
+    <div class="entregado">
+        ✅ PEDIDO ENTREGADO
+    </div>
+
+
+    <div class="fila">
+        <span>Cliente</span>
+        <span>{{ order['client_name'] or '-' }}</span>
+    </div>
+
+
+    <div class="fila">
+        <span>Fecha de entrega</span>
+        <span>{{ delivery_date }}</span>
+    </div>
+
+
+    <div class="fila">
+        <span>Total del pedido</span>
+        <span>${{ "%.2f"|format(total) }}</span>
+    </div>
+
+
+    <div class="fila">
+        <span>Pagado anteriormente</span>
+        <span>${{ "%.2f"|format(paid_before) }}</span>
+    </div>
+
+
+    <div class="pago-final">
+
+        <small>SALDO ABONADO AL ENTREGAR</small>
+
+        <strong>
+            ${{ "%.2f"|format(final_payment) }}
+        </strong>
+
+    </div>
+
+
+    <div class="fila">
+        <span>Forma de pago</span>
+        <span>{{ payment_method }}</span>
+    </div>
+
+
+    <div class="saldo-cero">
+        SALDO PENDIENTE: $0.00
+    </div>
+
+
+    <div class="gracias">
+
+        Pedido recibido y cancelado en su totalidad.<br><br>
+
+        Gracias por confiar en<br>
+
+        <b>DMS Sublimaciones</b>
+
+    </div>
+
+</div>
+
+</body>
+</html>
