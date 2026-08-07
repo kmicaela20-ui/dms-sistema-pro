@@ -1604,13 +1604,43 @@ def delete_order(oid):
 
     return redirect('/orders')
     
-@app.route('/orders/<int:oid>/status',methods=['POST'])
+@app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
 def update_status(oid):
-    status=request.form.get('status')
 
-    con=db()
-    cur=con.cursor()
+    status = request.form.get('status')
+
+    # =====================================================
+    # SI QUIEREN ENTREGAR EL PEDIDO
+    # =====================================================
+
+    if status == 'Entregado':
+
+        con = db()
+        cur = con.cursor()
+
+        order = cur.execute(
+            'SELECT * FROM orders WHERE id=?',
+            (oid,)
+        ).fetchone()
+
+        con.close()
+
+        if not order:
+            flash('Pedido no encontrado.')
+            return redirect('/orders')
+
+        # No lo marcamos todavía como entregado.
+        # Primero vamos a confirmar el pago final.
+        return redirect(f'/orders/{oid}/delivery-confirm')
+
+
+    # =====================================================
+    # RESTO DE LOS ESTADOS
+    # =====================================================
+
+    con = db()
+    cur = con.cursor()
 
     if status == 'Terminado':
 
@@ -1618,28 +1648,42 @@ def update_status(oid):
             'UPDATE orders SET status=?, finished_at=? WHERE id=?',
             (status, now(), oid)
         )
-    elif status != 'Terminado':
+
+    else:
+
         cur.execute(
             'UPDATE orders SET status=? WHERE id=?',
             (status, oid)
-        ) 
-        
+        )
+
     con.commit()
 
-    order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
+    order = cur.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
     con.close()
+
+
+    # =====================================================
+    # MENSAJE DE WHATSAPP
+    # =====================================================
 
     cliente = order.get('client_name') or 'cliente'
     saldo = float(order.get('balance') or 0)
 
     if status == 'Terminado':
+
         mensaje = (
             f"Hola {cliente} 👋\n\n"
             f"Te informamos que tu pedido {order['code']} ya está TERMINADO ✅.\n\n"
             f"Saldo pendiente: ${saldo:.2f}\n\n"
             f"DMS Sublimaciones"
         )
+
     else:
+
         mensaje = (
             f"Hola {cliente} 👋\n\n"
             f"Te informamos que tu pedido {order['code']} cambió de estado a: {status}.\n\n"
