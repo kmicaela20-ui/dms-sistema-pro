@@ -1785,21 +1785,25 @@ def delivery_confirm(oid):
         # saldo = 0
         # estado = Entregado
         # fecha de entrega = hoy
-        cur.execute(
-            '''
-            UPDATE orders
-            SET status=?,
-                balance=?,
-                delivered_at=?
-            WHERE id=?
-            ''',
-            (
-                'Entregado',
-                0,
-                fecha_entrega,
-                oid
-            )
-        )
+        ccur.execute(
+    '''
+    UPDATE orders
+    SET status=?,
+        balance=?,
+        delivered_at=?,
+        delivery_final_payment=?,
+        delivery_payment_method=?
+    WHERE id=?
+    ''',
+    (
+        'Entregado',
+        0,
+        fecha_entrega,
+        pago_final,
+        payment_method,
+        oid
+    )
+)
 
         con.commit()
         con.close()
