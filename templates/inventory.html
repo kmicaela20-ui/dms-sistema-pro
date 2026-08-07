@@ -1,95 +1,423 @@
-{% extends "base.html" %}{% block content %}
+{% extends "base.html" %}
+
+{% block content %}
+
 <h1>Inventario y Lista de Precios</h1>
 
-<section class="panel">
-<form method="get" class="searchbar">
-<input name="q" value="{{q or ''}}" placeholder="Buscar por código, categoría o nombre del artículo">
-<button>Buscar</button>
-<a class="btn grey" href="/inventory">Limpiar</a>
-</form>
-</section>
+<!-- ===================================================== -->
+<!-- BUSCADOR -->
+<!-- ===================================================== -->
 
 <section class="panel">
-<h2>Cargar nueva categoría</h2>
-<form method="post" action="/inventory/category/add" class="formgrid">
-<input name="name" placeholder="Nombre categoría, ej: Souvenirs" required>
-<input name="code" placeholder="Código, ej: SOU" required>
-<button>Guardar categoría</button>
+
+<form method="get" class="searchbar">
+
+<input
+    name="q"
+    value="{{ q or '' }}"
+    placeholder="Buscar por código, categoría o nombre del artículo"
+>
+
+<button>Buscar</button>
+
+<a class="btn grey" href="/inventory">
+    Limpiar
+</a>
+
 </form>
+
 </section>
+
+
+<!-- ===================================================== -->
+<!-- CARGAR NUEVA CATEGORÍA -->
+<!-- ===================================================== -->
+
 <section class="panel">
+
+<h2>Cargar nueva categoría</h2>
+
+<form
+    method="post"
+    action="/inventory/category/add"
+    class="formgrid"
+>
+
+<input
+    name="name"
+    placeholder="Nombre categoría, ej: Souvenirs"
+    required
+>
+
+<input
+    name="code"
+    placeholder="Código, ej: SOU"
+    required
+>
+
+<button>Guardar categoría</button>
+
+</form>
+
+</section>
+
+
+<!-- ===================================================== -->
+<!-- CATEGORÍAS CARGADAS -->
+<!-- ===================================================== -->
+
+<section class="panel">
+
 <h2>Categorías cargadas</h2>
 
 <table>
+
 <tr>
-<th>Categoría</th>
-<th>Código</th>
-<th>Acciones</th>
+    <th>Categoría</th>
+    <th>Código</th>
+    <th>Acciones</th>
 </tr>
 
 {% for c in categories %}
+
 <tr>
-<td><b>{{c.name}}</b></td>
-<td>{{c.code}}</td>
-<td class="actions">
-<form method="post"
-      action="/inventory/category/{{c.id}}/delete"
-      onsubmit="return confirm('¿Seguro que deseas eliminar la categoría {{c.name}}?')"
-      style="display:inline">
-<button class="danger" type="submit">🗑️ Eliminar</button>
-</form>
+
+<td>
+    <b>{{ c.name }}</b>
 </td>
+
+<td>
+    {{ c.code }}
+</td>
+
+<td class="actions">
+
+<form
+    method="post"
+    action="/inventory/category/{{ c.id }}/delete"
+    onsubmit="return confirm('¿Seguro que deseas eliminar la categoría {{ c.name }}?')"
+    style="display:inline"
+>
+
+<button
+    class="danger"
+    type="submit"
+>
+    🗑️ Eliminar
+</button>
+
+</form>
+
+</td>
+
 </tr>
+
 {% endfor %}
 
 </table>
+
 </section>
+
+
+<!-- ===================================================== -->
+<!-- AGREGAR ARTÍCULO -->
+<!-- ===================================================== -->
+
 <section class="panel">
+
 <h2>Agregar artículo</h2>
-<form method="post" class="formgrid">
+
+<form
+    method="post"
+    class="formgrid"
+>
+
+<!-- CATEGORÍA -->
+
 <select name="category" required>
-<option value="">Elegir categoría</option>
+
+<option value="">
+    Elegir categoría
+</option>
+
 {% for c in categories %}
-<option value="{{c.name}}">{{c.name}} - {{c.code}}</option>
+
+<option value="{{ c.name }}">
+    {{ c.name }} - {{ c.code }}
+</option>
+
 {% endfor %}
+
 </select>
-<input name="category_prefix" placeholder="Código opcional si querés forzar ej: POL">
-<input name="item" placeholder="Artículo" required>
-<input name="detail" placeholder="Observaciones">
-<input name="wholesale_price" type="number" step="0.01" placeholder="Precio mayor">
-<input name="retail_price" type="number" step="0.01" placeholder="Precio menor">
-<input name="stock_qty" type="number" step="0.01" placeholder="Stock">
-<input name="min_stock" type="number" step="0.01" placeholder="Stock mínimo">
-<button>Guardar artículo</button>
+
+
+<!-- CÓDIGO -->
+
+<input
+    name="category_prefix"
+    placeholder="Código opcional si querés forzar ej: POL"
+>
+
+
+<!-- ARTÍCULO -->
+
+<input
+    name="item"
+    placeholder="Artículo"
+    required
+>
+
+
+<!-- OBSERVACIONES -->
+
+<input
+    name="detail"
+    placeholder="Observaciones"
+>
+
+
+<!-- PRECIO MAYOR -->
+
+<input
+    name="wholesale_price"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Precio mayor"
+>
+
+
+<!-- CANTIDAD MÍNIMA MAYORISTA -->
+
+<input
+    name="wholesale_min_qty"
+    type="number"
+    step="1"
+    min="1"
+    value="1"
+    placeholder="Mínimo para precio mayorista"
+>
+
+
+<!-- PRECIO MENOR -->
+
+<input
+    name="retail_price"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Precio menor"
+>
+
+
+<!-- STOCK -->
+
+<input
+    name="stock_qty"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Stock"
+>
+
+
+<!-- STOCK MÍNIMO -->
+
+<input
+    name="min_stock"
+    type="number"
+    step="0.01"
+    min="0"
+    placeholder="Stock mínimo"
+>
+
+
+<button type="submit">
+    Guardar artículo
+</button>
+
 </form>
-<small>El código se genera automático por categoría: POL-001, POL-002, etc.</small>
+
+
+<small>
+    El código se genera automático por categoría:
+    POL-001, POL-002, etc.
+</small>
+
 </section>
+
+
+<!-- ===================================================== -->
+<!-- LISTADO DE ARTÍCULOS POR CATEGORÍA -->
+<!-- ===================================================== -->
 
 {% for cat, items in grouped.items() %}
+
 <section class="panel">
-<h2>📁 {{cat}}</h2>
+
+<h2>
+    📁 {{ cat }}
+</h2>
+
+
 <table>
+
 <tr>
-<th>Código</th><th>Artículo</th><th>Observaciones</th><th>Mayor</th><th>Menor</th><th>Stock</th><th>Mínimo</th><th>Acciones</th>
+
+    <th>Código</th>
+
+    <th>Artículo</th>
+
+    <th>Observaciones</th>
+
+    <th>Precio mayor</th>
+
+    <th>Mín. mayorista</th>
+
+    <th>Precio menor</th>
+
+    <th>Stock</th>
+
+    <th>Stock mínimo</th>
+
+    <th>Acciones</th>
+
 </tr>
+
+
 {% for r in items %}
+
 <tr>
-<td><b>{{r.sku}}</b></td>
-<td>{{r.item}}</td>
-<td>{{r.detail}}</td>
-<td>${{"%.2f"|format(r.wholesale_price)}}</td>
-<td>${{"%.2f"|format(r.retail_price)}}</td>
-<td>{{r.stock_qty}}</td>
-<td>{{r.min_stock}}</td>
-<td class="actions">
-<a href="/inventory/{{r.id}}/edit">Editar</a>
-<form method="post" action="/inventory/{{r.id}}/delete" onsubmit="return confirm('¿Eliminar este artículo del inventario?')" style="display:inline">
-<button class="danger" type="submit">Eliminar</button>
-</form>
+
+
+<!-- CÓDIGO -->
+
+<td>
+    <b>{{ r.sku }}</b>
 </td>
+
+
+<!-- ARTÍCULO -->
+
+<td>
+    {{ r.item }}
+</td>
+
+
+<!-- OBSERVACIONES -->
+
+<td>
+    {{ r.detail }}
+</td>
+
+
+<!-- PRECIO MAYOR -->
+
+<td>
+
+{% if r.wholesale_price %}
+
+    ${{ "%.2f"|format(r.wholesale_price) }}
+
+{% else %}
+
+    $0.00
+
+{% endif %}
+
+</td>
+
+
+<!-- MÍNIMO MAYORISTA -->
+
+<td>
+
+{% if r.wholesale_min_qty %}
+
+    <b>{{ r.wholesale_min_qty }}</b> unidades
+
+{% else %}
+
+    -
+
+{% endif %}
+
+</td>
+
+
+<!-- PRECIO MENOR -->
+
+<td>
+
+{% if r.retail_price %}
+
+    ${{ "%.2f"|format(r.retail_price) }}
+
+{% else %}
+
+    $0.00
+
+{% endif %}
+
+</td>
+
+
+<!-- STOCK -->
+
+<td>
+
+{{ r.stock_qty }}
+
+</td>
+
+
+<!-- STOCK MÍNIMO -->
+
+<td>
+
+{{ r.min_stock }}
+
+</td>
+
+
+<!-- ACCIONES -->
+
+<td class="actions">
+
+
+<a href="/inventory/{{ r.id }}/edit">
+    Editar
+</a>
+
+
+<form
+    method="post"
+    action="/inventory/{{ r.id }}/delete"
+    onsubmit="return confirm('¿Eliminar este artículo del inventario?')"
+    style="display:inline"
+>
+
+<button
+    class="danger"
+    type="submit"
+>
+    Eliminar
+</button>
+
+</form>
+
+
+</td>
+
 </tr>
+
 {% endfor %}
+
 </table>
+
 </section>
+
 {% endfor %}
+
+
 {% endblock %}
