@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>📦 Confirmar entrega</h1>
+
+<section class="panel">
+
+    <h2>🧾 Datos del pedido</h2>
+
+    <p>
+        <strong>Pedido:</strong>
+        {{ order['code'] }}
+    </p>
+
+    <p>
+        <strong>Cliente:</strong>
+        {{ order['client_name'] or '-' }}
+    </p>
+
+    <p>
+        <strong>Fecha de entrega:</strong>
+        {{ delivery_date }}
+    </p>
+
+</section>
+
+
+<section class="panel">
+
+    <h2>💰 Cierre del pedido</h2>
+
+    <div style="
+        max-width:600px;
+        margin:auto;
+        font-size:17px;
+    ">
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #ddd;
+        ">
+            <span>Total del pedido</span>
+
+            <strong>
+                ${{ "%.2f"|format(total) }}
+            </strong>
+        </div>
+
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #ddd;
+        ">
+            <span>Pagado anteriormente</span>
+
+            <strong>
+                ${{ "%.2f"|format(paid_before) }}
+            </strong>
+        </div>
+
+
+        <div style="
+            margin-top:20px;
+            padding:20px;
+            background:#fff3cd;
+            border:2px solid #ffc107;
+            border-radius:10px;
+            text-align:center;
+        ">
+
+            <div style="
+                font-size:15px;
+                font-weight:bold;
+            ">
+                SALDO A COBRAR
+            </div>
+
+            <div style="
+                font-size:32px;
+                font-weight:bold;
+                margin-top:8px;
+            ">
+                ${{ "%.2f"|format(balance) }}
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+
+<section class="panel">
+
+    <h2>💵 Pago final y entrega</h2>
+
+    <form method="post">
+
+        <div style="max-width:500px;margin:auto;">
+
+            <label style="
+                display:block;
+                margin-bottom:8px;
+                font-weight:bold;
+            ">
+                Forma de pago
+            </label>
+
+            <select
+                name="payment_method"
+                required
+                style="
+                    width:100%;
+                    padding:12px;
+                    border:1px solid #ccc;
+                    border-radius:7px;
+                    font-size:16px;
+                "
+            >
+
+                <option value="Efectivo">
+                    Efectivo
+                </option>
+
+                <option value="Transferencia">
+                    Transferencia
+                </option>
+
+                <option value="Mercado Pago">
+                    Mercado Pago
+                </option>
+
+                <option value="Tarjeta">
+                    Tarjeta
+                </option>
+
+                <option value="Otro">
+                    Otro
+                </option>
+
+            </select>
+
+
+            <div style="
+                margin-top:20px;
+                padding:12px;
+                background:#eef6ff;
+                border-radius:8px;
+                text-align:center;
+            ">
+
+                Al confirmar, el pedido quedará como
+                <strong>ENTREGADO</strong>
+                y su saldo quedará en
+                <strong>$0.</strong>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="savebtn"
+                style="
+                    width:100%;
+                    margin-top:20px;
+                    padding:14px;
+                    font-size:17px;
+                "
+                onclick="return confirm('¿Confirmar el pago del saldo y la entrega del pedido?')"
+            >
+                ✅ Confirmar pago y entrega
+            </button>
+
+        </div>
+
+    </form>
+
+</section>
+
+
+<div style="margin-top:20px;">
+
+    <a href="/orders" class="btn">
+        ⬅ Cancelar y volver
+    </a>
+
+</div>
+
+{% endblock %}
