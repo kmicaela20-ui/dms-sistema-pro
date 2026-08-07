@@ -642,28 +642,148 @@ def user_delete(uid):
     con.commit(); con.close()
     return redirect('/users')
 
-@app.route('/inventory',methods=['GET','POST'])
-@role_required('Admin','Caja','Producción')
+@app.route('/inventory', methods=['GET', 'POST'])
+@role_required('Admin', 'Caja', 'Producción')
 def inventory():
-    con=db(); cur=con.cursor()
-    if request.method=='POST':
-        category=request.form.get('category')
-        sku=next_inventory_code(cur, category, get_category_prefix(cur, category, request.form.get('category_prefix')))
-        cur.execute('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
-                    (sku,category,request.form['item'],request.form.get('detail'),'u',0,money(request.form.get('retail_price')),money(request.form.get('wholesale_price')),money(request.form.get('stock_qty')),money(request.form.get('min_stock')),'Sí'))
-        con.commit(); return redirect('/inventory')
-    q=(request.args.get('q') or '').strip()
-    if q:
-        rows=cur.execute("SELECT * FROM inventory WHERE active!='No' AND (sku LIKE ? OR item LIKE ? OR category LIKE ?) ORDER BY category,item",(f'%{q}%',f'%{q}%',f'%{q}%')).fetchall()
-    else:
-        rows=cur.execute("SELECT * FROM inventory WHERE active!='No' ORDER BY category,item").fetchall()
-    categories=cur.execute('SELECT * FROM inventory_categories ORDER BY name').fetchall()
-    grouped={}
-    for r in rows:
-        grouped.setdefault(r['category'],[]).append(r)
-    con.close()
-    return render_template('inventory.html',rows=rows,grouped=grouped,categories=categories,q=q)
+    con = db()
+    cur = con.cursor()
 
+    # =====================================================
+    # AGREGAR NUEVO ARTÍCULO
+    # =====================================================
+    if request.method == 'POST':
+
+        category = request.form.get('category')
+
+        sku = next_inventory_code(
+            cur,
+            category,
+            get_category_prefix(
+                cur,
+                category,
+                request.form.get('category_prefix')
+            )
+        )
+
+        # Cantidad mínima para aplicar precio mayorista
+        try:
+            wholesale_min_qty = int(
+                request.form.get('wholesale_min_qty') or 1
+            )
+        except (ValueError, TypeError):
+            wholesale_min_qty = 1
+
+        if wholesale_min_qty < 1:
+            wholesale_min_qty = 1
+
+        cur.execute(
+            '''
+            INSERT INTO inventory(
+                sku,
+                category,
+                item,
+                detail,
+                unit,
+                cost_price,
+                retail_price,
+                wholesale_price,
+                wholesale_min_qty,
+                stock_qty,
+                min_stock,
+                active
+            )
+            VALUES(?,?,?,?,?,?,?,?,?,?,?,?)
+            ''',
+            (
+                sku,
+                category,
+                request.form['item'],
+                request.form.get('detail'),
+                'u',
+                0,
+                money(request.form.get('retail_price')),
+                money(request.form.get('wholesale_price')),
+                wholesale_min_qty,
+                money(request.form.get('stock_qty')),
+                money(request.form.get('min_stock')),
+                'Sí'
+            )
+        )
+
+        con.commit()
+        con.close()
+
+        return redirect('/inventory')
+
+    # =====================================================
+    # BUSCADOR
+    # =====================================================
+
+    q = (request.args.get('q') or '').strip()
+
+    if q:
+        rows = cur.execute(
+            '''
+            SELECT *
+            FROM inventory
+            WHERE active != 'No'
+            AND (
+                sku LIKE ?
+                OR item LIKE ?
+                OR category LIKE ?
+            )
+            ORDER BY category, item
+            ''',
+            (
+                f'%{q}%',
+                f'%{q}%',
+                f'%{q}%'
+            )
+        ).fetchall()
+
+    else:
+        rows = cur.execute(
+            '''
+            SELECT *
+            FROM inventory
+            WHERE active != 'No'
+            ORDER BY category, item
+            '''
+        ).fetchall()
+
+    # =====================================================
+    # CATEGORÍAS
+    # =====================================================
+
+    categories = cur.execute(
+        '''
+        SELECT *
+        FROM inventory_categories
+        ORDER BY name
+        '''
+    ).fetchall()
+
+    # =====================================================
+    # AGRUPAR ARTÍCULOS POR CATEGORÍA
+    # =====================================================
+
+    grouped = {}
+
+    for r in rows:
+        grouped.setdefault(
+            r['category'],
+            []
+        ).append(r)
+
+    con.close()
+
+    return render_template(
+        'inventory.html',
+        rows=rows,
+        grouped=grouped,
+        categories=categories,
+        q=q
+    )
 
 
 @app.route('/inventory/category/add',methods=['POST'])
