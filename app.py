@@ -162,12 +162,31 @@ CREATE TABLE IF NOT EXISTS egresaditos_payments(
     # =====================================================
     # COLUMNA PARA FECHA REAL DE ENTREGA
     # =====================================================
-    try:
-        cur.execute(
-            'ALTER TABLE orders ADD COLUMN delivered_at TEXT'
-        )
-    except Exception:
-        pass
+    # ============================================================
+# DATOS PERMANENTES DE ENTREGA
+# ============================================================
+
+try:
+    cur.execute(
+        'ALTER TABLE orders ADD COLUMN delivered_at TEXT'
+    )
+except Exception:
+    pass
+
+try:
+    cur.execute(
+        'ALTER TABLE orders ADD COLUMN delivery_final_payment REAL DEFAULT 0'
+    )
+except Exception:
+    pass
+
+try:
+    cur.execute(
+        'ALTER TABLE orders ADD COLUMN delivery_payment_method TEXT'
+    )
+except Exception:
+    pass
+            
     con.commit()
     con.close()
 
