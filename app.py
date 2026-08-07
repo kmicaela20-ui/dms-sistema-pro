@@ -1646,9 +1646,14 @@ def update_status(oid):
             f"DMS Sublimaciones"
         )
 
-    url=whatsapp_url(order,mensaje)
+
+    url = whatsapp_url(order, mensaje)
+
+    if url:
+        return redirect(url)
 
     return redirect('/orders')
+
 
 @app.route('/orders/<int:oid>/workshop')
 @login_required
