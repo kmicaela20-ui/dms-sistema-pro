@@ -1736,7 +1736,7 @@ def delivery_confirm(oid):
     pagado_anterior = max(total - saldo, 0)
 
     # Fecha automática del día
-    fecha_entrega = datetime.now().strftime('%Y-%m-%d')
+    fecha_entrega = datetime.datetime.now().strftime('%Y-%m-%d')
 
     # ========================================================
     # CONFIRMAR ENTREGA
@@ -1834,7 +1834,7 @@ def delivery_ticket(oid):
 
     payment_method = request.args.get('method') or 'Efectivo'
 
-    delivery_date = order.get('delivered_at') or datetime.now().strftime('%Y-%m-%d')
+    delivery_date = order.get('delivered_at') or datetime.datetime.now().strftime('%Y-%m-%d')
 
     total = float(order.get('total') or 0)
 
