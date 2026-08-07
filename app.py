@@ -119,74 +119,245 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
     due_date TEXT
 );
 
-CREATE TABLE IF NOT EXISTS egresaditos_payments(
-    id INTEGER PRIMARY KEY,
-    order_id INTEGER,
-    student_id INTEGER,
-    payment_type TEXT,
-    installment_number INTEGER,
-    amount REAL DEFAULT 0,
-    payment_date TEXT,
-    payment_method TEXT,
-    note TEXT
-);
+    CREATE TABLE IF NOT EXISTS egresaditos_payments(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        student_id INTEGER,
+        payment_type TEXT,
+        installment_number INTEGER,
+        amount REAL DEFAULT 0,
+        payment_date TEXT,
+        payment_method TEXT,
+        note TEXT
+    );
     """)
 
+    # ============================================================
+    # COLUMNAS ADICIONALES DEL SISTEMA
+    # ============================================================
+
     try:
-        cur.execute("ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT")
+        cur.execute(
+            "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT"
+        )
         con.commit()
-    except:
-        pass
+    except Exception as e:
+        print("ERROR apparel_items number:", e)
+
     try:
-        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT")
+        cur.execute(
+            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT"
+        )
         con.commit()
         print("OK finished_at")
     except Exception as e:
         print("ERROR finished_at:", e)
-    if cur.execute('SELECT COUNT(*) c FROM users').fetchone()['c']==0:
-        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',(os.environ.get('ADMIN_USERNAME','admin'),generate_password_hash(os.environ.get('ADMIN_PASSWORD','admin')),'Admin','Sí'))
-        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('caja',generate_password_hash('caja123'),'Caja','Sí'))
-        cur.execute('INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',('produccion',generate_password_hash('produccion123'),'Producción','Sí'))
-    if cur.execute('SELECT COUNT(*) c FROM inventory_categories').fetchone()['c']==0:
-        cats=[('Indumentaria','IND'),('Polímero','POL'),('Remeras','REM'),('Vidrios','VID'),('Escolar','ESC')]
-        cur.executemany('INSERT INTO inventory_categories(name,code) VALUES(?,?)', cats)
-    if cur.execute('SELECT COUNT(*) c FROM inventory').fetchone()['c']==0:
-        rows=[('INS-001','Insumos','Taza blanca AAA','Para sublimar','u',2200,3500,3000,5,10,'Sí'),
-              ('INS-002','Insumos','Vinilo textil blanco','Metro','m',1200,2200,1900,3,10,'Sí'),
-              ('IND-001','Indumentaria','Remera Dry Fit Sublimada','Frente completo','u',4200,6500,5900,12,15,'Sí'),
-              ('IND-002','Indumentaria','Short deportivo','Con logo','u',2500,4000,3500,8,15,'Sí'),
-              ('EGR-001','Egresados','Birrete personalizado','Color a elección','u',5000,8500,7500,10,15,'Sí'),
-              ('EGR-002','Egresados','Estola personalizada','Con nombre/logo','u',4500,7500,6500,10,15,'Sí')]
-        cur.executemany('INSERT INTO inventory(sku,category,item,detail,unit,cost_price,retail_price,wholesale_price,stock_qty,min_stock,active) VALUES(?,?,?,?,?,?,?,?,?,?,?)',rows)
-    
-    # =====================================================
-    # COLUMNA PARA FECHA REAL DE ENTREGA
-    # =====================================================
+
     # ============================================================
-# DATOS PERMANENTES DE ENTREGA
-# ============================================================
+    # USUARIOS INICIALES
+    # ============================================================
 
-try:
-    cur.execute(
-        'ALTER TABLE orders ADD COLUMN delivered_at TEXT'
-    )
-except Exception:
-    pass
+    if cur.execute(
+        'SELECT COUNT(*) c FROM users'
+    ).fetchone()['c'] == 0:
 
-try:
-    cur.execute(
-        'ALTER TABLE orders ADD COLUMN delivery_final_payment REAL DEFAULT 0'
-    )
-except Exception:
-    pass
+        cur.execute(
+            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            (
+                os.environ.get('ADMIN_USERNAME', 'admin'),
+                generate_password_hash(
+                    os.environ.get('ADMIN_PASSWORD', 'admin')
+                ),
+                'Admin',
+                'Sí'
+            )
+        )
 
-try:
-    cur.execute(
-        'ALTER TABLE orders ADD COLUMN delivery_payment_method TEXT'
-    )
-except Exception:
-    pass
-            
+        cur.execute(
+            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            (
+                'caja',
+                generate_password_hash('caja123'),
+                'Caja',
+                'Sí'
+            )
+        )
+
+        cur.execute(
+            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            (
+                'produccion',
+                generate_password_hash('produccion123'),
+                'Producción',
+                'Sí'
+            )
+        )
+
+    # ============================================================
+    # CATEGORÍAS INICIALES
+    # ============================================================
+
+    if cur.execute(
+        'SELECT COUNT(*) c FROM inventory_categories'
+    ).fetchone()['c'] == 0:
+
+        cats = [
+            ('Indumentaria', 'IND'),
+            ('Polímero', 'POL'),
+            ('Remeras', 'REM'),
+            ('Vidrios', 'VID'),
+            ('Escolar', 'ESC')
+        ]
+
+        cur.executemany(
+            'INSERT INTO inventory_categories(name,code) VALUES(?,?)',
+            cats
+        )
+
+    # ============================================================
+    # INVENTARIO INICIAL
+    # ============================================================
+
+    if cur.execute(
+        'SELECT COUNT(*) c FROM inventory'
+    ).fetchone()['c'] == 0:
+
+        rows = [
+            (
+                'INS-001',
+                'Insumos',
+                'Taza blanca AAA',
+                'Para sublimar',
+                'u',
+                2200,
+                3500,
+                3000,
+                5,
+                10,
+                'Sí'
+            ),
+            (
+                'INS-002',
+                'Insumos',
+                'Vinilo textil blanco',
+                'Metro',
+                'm',
+                1200,
+                2200,
+                1900,
+                3,
+                10,
+                'Sí'
+            ),
+            (
+                'IND-001',
+                'Indumentaria',
+                'Remera Dry Fit Sublimada',
+                'Frente completo',
+                'u',
+                4200,
+                6500,
+                5900,
+                12,
+                15,
+                'Sí'
+            ),
+            (
+                'IND-002',
+                'Indumentaria',
+                'Short deportivo',
+                'Con logo',
+                'u',
+                2500,
+                4000,
+                3500,
+                8,
+                15,
+                'Sí'
+            ),
+            (
+                'EGR-001',
+                'Egresados',
+                'Birrete personalizado',
+                'Color a elección',
+                'u',
+                5000,
+                8500,
+                7500,
+                10,
+                15,
+                'Sí'
+            ),
+            (
+                'EGR-002',
+                'Egresados',
+                'Estola personalizada',
+                'Con nombre/logo',
+                'u',
+                4500,
+                7500,
+                6500,
+                10,
+                15,
+                'Sí'
+            )
+        ]
+
+        cur.executemany(
+            '''
+            INSERT INTO inventory(
+                sku,
+                category,
+                item,
+                detail,
+                unit,
+                cost_price,
+                retail_price,
+                wholesale_price,
+                stock_qty,
+                min_stock,
+                active
+            )
+            VALUES(?,?,?,?,?,?,?,?,?,?,?)
+            ''',
+            rows
+        )
+
+    # ============================================================
+    # DATOS PERMANENTES DE ENTREGA
+    # ============================================================
+
+    try:
+        cur.execute(
+            'ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TEXT'
+        )
+    except Exception as e:
+        print("ERROR delivered_at:", e)
+
+    try:
+        cur.execute(
+            '''
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS delivery_final_payment REAL DEFAULT 0
+            '''
+        )
+    except Exception as e:
+        print("ERROR delivery_final_payment:", e)
+
+    try:
+        cur.execute(
+            '''
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS delivery_payment_method TEXT
+            '''
+        )
+    except Exception as e:
+        print("ERROR delivery_payment_method:", e)
+
+    # ============================================================
+    # GUARDAR CAMBIOS Y CERRAR BASE
+    # ============================================================
+
     con.commit()
     con.close()
 
