@@ -1,171 +1,154 @@
-<!DOCTYPE html>
-<html lang="es">
+{% extends "base.html" %}
 
-<head>
-
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Comprobante de Entrega - DMS Sublimaciones</title>
+{% block content %}
 
 <style>
 
-* {
-    box-sizing: border-box;
-}
-
-body {
-    font-family: Arial, sans-serif;
-    background: #f2f2f2;
-    margin: 0;
-    padding: 20px;
-    color: #111;
-}
-
-.acciones {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-.btn {
-    display: inline-block;
-    padding: 11px 18px;
-    margin: 4px;
-    background: #1266f1;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 15px;
-    text-decoration: none;
-}
-
-.ticket {
-    width: 450px;
-    max-width: 100%;
-    margin: auto;
+.delivery-ticket {
+    max-width: 600px;
+    margin: 20px auto;
     background: white;
-    padding: 25px;
-    border: 1px solid #ccc;
-    border-radius: 10px;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.10);
 }
 
-.header {
+.delivery-ticket .header {
     text-align: center;
-    border-bottom: 2px solid #000;
-    padding-bottom: 18px;
+    border-bottom: 2px solid #222;
+    padding-bottom: 15px;
     margin-bottom: 20px;
 }
 
-.logo {
-    max-width: 120px;
-    margin-bottom: 8px;
+.delivery-ticket .logo {
+    max-width: 150px;
+    margin-bottom: 10px;
 }
 
-.header h2 {
+.delivery-ticket .header h2 {
     margin: 5px 0;
-    font-size: 25px;
-}
-
-.header p {
-    margin: 4px 0;
-    font-size: 13px;
 }
 
 .entregado {
     text-align: center;
+    background: #e8f7ed;
     padding: 15px;
-    margin-bottom: 18px;
-    border: 2px solid #222;
-    border-radius: 8px;
     font-size: 20px;
     font-weight: bold;
+    border-radius: 10px;
+    margin-bottom: 20px;
 }
 
 .fila {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    gap: 15px;
+    gap: 20px;
     padding: 10px 0;
-    border-bottom: 1px dashed #aaa;
-    font-size: 14px;
-}
-
-.fila span:last-child {
-    text-align: right;
-    font-weight: bold;
+    border-bottom: 1px solid #ddd;
 }
 
 .pago-final {
     margin: 20px 0;
-    padding: 17px;
+    padding: 18px;
     text-align: center;
-    background: #f2f2f2;
     border: 2px solid #222;
-    border-radius: 8px;
+    border-radius: 10px;
 }
 
 .pago-final small {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 8px;
 }
 
 .pago-final strong {
+    display: block;
     font-size: 28px;
 }
 
 .saldo-cero {
-    margin-top: 18px;
+    margin-top: 20px;
     padding: 15px;
     text-align: center;
-    border: 2px solid #111;
-    border-radius: 8px;
     font-size: 20px;
     font-weight: bold;
+    background: #e8f7ed;
+    border-radius: 10px;
 }
 
 .gracias {
     text-align: center;
     margin-top: 25px;
-    padding-top: 15px;
-    border-top: 1px solid #aaa;
-    font-size: 12px;
     line-height: 1.5;
+}
+
+.acciones-ticket {
+    max-width: 600px;
+    margin: 20px auto;
+    text-align: center;
+}
+
+.acciones-ticket .btn {
+    display: inline-block;
+    margin: 5px;
+}
+
+.btn-whatsapp {
+    display: inline-block;
+    margin: 5px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    background: #25D366;
+    color: white !important;
+    border: none;
+    cursor: pointer;
 }
 
 @media print {
 
-    body {
-        background: white;
-        padding: 0;
+    .acciones-ticket,
+    .sidebar,
+    nav {
+        display: none !important;
     }
 
-    .acciones {
-        display: none;
+    .delivery-ticket {
+        box-shadow: none;
+        margin: 0 auto;
+        padding: 10px;
     }
-
-    .ticket {
-        border: none;
-        border-radius: 0;
-        width: 100%;
-        max-width: 450px;
-        padding: 5px;
-    }
-
 }
 
 </style>
 
-</head>
 
-<body>
-
-<div class="acciones">
+<div class="acciones-ticket">
 
     <button class="btn" onclick="window.print()">
         🖨 Imprimir comprobante
     </button>
+
+    {% if order['client_phone'] %}
+
+    <a
+        class="btn-whatsapp"
+        target="_blank"
+        href="https://wa.me/{{ order['client_phone'] | replace(' ', '') | replace('-', '') | replace('+', '') | replace('(', '') | replace(')', '') }}?text={{ (
+            'Hola ' ~ (order['client_name'] or 'cliente') ~ ' 👋\n\n'
+            ~ 'Te confirmamos la ENTREGA de tu pedido ' ~ order['code'] ~ ' ✅\n\n'
+            ~ '📅 Fecha de entrega: ' ~ delivery_date ~ '\n'
+            ~ '💰 Pago final recibido: $' ~ ('%.2f'|format(final_payment)) ~ '\n'
+            ~ '💳 Forma de pago: ' ~ payment_method ~ '\n\n'
+            ~ '✅ SALDO PENDIENTE: $0.00\n\n'
+            ~ 'Pedido recibido y cancelado en su totalidad.\n\n'
+            ~ '¡Muchas gracias por confiar en DMS Sublimaciones! ❤️'
+        ) | urlencode }}"
+    >
+        📱 Avisar entrega por WhatsApp
+    </a>
+
+    {% endif %}
 
     <a href="/orders" class="btn">
         ⬅ Volver a pedidos
@@ -174,7 +157,7 @@ body {
 </div>
 
 
-<div class="ticket">
+<div class="delivery-ticket">
 
     <div class="header">
 
@@ -242,7 +225,7 @@ body {
 
 
     <div class="saldo-cero">
-        SALDO PENDIENTE: $0.00
+        ✅ SALDO PENDIENTE: $0.00
     </div>
 
 
@@ -258,5 +241,4 @@ body {
 
 </div>
 
-</body>
-</html>
+{% endblock %}
