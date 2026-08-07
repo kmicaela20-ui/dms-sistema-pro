@@ -1804,6 +1804,52 @@ def delivery_confirm(oid):
         delivery_date=fecha_entrega
     )
 
+# ============================================================
+# COMPROBANTE FINAL DE ENTREGA
+# ============================================================
+
+@app.route('/orders/<int:oid>/delivery-ticket')
+@login_required
+def delivery_ticket(oid):
+
+    con = db()
+    cur = con.cursor()
+
+    order = cur.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
+    con.close()
+
+    if not order:
+        flash('Pedido no encontrado.')
+        return redirect('/orders')
+
+    # Datos enviados desde la confirmación de entrega
+    try:
+        payment = float(request.args.get('payment') or 0)
+    except:
+        payment = 0
+
+    payment_method = request.args.get('method') or 'Efectivo'
+
+    delivery_date = order.get('delivered_at') or datetime.now().strftime('%Y-%m-%d')
+
+    total = float(order.get('total') or 0)
+
+    # Lo abonado anteriormente antes del pago final
+    paid_before = max(total - payment, 0)
+
+    return render_template(
+        'delivery_ticket.html',
+        order=order,
+        total=total,
+        paid_before=paid_before,
+        final_payment=payment,
+        payment_method=payment_method,
+        delivery_date=delivery_date
+    )
 
 @app.route('/orders/<int:oid>/workshop')
 @login_required
