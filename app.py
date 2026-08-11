@@ -1998,40 +1998,18 @@ def update_status(oid):
 
 
     # =====================================================
-    # MENSAJE DE WHATSAPP
+    # MENSAJE DE WHATSAPP DESDE PLANTILLA
     # =====================================================
 
-    cliente = order.get('client_name') or 'cliente'
-    saldo = float(order.get('balance') or 0)
+    msg = whatsapp_message_for_order(order)
 
-    if status == 'Terminado':
-
-        mensaje = (
-            f"Hola {cliente} 👋\n\n"
-            f"Te informamos que tu pedido {order['code']} ya está TERMINADO ✅.\n\n"
-            f"Saldo pendiente: ${saldo:.2f}\n\n"
-            f"DMS Sublimaciones"
-        )
-
-    else:
-
-        mensaje = (
-            f"Hola {cliente} 👋\n\n"
-            f"Te informamos que tu pedido {order['code']} cambió de estado a: {status}.\n\n"
-            f"DMS Sublimaciones"
-        )
-
-
-    url = whatsapp_url(order, mensaje)
+    url = whatsapp_url(order, msg)
 
     if url:
         return redirect(url)
 
     return redirect('/orders')
 
-# ============================================================
-# CONFIRMAR ENTREGA DEL PEDIDO
-# ============================================================
 
 @app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
 @login_required
