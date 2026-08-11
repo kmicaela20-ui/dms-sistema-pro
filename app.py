@@ -482,14 +482,33 @@ def whatsapp_message_for_order(order):
 
     msg = tpl['message']
 
-    msg = msg.replace('{cliente}', str(order.get('client_name') or ''))
-    msg = msg.replace('{pedido}', str(order.get('code') or ''))
-    msg = msg.replace('{total}', f"{float(order.get('total') or 0):.2f}")
-    msg = msg.replace('{deposito}', f"{float(order.get('deposit') or 0):.2f}")
-    msg = msg.replace('{saldo}', f"{float(order.get('balance') or 0):.2f}")
+    msg = msg.replace(
+        '{cliente}',
+        str(order.get('client_name') or '')
+    )
 
-    return urllib.parse.quote(msg)
+    msg = msg.replace(
+        '{pedido}',
+        str(order.get('code') or '')
+    )
 
+    msg = msg.replace(
+        '{total}',
+        f"{float(order.get('total') or 0):.2f}"
+    )
+
+    msg = msg.replace(
+        '{deposito}',
+        f"{float(order.get('deposit') or 0):.2f}"
+    )
+
+    msg = msg.replace(
+        '{saldo}',
+        f"{float(order.get('balance') or 0):.2f}"
+    )
+
+    return msg
+    
 @app.route('/consulta', methods=['GET','POST'])
 def consulta_cliente():
 
