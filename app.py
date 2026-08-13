@@ -1640,189 +1640,441 @@ def view_order(oid):
         egresaditos_payments=egresaditos_payments
     )
     
-@app.route('/orders/<int:oid>/edit',methods=['GET','POST'])
+@app.route('/orders/<int:oid>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_order(oid):
-    con=db()
-    cur=con.cursor()
 
-    order=cur.execute('SELECT * FROM orders WHERE id=?',(oid,)).fetchone()
+    con = db()
+    cur = con.cursor()
 
-    if request.method=='POST':
+    order = cur.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
+    if not order:
+        con.close()
+        flash('Pedido no encontrado.')
+        return redirect('/orders')
+
+    # =========================================================
+    # GUARDAR MODIFICACIONES
+    # =========================================================
+
+    if request.method == 'POST':
 
         new_status = request.form.get('status')
 
-        finished_at = order['finished_at'] if 'finished_at' in order.keys() else None
+        # -----------------------------------------------------
+        # FECHA DE FINALIZACIÓN
+        # -----------------------------------------------------
+
+        finished_at = (
+            order['finished_at']
+            if 'finished_at' in order.keys()
+            else None
+        )
 
         if new_status == 'Terminado' and not finished_at:
             finished_at = now()
 
         if new_status != 'Terminado':
             finished_at = None
-            
+
+        # -----------------------------------------------------
+        # CALCULAR ITEMS
+        # -----------------------------------------------------
+
         subtotal = 0
         item_rows = []
 
-        count = int(request.form.get('item_count','1'))
+        count = int(
+            request.form.get('item_count', '1')
+        )
 
-        for i in range(1,count+1):
-            article = request.form.get(f'article_{i}') or ''
-            name = request.form.get(f'name_{i}') or ''
-            number = request.form.get(f'numero_{i}') or ''
-            upper_size = request.form.get(f'upper_{i}') or ''
-            lower_size = request.form.get(f'lower_{i}') or ''
-            qty = money(request.form.get(f'qty_{i}')) or 1
-            price = money(request.form.get(f'price_{i}'))
+        for i in range(1, count + 1):
 
-            if article or name or upper_size or lower_size or price > 0:
+            article = request.form.get(
+                f'article_{i}'
+            ) or ''
+
+            name = request.form.get(
+                f'name_{i}'
+            ) or ''
+
+            number = request.form.get(
+                f'numero_{i}'
+            ) or ''
+
+            upper_size = request.form.get(
+                f'upper_{i}'
+            ) or ''
+
+            lower_size = request.form.get(
+                f'lower_{i}'
+            ) or ''
+
+            qty = money(
+                request.form.get(f'qty_{i}')
+            ) or 1
+
+            price = money(
+                request.form.get(f'price_{i}')
+            )
+
+            # -------------------------------------------------
+            # SI ES GENERAL
+            # -------------------------------------------------
+
+            if (
+                article
+                or name
+                or upper_size
+                or lower_size
+                or price > 0
+            ):
+
                 if order['order_module'] == 'General':
+
                     subtotal_item = qty * price
+
                     subtotal += subtotal_item
-                    item_rows.append((article,name,qty,price,subtotal_item))
+
+                    item_rows.append(
+                        (
+                            article,
+                            name,
+                            qty,
+                            price,
+                            subtotal_item
+                        )
+                    )
+
+                # -------------------------------------------------
+                # INDUMENTARIA / BIRRETES / ESTOLAS
+                # -------------------------------------------------
+
                 else:
+
                     subtotal += price
-                    item_rows.append((article,name,number,upper_size,lower_size,price))
 
-        discount = money(request.form.get('discount'))
-        total = max(0, subtotal - discount)
-        deposit = money(request.form.get('deposit'))
-        balance = max(0, total - deposit)
+                    item_rows.append(
+                        (
+                            article,
+                            name,
+                            number,
+                            upper_size,
+                            lower_size,
+                            price
+                        )
+                    )
 
-        cur.execute('''
+        # -----------------------------------------------------
+        # DESCUENTO / TOTAL / SEÑA / SALDO
+        # -----------------------------------------------------
+
+        discount = money(
+            request.form.get('discount')
+        )
+
+        total = max(
+            0,
+            subtotal - discount
+        )
+
+        deposit = money(
+            request.form.get('deposit')
+        )
+
+        balance = max(
+            0,
+            total - deposit
+        )
+
+        # -----------------------------------------------------
+        # ACTUALIZAR PEDIDO
+        # -----------------------------------------------------
+
+        cur.execute(
+            '''
             UPDATE orders SET
-            client_name=?,
-            client_phone=?,
-            client_address=?,
-            date_delivery=?,
-            status=?,
-            receptionist=?,
-            client_notes=?,
-            school_name=?,
-            school_grade=?,
-            fabric_type=?,
-            team_design_notes=?,
-            discount=?,
-            subtotal=?,
-            total=?,
-            deposit=?,
-            balance=?,
-            payment_method=?,
-            payment_note=?,
-            finished_at=?
+                client_name=?,
+                client_phone=?,
+                client_address=?,
+                date_delivery=?,
+                status=?,
+                receptionist=?,
+                client_notes=?,
+                school_name=?,
+                school_grade=?,
+                fabric_type=?,
+                team_design_notes=?,
+                discount=?,
+                subtotal=?,
+                total=?,
+                deposit=?,
+                balance=?,
+                payment_method=?,
+                payment_note=?,
+                finished_at=?
             WHERE id=?
-        ''',
-        (
-            request.form.get('client_name'),
-            request.form.get('client_phone'),
-            request.form.get('client_address'),
-            request.form.get('date_delivery'),
-            request.form.get('status'),
-            request.form.get('receptionist'),
-            request.form.get('client_notes'),
-            request.form.get('school_name'),
-            request.form.get('school_grade'),
-            request.form.get('fabric_type'),
-            request.form.get('team_design_notes'),
-            discount,
-            subtotal,
-            total,
-            deposit,
-            balance,
-            request.form.get('payment_method'),
-            request.form.get('payment_note'),
-            finished_at,
-            oid
-        ))
+            ''',
+            (
+                request.form.get('client_name'),
+                request.form.get('client_phone'),
+                request.form.get('client_address'),
+                request.form.get('date_delivery'),
+                request.form.get('status'),
+                request.form.get('receptionist'),
+                request.form.get('client_notes'),
+                request.form.get('school_name'),
+                request.form.get('school_grade'),
+                request.form.get('fabric_type'),
+                request.form.get('team_design_notes'),
+                discount,
+                subtotal,
+                total,
+                deposit,
+                balance,
+                request.form.get('payment_method'),
+                request.form.get('payment_note'),
+                finished_at,
+                oid
+            )
+        )
+
+        # =====================================================
+        # GUARDAR ARTÍCULOS GENERALES
+        # =====================================================
 
         if order['order_module'] == 'General':
-            cur.execute('DELETE FROM general_items WHERE order_id=?',(oid,))
+
+            cur.execute(
+                'DELETE FROM general_items WHERE order_id=?',
+                (oid,)
+            )
+
             for row in item_rows:
-                article,name,qty,price,subtotal_item = row
+
+                article, name, qty, price, subtotal_item = row
+
                 cur.execute(
-                    'INSERT INTO general_items(order_id,inventory_id,product,detail,qty,unit_price,subtotal) VALUES(?,?,?,?,?,?,?)',
-                    (oid,None,article,name,qty,price,subtotal_item)
+                    '''
+                    INSERT INTO general_items(
+                        order_id,
+                        inventory_id,
+                        product,
+                        detail,
+                        qty,
+                        unit_price,
+                        subtotal
+                    )
+                    VALUES(?,?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        None,
+                        article,
+                        name,
+                        qty,
+                        price,
+                        subtotal_item
+                    )
                 )
+
+        # =====================================================
+        # GUARDAR ARTÍCULOS DE INDUMENTARIA
+        # =====================================================
 
         elif order['order_module'] == 'Indumentaria':
-            cur.execute('DELETE FROM apparel_items WHERE order_id=?',(oid,))
+
+            cur.execute(
+                'DELETE FROM apparel_items WHERE order_id=?',
+                (oid,)
+            )
+
             for row in item_rows:
+
+                article, name, number, upper_size, lower_size, price = row
+
                 cur.execute(
-                    'INSERT INTO apparel_items(order_id,article,person_name,number,upper_size,lower_size,price) VALUES(?,?,?,?,?,?,?)',
-                    (oid,*row)
+                    '''
+                    INSERT INTO apparel_items(
+                        order_id,
+                        article,
+                        person_name,
+                        number,
+                        upper_size,
+                        lower_size,
+                        price
+                    )
+                    VALUES(?,?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        article,
+                        name,
+                        number,
+                        upper_size,
+                        lower_size,
+                        price
+                    )
                 )
 
+        # =====================================================
+        # GUARDAR BIRRETES / ESTOLAS
+        # =====================================================
+
         elif order['order_module'] == 'Birretes/Estolas':
-            cur.execute('DELETE FROM grad_items WHERE order_id=?',(oid,))
+
+            cur.execute(
+                'DELETE FROM grad_items WHERE order_id=?',
+                (oid,)
+            )
+
             for row in item_rows:
-                article,name,upper_size,lower_size,price = row
+
+                # IMPORTANTE:
+                # item_rows tiene 6 valores
+                article, name, number, upper_size, lower_size, price = row
+
                 cur.execute(
-                    'INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,note,price) VALUES(?,?,?,?,?,?)',
-                    (oid,name,upper_size,lower_size,article,price)
+                    '''
+                    INSERT INTO grad_items(
+                        order_id,
+                        person_name,
+                        cap_size,
+                        stole_size,
+                        note,
+                        price
+                    )
+                    VALUES(?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        name,
+                        upper_size,
+                        lower_size,
+                        article,
+                        price
+                    )
                 )
+
+        # -----------------------------------------------------
+        # CONFIRMAR CAMBIOS
+        # -----------------------------------------------------
 
         con.commit()
         con.close()
 
-        return redirect(f'/orders/{oid}')
+        return redirect(
+            f'/orders/{oid}'
+        )
 
-    items=[]
+    # =========================================================
+    # CARGAR DATOS PARA EDITAR
+    # =========================================================
+
+    items = []
+
+    # =========================================================
+    # GENERAL
+    # =========================================================
 
     if order['order_module'] == 'General':
-        items=cur.execute('''
+
+        items = cur.execute(
+            '''
             SELECT
-            product AS article,
-            detail AS person_name,
-            qty,
-            unit_price AS price,
-            subtotal
+                product AS article,
+                detail AS person_name,
+                qty,
+                unit_price AS price,
+                subtotal
             FROM general_items
             WHERE order_id=?
             ORDER BY id
-        ''',(oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # INDUMENTARIA
+    # =========================================================
 
     elif order['order_module'] == 'Indumentaria':
-        items=cur.execute('''
-            SELECT article, person_name, upper_size, lower_size, price
+
+        items = cur.execute(
+            '''
+            SELECT
+                article,
+                person_name,
+                upper_size,
+                lower_size,
+                price
             FROM apparel_items
             WHERE order_id=?
             ORDER BY id
-        ''',(oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # BIRRETES / ESTOLAS
+    # =========================================================
 
     elif order['order_module'] == 'Birretes/Estolas':
-        items=cur.execute('''
+
+        items = cur.execute(
+            '''
             SELECT
-            note AS article,
-            person_name,
-            cap_size AS upper_size,
-            stole_size AS lower_size,
-            price
+                note AS article,
+                person_name,
+                cap_size AS upper_size,
+                stole_size AS lower_size,
+                price
             FROM grad_items
             WHERE order_id=?
             ORDER BY id
-        ''',(oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # EGRESADITOS
+    # =========================================================
 
     elif order['order_module'] == 'Egresaditos':
 
-        students = cur.execute('''
+        students = cur.execute(
+            '''
             SELECT *
             FROM egresaditos_students
             WHERE order_id=?
             ORDER BY id
-        ''', (oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
 
-        installments = cur.execute('''
+        installments = cur.execute(
+            '''
             SELECT *
             FROM egresaditos_installments
             WHERE order_id=?
             ORDER BY installment_number
-        ''', (oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
 
-        payments = cur.execute('''
+        payments = cur.execute(
+            '''
             SELECT *
             FROM egresaditos_payments
             WHERE order_id=?
             ORDER BY id
-        ''', (oid,)).fetchall()
+            ''',
+            (oid,)
+        ).fetchall()
 
         con.close()
 
@@ -1833,10 +2085,18 @@ def edit_order(oid):
             installments=installments,
             payments=payments
         )
-        
+
+    # =========================================================
+    # MOSTRAR FORMULARIO DE EDICIÓN
+    # =========================================================
+
     con.close()
 
-    return render_template('edit_order.html',order=order,items=items)
+    return render_template(
+        'edit_order.html',
+        order=order,
+        items=items
+    )
     
 @app.route('/egresaditos/<int:oid>/student/<int:student_id>/payment', methods=['POST'])
 @login_required
