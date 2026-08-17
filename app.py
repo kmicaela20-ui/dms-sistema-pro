@@ -2839,6 +2839,47 @@ def delete_egresaditos_payment(payment_id):
 
 init()
 
+@app.route('/corregir-mia-20260808')
+@login_required
+def corregir_mia_20260808():
 
+    con = db()
+    cur = con.cursor()
+
+    cur.execute(
+        '''
+        UPDATE orders
+        SET finished_at=?
+        WHERE code=?
+        ''',
+        ('2026-08-08 12:00:00', 'FAC-GEN-000061')
+    )
+
+    con.commit()
+
+    cur.execute(
+        '''
+        SELECT code, client_name, status, finished_at, balance
+        FROM orders
+        WHERE code=?
+        ''',
+        ('FAC-GEN-000061',)
+    )
+
+    order = cur.fetchone()
+
+    con.close()
+
+    return f'''
+    <h2>Corrección realizada</h2>
+    <p>Código: {order["code"]}</p>
+    <p>Cliente: {order["client_name"]}</p>
+    <p>Estado: {order["status"]}</p>
+    <p>Fecha de finalización: {order["finished_at"]}</p>
+    <p>Saldo: ${order["balance"]}</p>
+    <br>
+    <a href="/orders">Volver a pedidos</a>
+    '''
+    
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
