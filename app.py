@@ -2214,7 +2214,7 @@ def delete_order(oid):
 
     return redirect('/orders')
     
-```python
+
 @app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
 def update_status(oid):
