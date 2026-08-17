@@ -2880,6 +2880,8 @@ def corregir_mia_20260808():
     <br>
     <a href="/orders">Volver a pedidos</a>
     '''
+
+init()
     
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
