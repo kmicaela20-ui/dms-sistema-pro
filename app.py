@@ -2214,6 +2214,7 @@ def delete_order(oid):
 
     return redirect('/orders')
     
+```python
 @app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
 def update_status(oid):
@@ -2252,17 +2253,44 @@ def update_status(oid):
     con = db()
     cur = con.cursor()
 
+    # =====================================================
+    # PEDIDO TERMINADO
+    # =====================================================
+    # Si nunca tuvo fecha de finalización, se guarda la fecha
+    # actual.
+    #
+    # Si ya tenía finished_at, SE CONSERVA la fecha original.
+    #
+    # Esto evita que volver a seleccionar "Terminado"
+    # reinicie el contador de días.
+    # =====================================================
+
     if status == 'Terminado':
 
         cur.execute(
-            'UPDATE orders SET status=?, finished_at=? WHERE id=?',
+            '''
+            UPDATE orders
+            SET status=?,
+                finished_at=COALESCE(finished_at, ?)
+            WHERE id=?
+            ''',
             (status, now(), oid)
         )
 
     else:
 
+        # IMPORTANTE:
+        # No modificamos finished_at.
+        #
+        # De esta manera, si por error cambian un pedido de
+        # "Terminado" a otro estado y luego nuevamente a
+        # "Terminado", se conserva la fecha original.
         cur.execute(
-            'UPDATE orders SET status=? WHERE id=?',
+            '''
+            UPDATE orders
+            SET status=?
+            WHERE id=?
+            ''',
             (status, oid)
         )
 
@@ -2288,7 +2316,7 @@ def update_status(oid):
         return redirect(url)
 
     return redirect('/orders')
-
+```
 
 @app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
 @login_required
