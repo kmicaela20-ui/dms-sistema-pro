@@ -2316,7 +2316,7 @@ def update_status(oid):
         return redirect(url)
 
     return redirect('/orders')
-```
+    
 
 @app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
 @login_required
