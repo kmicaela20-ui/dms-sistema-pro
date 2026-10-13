@@ -2318,6 +2318,7 @@ def update_status(oid):
     return redirect('/orders')
     
 
+
 @app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
 @login_required
 def delivery_confirm(oid):
@@ -2337,11 +2338,36 @@ def delivery_confirm(oid):
 
     # Datos económicos actuales del pedido
     total = float(order.get('total') or 0)
-    saldo = float(order.get('balance') or 0)
+    saldo = max(float(order.get('balance') or 0), 0)
     pagado_anterior = max(total - saldo, 0)
 
     # Fecha automática del día
     fecha_entrega = datetime.datetime.now().strftime('%Y-%m-%d')
+
+    # Calcular recargo semanal del 10 %
+    recargo = 0
+    dias_finalizado = 0
+    semanas_atraso = 0
+
+    try:
+        if order.get('finished_at'):
+            fecha_finalizado = datetime.datetime.strptime(
+                str(order['finished_at'])[:19],
+                '%Y-%m-%d %H:%M:%S'
+            )
+
+            dias_finalizado = (
+                datetime.datetime.now() - fecha_finalizado
+            ).days
+
+            if dias_finalizado > 7:
+                semanas_atraso = (dias_finalizado - 1) // 7
+                recargo = saldo * 0.10 * semanas_atraso
+
+    except Exception as e:
+        print("ERROR calculando recargo de entrega:", e)
+
+    total_a_cobrar = saldo + recargo
 
     # ========================================================
     # CONFIRMAR ENTREGA
@@ -2349,57 +2375,73 @@ def delivery_confirm(oid):
 
     if request.method == 'POST':
 
-        payment_method = request.form.get('payment_method') or 'Efectivo'
+        payment_method = (
+            request.form.get('payment_method') or 'Efectivo'
+        )
 
-        # Volvemos a leer el saldo para evitar usar un dato viejo
+        # Volvemos a leer el pedido antes de confirmar
         order = cur.execute(
             'SELECT * FROM orders WHERE id=?',
             (oid,)
         ).fetchone()
 
         total = float(order.get('total') or 0)
-        saldo = float(order.get('balance') or 0)
+        saldo = max(float(order.get('balance') or 0), 0)
 
-        # No permitimos saldo negativo
-        if saldo < 0:
-            saldo = 0
+        # Recalcular el recargo con los datos actuales
+        recargo = 0
 
-        # El saldo pendiente se toma como pago final
-        pago_final = saldo
+        try:
+            if order.get('finished_at'):
+                fecha_finalizado = datetime.datetime.strptime(
+                    str(order['finished_at'])[:19],
+                    '%Y-%m-%d %H:%M:%S'
+                )
 
-        # Actualizamos el pedido:
-        # saldo = 0
-        # estado = Entregado
-        # fecha de entrega = hoy
+                dias_finalizado = (
+                    datetime.datetime.now() - fecha_finalizado
+                ).days
+
+                if dias_finalizado > 7:
+                    semanas_atraso = (dias_finalizado - 1) // 7
+                    recargo = saldo * 0.10 * semanas_atraso
+
+        except Exception as e:
+            print("ERROR recalculando recargo:", e)
+
+        pago_final = saldo + recargo
+
+        # Actualizar el pedido como entregado
         cur.execute(
-    '''
-    UPDATE orders
-    SET status=?,
-        balance=?,
-        delivered_at=?,
-        delivery_final_payment=?,
-        delivery_payment_method=?
-    WHERE id=?
-    ''',
-    (
-        'Entregado',
-        0,
-        fecha_entrega,
-        pago_final,
-        payment_method,
-        oid
-    )
-)
+            '''
+            UPDATE orders
+            SET status=?,
+                balance=?,
+                delivered_at=?,
+                delivery_final_payment=?,
+                delivery_payment_method=?
+            WHERE id=?
+            ''',
+            (
+                'Entregado',
+                0,
+                fecha_entrega,
+                pago_final,
+                payment_method,
+                oid
+            )
+        )
 
         con.commit()
         con.close()
 
-        # Guardamos los datos de la entrega temporalmente
-        # para mostrarlos en el comprobante
+        # Enviar al comprobante el pago final y el recargo
         return redirect(
             f'/orders/{oid}/delivery-ticket'
             f'?payment={pago_final}'
             f'&method={payment_method}'
+            f'&surcharge={recargo}'
+            f'&balance={saldo}'
         )
 
     con.close()
@@ -2410,12 +2452,10 @@ def delivery_confirm(oid):
         total=total,
         paid_before=pagado_anterior,
         balance=saldo,
-        delivery_date=fecha_entrega
+        delivery_date=fecha_entrega,
+        surcharge=recargo,
+        total_due_today=total_a_cobrar
     )
-
-# ============================================================
-# COMPROBANTE FINAL DE ENTREGA
-# ============================================================
 
 @app.route('/orders/<int:oid>/delivery-ticket')
 @login_required
