@@ -90,6 +90,72 @@ def money(v):
     try: return float(v or 0)
     except: return 0
 
+def prefix(doc): return 'FAC' if doc=='Pedido/Factura' else 'PRE'
+
+
+def next_code(doc,module):
+    con=db()
+    n=con.execute('SELECT COUNT(*) c FROM orders WHERE document_type=? AND order_module=?',(doc,module)).fetchone()['c']+1
+    con.close()
+    mod={'General':'GEN','Indumentaria':'IND','Birretes/Estolas':'EGR','Egresaditos':'EGA'}[module]
+    return f'{prefix(doc)}-{mod}-{n:06d}'
+
+
+def save_client(cur,name,phone,address):
+    name=(name or '').strip(); phone=(phone or '').strip(); address=(address or '').strip()
+    if not name: return None
+    old=cur.execute('SELECT * FROM clients WHERE name=? AND phone=?',(name,phone)).fetchone()
+    if old:
+        cur.execute('UPDATE clients SET address=? WHERE id=?',(address,old['id']))
+        return old['id']
+    cur.execute('INSERT INTO clients(name,phone,address) VALUES(?,?,?)',(name,phone,address))
+    return cur.lastrowid
+
+
+def register_cash_payment(cur, oid, code, concept, amount, method, note):
+    cur.execute('INSERT INTO payments(order_id,dt,concept,amount,method,note,username) VALUES(?,?,?,?,?,?,?)',(oid,now(),concept,amount,method,note,session.get('user','admin')))
+    cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,order_id,username,note) VALUES(?,?,?,?,?,?,?,?,?)',(today(),now(),'Ingreso',f'{concept} {code}',amount,method,oid,session.get('user','admin'),note))
+
+
+def common_order_insert(cur, doc, module, subtotal, extra):
+    code=next_code(doc,module)
+    cid=save_client(cur, request.form.get('client_name'), request.form.get('client_phone'), request.form.get('client_address'))
+    discount=money(request.form.get('discount')); total=max(0,subtotal-discount)
+    deposit = 0 if doc == 'Presupuesto' or module == 'Egresaditos' else money(request.form.get('deposit'))
+    balance=max(0,total-deposit)
+    vals=(code,doc,module,request.form.get('reception_channel'),cid,request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('date_taken') or today(),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),extra.get('school_name'),extra.get('school_grade'),extra.get('fabric_type'),extra.get('team_design_notes'),discount,subtotal,total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),now())
+    cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
+    oid=cur.lastrowid
+
+    if deposit>0:
+        register_cash_payment(
+            cur,
+            oid,
+            code,
+            f'[{module}] Seña',
+            deposit,
+            request.form.get('payment_method'),
+            request.form.get('payment_note')
+        )
+
+    return oid,code
+
+
+def whatsapp_url(order, msg=None):
+    phone=(order['client_phone'] or '').replace(' ','').replace('-','')
+    if not phone: return ''
+    text=msg or f"Hola, desde DMS Sublimaciones te informamos que tu pedido {order['code']} está en estado: {order['status']}. Saldo pendiente: ${order['balance']:.2f}."
+    return 'https://wa.me/54'+phone+'?text='+urllib.parse.quote(text)
+
+
+def day_totals(cur, date):
+    efectivo = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Efectivo' AND type!='Gasto'", (date,)).fetchone()['s']
+    transferencia = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Transferencia' AND type!='Gasto'", (date,)).fetchone()['s']
+    gastos_ef = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Efectivo' AND type='Gasto'", (date,)).fetchone()['s']
+    gastos_tr = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Transferencia' AND type='Gasto'", (date,)).fetchone()['s']
+    return efectivo, transferencia, gastos_ef, gastos_tr
+
+
 def category_code(text):
     text=(text or 'GEN').strip().upper()
     text=''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c)!='Mn')
@@ -684,31 +750,6 @@ def whatsapp_templates():
         rows=rows
     )
     
-def day_totals(cur, date):
-    """Devuelve ingresos y gastos del día separados por medio de pago."""
-    efectivo = cur.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Efectivo' AND type!='Gasto'",
-        (date,)
-    ).fetchone()['s']
-
-    transferencia = cur.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Transferencia' AND type!='Gasto'",
-        (date,)
-    ).fetchone()['s']
-
-    gastos_ef = cur.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Efectivo' AND type='Gasto'",
-        (date,)
-    ).fetchone()['s']
-
-    gastos_tr = cur.execute(
-        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Transferencia' AND type='Gasto'",
-        (date,)
-    ).fetchone()['s']
-
-    return efectivo, transferencia, gastos_ef, gastos_tr
-
-
 @app.route('/')
 @login_required
 def dashboard():
