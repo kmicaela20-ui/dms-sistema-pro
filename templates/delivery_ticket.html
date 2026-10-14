@@ -1,9 +1,9 @@
+
 {% extends "base.html" %}
 
 {% block content %}
 
 <style>
-
 .delivery-ticket {
     max-width: 600px;
     margin: 20px auto;
@@ -106,7 +106,6 @@
 }
 
 @media print {
-
     .acciones-ticket,
     .sidebar,
     nav {
@@ -119,9 +118,7 @@
         padding: 10px;
     }
 }
-
 </style>
-
 
 <div class="acciones-ticket">
 
@@ -130,7 +127,6 @@
     </button>
 
     {% if order['client_phone'] %}
-
     <a
         class="btn-whatsapp"
         target="_blank"
@@ -138,7 +134,9 @@
             'Hola ' ~ (order['client_name'] or 'cliente') ~ ' 👋\n\n'
             ~ 'Te confirmamos la ENTREGA de tu pedido ' ~ order['code'] ~ ' ✅\n\n'
             ~ '📅 Fecha de entrega: ' ~ delivery_date ~ '\n'
-            ~ '💰 Pago final recibido: $' ~ ('%.2f'|format(final_payment)) ~ '\n'
+            ~ '💰 Saldo original: $' ~ ('%.2f'|format(original_balance)) ~ '\n'
+            ~ '📈 Recargo por demora: $' ~ ('%.2f'|format(surcharge)) ~ '\n'
+            ~ '💵 Pago final recibido: $' ~ ('%.2f'|format(final_payment)) ~ '\n'
             ~ '💳 Forma de pago: ' ~ payment_method ~ '\n\n'
             ~ '✅ SALDO PENDIENTE: $0.00\n\n'
             ~ 'Pedido recibido y cancelado en su totalidad.\n\n'
@@ -147,7 +145,6 @@
     >
         📱 Avisar entrega por WhatsApp
     </a>
-
     {% endif %}
 
     <a href="/orders" class="btn">
@@ -156,11 +153,9 @@
 
 </div>
 
-
 <div class="delivery-ticket">
 
     <div class="header">
-
         <img
             src="{{ url_for('static', filename='logo.png') }}"
             class="logo"
@@ -168,75 +163,67 @@
         >
 
         <h2>DMS Sublimaciones</h2>
-
         <p>COMPROBANTE DE ENTREGA</p>
-
-        <p>
-            Pedido <b>{{ order['code'] }}</b>
-        </p>
-
+        <p>Pedido <b>{{ order['code'] }}</b></p>
     </div>
-
 
     <div class="entregado">
         ✅ PEDIDO ENTREGADO
     </div>
-
 
     <div class="fila">
         <span>Cliente</span>
         <span>{{ order['client_name'] or '-' }}</span>
     </div>
 
-
     <div class="fila">
         <span>Fecha de entrega</span>
         <span>{{ delivery_date }}</span>
     </div>
 
-
     <div class="fila">
-        <span>Total del pedido</span>
+        <span>Total original del pedido</span>
         <span>${{ "%.2f"|format(total) }}</span>
     </div>
-
 
     <div class="fila">
         <span>Pagado anteriormente</span>
         <span>${{ "%.2f"|format(paid_before) }}</span>
     </div>
 
-
-    <div class="pago-final">
-
-        <small>SALDO ABONADO AL ENTREGAR</small>
-
-        <strong>
-            ${{ "%.2f"|format(final_payment) }}
-        </strong>
-
+    <div class="fila">
+        <span>Saldo original pendiente</span>
+        <span>${{ "%.2f"|format(original_balance) }}</span>
     </div>
 
+    <div class="fila">
+        <span>Recargo por demora</span>
+        <span>${{ "%.2f"|format(surcharge) }}</span>
+    </div>
+
+    <div class="fila">
+        <b>Total a cobrar al entregar</b>
+        <b>${{ "%.2f"|format(total_due) }}</b>
+    </div>
+
+    <div class="pago-final">
+        <small>TOTAL ABONADO AL ENTREGAR</small>
+        <strong>${{ "%.2f"|format(final_payment) }}</strong>
+    </div>
 
     <div class="fila">
         <span>Forma de pago</span>
         <span>{{ payment_method }}</span>
     </div>
 
-
     <div class="saldo-cero">
         ✅ SALDO PENDIENTE: $0.00
     </div>
 
-
     <div class="gracias">
-
         Pedido recibido y cancelado en su totalidad.<br><br>
-
         Gracias por confiar en<br>
-
         <b>DMS Sublimaciones</b>
-
     </div>
 
 </div>
