@@ -149,6 +149,61 @@ def whatsapp_url(order, msg=None):
     return 'https://wa.me/54'+phone+'?text='+urllib.parse.quote(text)
 
 
+
+
+def whatsapp_message_for_order(order):
+    """Arma el mensaje usando la plantilla configurada para el estado del pedido."""
+    status = (order.get('status') or '').strip().lower()
+    status_keys = {
+        'ingresado': 'ingresado',
+        'ingreso': 'ingresado',
+        'en diseño': 'diseno',
+        'en diseno': 'diseno',
+        'diseño': 'diseno',
+        'diseno': 'diseno',
+        'en producción': 'produccion',
+        'en produccion': 'produccion',
+        'producción': 'produccion',
+        'produccion': 'produccion',
+        'terminado': 'terminado',
+        'entregado': 'entregado',
+    }
+    status_key = status_keys.get(status)
+    template_message = None
+
+    if status_key:
+        con = db()
+        try:
+            row = con.execute(
+                'SELECT message FROM whatsapp_templates WHERE status_key=?',
+                (status_key,)
+            ).fetchone()
+            if row:
+                template_message = row.get('message')
+        finally:
+            con.close()
+
+    values = {
+        'cliente': order.get('client_name') or 'cliente',
+        'pedido': order.get('code') or str(order.get('id') or ''),
+        'total': f"{money(order.get('total')):.2f}",
+        'deposito': f"{money(order.get('deposit')):.2f}",
+        'saldo': f"{money(order.get('balance')):.2f}",
+    }
+
+    if template_message:
+        try:
+            return template_message.format(**values)
+        except (KeyError, ValueError):
+            # Si una plantilla contiene una variable desconocida, no bloquear WhatsApp.
+            pass
+
+    return (
+        f"Hola {values['cliente']}, desde DMS Sublimaciones te informamos que "
+        f"tu pedido #{values['pedido']} está en estado: {order.get('status') or 'actualizado'}. "
+        f"Saldo pendiente: ${values['saldo']}."
+    )
+
 def day_totals(cur, date):
     efectivo = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Efectivo' AND type!='Gasto'", (date,)).fetchone()['s']
     transferencia = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Transferencia' AND type!='Gasto'", (date,)).fetchone()['s']
