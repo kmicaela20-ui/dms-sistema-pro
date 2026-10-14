@@ -10,26 +10,18 @@
 
     <section class="panel">
         <h2>Datos escolares</h2>
-
-        <label>
-            Nombre de la escuela
+        <label>Nombre de la escuela
             <input name="school_name">
         </label>
-
-        <label>
-            Grado / Año
-            <input name="school_grade"
-                   placeholder="Ej: 7° U, 5to año, sala 5">
+        <label>Grado / Año
+            <input name="school_grade" placeholder="Ej: 7° U, 5to año, sala 5">
         </label>
     </section>
 
     <section class="panel">
         <h2>Lista de artículos</h2>
 
-        <input type="hidden"
-               name="item_count"
-               id="item_count"
-               value="1">
+        <input type="hidden" name="item_count" id="item_count" value="1">
 
         <div style="overflow-x:auto;">
             <table id="items">
@@ -44,19 +36,15 @@
                         <th>Precio</th>
                     </tr>
                 </thead>
-
                 <tbody>
                     <tr>
                         <td>1</td>
-
-                        <td>
-                            <input name="name_1">
-                        </td>
+                        <td><input name="name_1"></td>
 
                         <td>
                             <select name="cap_1">
                                 {% for s in cap_sizes %}
-                                    <option>{{ s }}</option>
+                                    <option value="{{ s }}">{{ s }}</option>
                                 {% endfor %}
                             </select>
                         </td>
@@ -64,31 +52,34 @@
                         <td>
                             <select name="stole_1">
                                 {% for s in stole_sizes %}
-                                    <option>{{ s }}</option>
-                                {% endfor %}
-                            </select>
-                        </td>
-
-                        <td>
-                            <select name="toga_1">
-                                {% for s in toga_sizes %}
                                     <option value="{{ s }}">{{ s }}</option>
                                 {% endfor %}
                             </select>
                         </td>
 
                         <td>
-                            <input name="note_1">
+                            <select name="toga_1">
+                                <option value="">Seleccionar talle</option>
+                                <option value="2">2</option>
+                                <option value="4">4</option>
+                                <option value="6">6</option>
+                                <option value="8">8</option>
+                                <option value="10">10</option>
+                                <option value="12">12</option>
+                                <option value="14">14</option>
+                                <option value="16">16</option>
+                                <option value="XS">XS</option>
+                                <option value="S">S</option>
+                                <option value="M">M</option>
+                            </select>
                         </td>
 
+                        <td><input name="note_1"></td>
+
                         <td>
-                            <input class="itemPrice"
-                                   name="price_1"
-                                   type="number"
-                                   min="0"
-                                   step="0.01"
-                                   value="0"
-                                   oninput="calc()">
+                            <input class="itemPrice" name="price_1"
+                                   type="number" min="0" step="0.01"
+                                   value="0" oninput="calc()">
                         </td>
                     </tr>
                 </tbody>
@@ -102,23 +93,14 @@
 
     <section class="panel">
         <h2>Archivos / diseños del pedido</h2>
-
-        <label>
-            Subir logos, imágenes o diseños
-            <input type="file"
-                   name="design_files"
-                   multiple
+        <label>Subir logos, imágenes o diseños
+            <input type="file" name="design_files" multiple
                    accept="image/*,.pdf,.ai,.cdr,.psd,.svg">
         </label>
-
-        <small>
-            Estos archivos quedarán guardados dentro del pedido para producción.
-        </small>
+        <small>Estos archivos quedarán guardados dentro del pedido para producción.</small>
     </section>
 
-    <button type="submit" class="savebtn">
-        Guardar
-    </button>
+    <button class="savebtn" type="submit">Guardar</button>
 </form>
 
 <script>
@@ -139,48 +121,26 @@ function options(arr) {
 function addItem() {
     const count = document.getElementById('item_count');
     const n = Number(count.value) + 1;
-
     count.value = n;
 
     document.querySelector('#items tbody').insertAdjacentHTML(
         'beforeend',
         `<tr>
             <td>${n}</td>
-
-            <td>
-                <input name="name_${n}">
-            </td>
-
-            <td>
-                <select name="cap_${n}">
-                    ${options(capSizes)}
-                </select>
-            </td>
-
-            <td>
-                <select name="stole_${n}">
-                    ${options(stoleSizes)}
-                </select>
-            </td>
-
+            <td><input name="name_${n}"></td>
+            <td><select name="cap_${n}">${options(capSizes)}</select></td>
+            <td><select name="stole_${n}">${options(stoleSizes)}</select></td>
             <td>
                 <select name="toga_${n}">
+                    <option value="">Seleccionar talle</option>
                     ${options(togaSizes)}
                 </select>
             </td>
-
+            <td><input name="note_${n}"></td>
             <td>
-                <input name="note_${n}">
-            </td>
-
-            <td>
-                <input class="itemPrice"
-                       name="price_${n}"
-                       type="number"
-                       min="0"
-                       step="0.01"
-                       value="0"
-                       oninput="calc()">
+                <input class="itemPrice" name="price_${n}"
+                       type="number" min="0" step="0.01"
+                       value="0" oninput="calc()">
             </td>
         </tr>`
     );
@@ -194,59 +154,41 @@ function calc() {
     });
 
     const discountInput = document.getElementById('discount');
+    const typeInput = document.getElementById('document_type');
+    const depositInput = document.getElementById('deposit');
+
     const discount = discountInput
         ? Number(discountInput.value) || 0
         : 0;
 
     const total = Math.max(0, subtotal - discount);
 
-    const documentType = document.getElementById('document_type');
-    const depositInput = document.getElementById('deposit');
-
     let deposit = depositInput
         ? Number(depositInput.value) || 0
         : 0;
 
-    if (documentType &&
-        documentType.value === 'Presupuesto') {
+    if (typeInput && typeInput.value === 'Presupuesto') {
         deposit = 0;
-
-        if (depositInput) {
-            depositInput.value = 0;
-        }
+        if (depositInput) depositInput.value = 0;
     }
 
     const subtotalBox = document.getElementById('subtotalBox');
     const totalBox = document.getElementById('totalBox');
     const balanceBox = document.getElementById('balanceBox');
 
-    if (subtotalBox) {
-        subtotalBox.innerText = '$' + subtotal.toFixed(2);
-    }
-
-    if (totalBox) {
-        totalBox.innerText = '$' + total.toFixed(2);
-    }
-
+    if (subtotalBox) subtotalBox.innerText = '$' + subtotal.toFixed(2);
+    if (totalBox) totalBox.innerText = '$' + total.toFixed(2);
     if (balanceBox) {
-        balanceBox.innerText =
-            '$' + Math.max(0, total - deposit).toFixed(2);
+        balanceBox.innerText = '$' + Math.max(0, total - deposit).toFixed(2);
     }
 }
 
 document.addEventListener('input', function(event) {
-    if (
-        event.target.id === 'discount' ||
-        event.target.id === 'deposit'
-    ) {
-        calc();
-    }
+    if (['discount', 'deposit'].includes(event.target.id)) calc();
 });
 
 document.addEventListener('change', function(event) {
-    if (event.target.id === 'document_type') {
-        calc();
-    }
+    if (event.target.id === 'document_type') calc();
 });
 
 calc();
