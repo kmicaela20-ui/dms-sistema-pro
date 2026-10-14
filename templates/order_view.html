@@ -83,3 +83,231 @@
         <div><b>Entrega:</b> {{ order.date_delivery }}</div>
         <div><b>Módulo:</b> {{ order.order_module }}</div>
         <div><b>Recepciona:</b> {{ order.receptionist }}</div>
+    </div>
+
+    {% if order.client_notes %}
+        <div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;">
+            <b>OBSERVACIONES DEL PEDIDO:</b>
+            <p>{{ order.client_notes }}</p>
+        </div>
+    {% endif %}
+
+    {% if order.order_module == 'Egresaditos' %}
+
+        <h2 style="margin-top:30px;">Detalle de alumnos</h2>
+
+        {% set resumen = namespace(total=0, pagado=0) %}
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Total alumno</th>
+                    <th>Pagado</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                    {% set alumno = namespace(pagado=0) %}
+
+                    {% for payment in egresaditos_payments %}
+                        {% if payment.student_id == student.id %}
+                            {% set alumno.pagado = alumno.pagado + (payment.amount or 0) %}
+                        {% endif %}
+                    {% endfor %}
+
+                    {% set precio = student.final_price or 0 %}
+                    {% set saldo_alumno = precio - alumno.pagado %}
+                    {% set resumen.total = resumen.total + precio %}
+                    {% set resumen.pagado = resumen.pagado + alumno.pagado %}
+
+                    <tr>
+                        <td><b>{{ student.student_name }}</b></td>
+                        <td>${{ "%.2f"|format(precio) }}</td>
+                        <td><b>${{ "%.2f"|format(alumno.pagado) }}</b></td>
+                        <td><b>${{ "%.2f"|format([saldo_alumno, 0]|max) }}</b></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="totals">
+            <p>Total del pedido: <b>${{ "%.2f"|format(resumen.total) }}</b></p>
+            <p>Total pagado: <b>${{ "%.2f"|format(resumen.pagado) }}</b></p>
+            <p>Saldo total: <b>${{ "%.2f"|format([resumen.total - resumen.pagado, 0]|max) }}</b></p>
+        </div>
+
+    {% else %}
+
+        {% if general %}
+            <h2>Artículos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Detalle</th>
+                        <th>Cant.</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in general %}
+                        <tr>
+                            <td>{{ i.product }}</td>
+                            <td>{{ i.detail }}</td>
+                            <td>{{ i.qty }}</td>
+                            <td>${{ "%.2f"|format(i.unit_price or 0) }}</td>
+                            <td>${{ "%.2f"|format(i.subtotal or 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if apparel %}
+            <h2>Indumentaria</h2>
+            <p><b>Tipo de tela:</b> {{ order.fabric_type }}</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Artículo</th>
+                        <th>Nombre</th>
+                        <th>Superior</th>
+                        <th>Inferior</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in apparel %}
+                        <tr>
+                            <td>{{ i.article }}</td>
+                            <td>{{ i.person_name }}</td>
+                            <td>{{ i.upper_size }}</td>
+                            <td>{{ i.lower_size }}</td>
+                            <td>${{ "%.2f"|format(i.price or 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        {% if order.order_module == 'Birretes/Estolas' %}
+            <h2>Detalle de alumnos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre del alumno</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in grads %}
+                    <tr>
+                        <td>{{ i.person_name or '' }}</td>
+                        <td>${{ "%.2f"|format(i.price or 0) }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="2">Todavía no hay alumnos con precios cargados en el pedido.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% elif grads %}
+            <h2>Birretes / Estolas</h2>
+            <p>
+                <b>Escuela:</b> {{ order.school_name or '' }} |
+                <b>Grado/Año:</b> {{ order.school_grade or '' }}
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Talle birrete</th>
+                        <th>Talle estola</th>
+                        <th>Obs.</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in grads %}
+                    <tr>
+                        <td>{{ i.person_name or '' }}</td>
+                        <td>{{ i.cap_size or '' }}</td>
+                        <td>{{ i.stole_size or '' }}</td>
+                        <td>{{ i.note or '' }}</td>
+                        <td>${{ "%.2f"|format(i.price or 0) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+
+        <div class="totals">
+            <p>Subtotal: <b>${{ "%.2f"|format(order.subtotal or 0) }}</b></p>
+            <p>Descuento: <b>${{ "%.2f"|format(order.discount or 0) }}</b></p>
+            <p>Total: <b>${{ "%.2f"|format(order.total or 0) }}</b></p>
+
+            {% if order.document_type != 'Presupuesto' %}
+                <p>Seña: <b>${{ "%.2f"|format(order.deposit or 0) }}</b></p>
+                <p>Saldo: <b>${{ "%.2f"|format(order.balance or 0) }}</b></p>
+            {% endif %}
+        </div>
+
+    {% endif %}
+
+    <div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;font-size:12px;line-height:1.4;">
+        <b>IMPORTANTE:</b>
+        <p>
+            Una vez informado que el pedido se encuentra TERMINADO,
+            el cliente contará con un plazo de 7 días corridos para
+            retirarlo y/o cancelar el saldo pendiente.
+        </p>
+        <p>
+            Pasado dicho plazo, se aplicará un recargo del 10% semanal
+            sobre el saldo restante hasta el momento de su retiro y
+            cancelación total.
+        </p>
+        <p>Gracias por confiar en DMS Sublimaciones.</p>
+    </div>
+</section>
+
+{% if files %}
+    <section class="panel">
+        <h2>Archivos del pedido</h2>
+        <div class="filegrid">
+            {% for f in files %}
+                <a href="/static/{{ f.file_path }}" target="_blank" rel="noopener">
+                    📎 {{ f.original_name }}
+                </a>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+{% if order.calculated_cost %}
+    <section class="panel">
+        <h2>Costos automáticos</h2>
+        <p>
+            <b>Costo calculado:</b> ${{ "%.2f"|format(order.calculated_cost or 0) }}
+            |
+            <b>Ganancia:</b> ${{ "%.2f"|format(order.calculated_profit or 0) }}
+        </p>
+    </section>
+{% endif %}
+
+<script>
+async function copiarEnlace(enlace) {
+    try {
+        await navigator.clipboard.writeText(enlace);
+        alert('Enlace copiado correctamente.');
+    } catch (error) {
+        window.prompt('Copiá este enlace:', enlace);
+    }
+}
+</script>
+
+{% endblock %}
