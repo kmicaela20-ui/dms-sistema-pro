@@ -1,347 +1,312 @@
+
 {% extends "base.html" %}
 {% block content %}
 
-<h1>{{filter_name}}</h1>
+<h1>{{ filter_name }}</h1>
 
-<div class="quick">
+<div class="quick no-print">
   <a href="/orders/new/general">📦 Nuevo General</a>
   <a href="/orders/new/indumentaria">👕 Nueva Indumentaria</a>
   <a href="/orders/new/egresados">🎓 Nuevo Birrete/Estola</a>
   <a href="/orders/new/egresaditos">🎒 Nuevo Egresaditos</a>
 </div>
 
+<style>
+@media print {
+    .no-print,
+    .actions,
+    .actions form,
+    td form,
+    button,
+    .btn {
+        display: none !important;
+    }
+
+    .panel {
+        box-shadow: none !important;
+        border: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    body {
+        font-size: 10px !important;
+    }
+
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    th, td {
+        border: 1px solid #777 !important;
+        padding: 5px !important;
+        color: #000 !important;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    a {
+        color: #000 !important;
+        text-decoration: none !important;
+    }
+}
+</style>
+
 <section class="panel no-print">
 <form method="get" class="searchbar">
 
-<input name="q" value="{{q or ''}}" placeholder="Buscar por Nº de pedido o cliente">
+    <input name="q" value="{{ q or '' }}"
+           placeholder="Buscar por Nº de pedido o cliente">
 
-<select name="status">
-<option value="">Todos los estados</option>
-<option value="Ingreso" {% if status=='Ingreso' %}selected{% endif %}>Ingreso</option>
-<option value="En diseño" {% if status=='En diseño' %}selected{% endif %}>En diseño</option>
-<option value="En producción" {% if status=='En producción' %}selected{% endif %}>En producción</option>
-<option value="Terminado" {% if status=='Terminado' %}selected{% endif %}>Terminado</option>
-<option value="Entregado" {% if status=='Entregado' %}selected{% endif %}>Entregado</option>
-</select>
+    <select name="status">
+        <option value="">Todos los estados</option>
+        <option value="Ingreso" {% if status=='Ingreso' %}selected{% endif %}>Ingreso</option>
+        <option value="En diseño" {% if status=='En diseño' %}selected{% endif %}>En diseño</option>
+        <option value="En producción" {% if status=='En producción' %}selected{% endif %}>En producción</option>
+        <option value="Terminado" {% if status=='Terminado' %}selected{% endif %}>Terminado</option>
+        <option value="Entregado" {% if status=='Entregado' %}selected{% endif %}>Entregado</option>
+    </select>
 
-<input type="date" name="delivery_date" value="{{delivery_date or ''}}">
+    <input type="date" name="delivery_date"
+           value="{{ delivery_date or '' }}">
 
-<select name="order_by">
-<option value="id_desc" {% if order_by=='id_desc' %}selected{% endif %}>Más recientes</option>
-<option value="delivery_asc" {% if order_by=='delivery_asc' %}selected{% endif %}>Entrega más próxima</option>
-<option value="delivery_desc" {% if order_by=='delivery_desc' %}selected{% endif %}>Entrega más lejana</option>
-</select>
+    <select name="order_by">
+        <option value="id_desc" {% if order_by=='id_desc' %}selected{% endif %}>Más recientes</option>
+        <option value="delivery_asc" {% if order_by=='delivery_asc' %}selected{% endif %}>Entrega más próxima</option>
+        <option value="delivery_desc" {% if order_by=='delivery_desc' %}selected{% endif %}>Entrega más lejana</option>
+    </select>
 
-<button>Buscar</button>
+    <button type="submit">Buscar</button>
 
-<button type="button" onclick="window.print()">
-🖨 Imprimir lista
-</button>
+    <button type="button" onclick="window.print()">
+        🖨 Imprimir lista
+    </button>
 
-<a class="btn grey" href="/orders">
-Limpiar
-</a>
+    <a class="btn grey" href="/orders">Limpiar</a>
 
 </form>
 </section>
 
 <section class="panel no-print">
 
-<h2>
-📅 Calendario de entregas - {{current_month}}
-</h2>
+<h2>📅 Calendario de entregas - {{ current_month }}</h2>
 
 <style>
-
-.calendar-grid{
-  display:grid;
-  grid-template-columns:repeat(7,1fr);
-  gap:4px;
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
 }
 
-.calendar-head{
-  font-weight:bold;
-  text-align:center;
-  padding:4px;
-  background:#f1f5f9;
-  border-radius:6px;
-  font-size:12px;
+.calendar-head {
+    font-weight: bold;
+    text-align: center;
+    padding: 4px;
+    background: #f1f5f9;
+    border-radius: 6px;
+    font-size: 12px;
 }
 
-.calendar-day{
-  min-height:55px;
-  border:1px solid #ddd;
-  border-radius:8px;
-  padding:4px;
-  background:white;
+.calendar-day {
+    min-height: 55px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 4px;
+    background: white;
 }
 
-.calendar-date{
-  font-weight:bold;
-  margin-bottom:4px;
-  font-size:11px;
+.calendar-date {
+    font-weight: bold;
+    margin-bottom: 4px;
+    font-size: 11px;
 }
 
-.calendar-order{
-  display:block;
-  font-size:10px;
-  padding:3px;
-  border-radius:4px;
-  margin-bottom:3px;
-  text-decoration:none;
-  color:white;
-  overflow:hidden;
-  white-space:nowrap;
-  text-overflow:ellipsis;
-  font-weight:bold;
+.calendar-order {
+    display: block;
+    font-size: 10px;
+    padding: 3px;
+    border-radius: 4px;
+    margin-bottom: 3px;
+    text-decoration: none;
+    color: white;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    font-weight: bold;
 }
 
-.status-ingreso{
-  background:#eab308;
-}
-
-.status-diseno{
-  background:#2563eb;
-}
-
-.status-produccion{
-  background:#ea580c;
-}
-
-.status-terminado{
-  background:#16a34a;
-}
-
+.status-ingreso { background: #eab308; }
+.status-diseno { background: #2563eb; }
+.status-produccion { background: #ea580c; }
+.status-terminado { background: #16a34a; }
 </style>
 
 <div class="calendar-grid">
 
-  <div class="calendar-head">Lun</div>
-  <div class="calendar-head">Mar</div>
-  <div class="calendar-head">Mié</div>
-  <div class="calendar-head">Jue</div>
-  <div class="calendar-head">Vie</div>
-  <div class="calendar-head">Sáb</div>
-  <div class="calendar-head">Dom</div>
+    <div class="calendar-head">Lun</div>
+    <div class="calendar-head">Mar</div>
+    <div class="calendar-head">Mié</div>
+    <div class="calendar-head">Jue</div>
+    <div class="calendar-head">Vie</div>
+    <div class="calendar-head">Sáb</div>
+    <div class="calendar-head">Dom</div>
 
-  {% for day in range(1,32) %}
+    {% for day in range(1, 32) %}
+        {% set d = current_month ~ '-' ~ '%02d'|format(day) %}
 
-    {% set d = current_month ~ '-' ~ '%02d'|format(day) %}
+        <div class="calendar-day">
+            <div class="calendar-date">{{ day }}</div>
 
-    <div class="calendar-day">
-
-      <div class="calendar-date">
-        {{day}}
-      </div>
-
-      {% if calendar_days.get(d) %}
-
-        {% for o in calendar_days.get(d) %}
-
-          {% if o.status != 'Entregado' %}
-
-          <div class="calendar-order
-              {% if o.status=='Ingreso' %}status-ingreso{% endif %}
-              {% if o.status=='En diseño' %}status-diseno{% endif %}
-              {% if o.status=='En producción' %}status-produccion{% endif %}
-              {% if o.status=='Terminado' %}status-terminado{% endif %}"
-              title="Cliente: {{o.client_name}} | Estado: {{o.status}}">
-
-            {{o.code}}
-
-          </div>
-
-          {% endif %}
-
-        {% endfor %}
-
-      {% endif %}
-
-    </div>
-
-  {% endfor %}
+            {% if calendar_days.get(d) %}
+                {% for o in calendar_days.get(d) %}
+                    {% if o.status != 'Entregado' %}
+                        <div class="calendar-order
+                            {% if o.status=='Ingreso' %}status-ingreso{% endif %}
+                            {% if o.status=='En diseño' %}status-diseno{% endif %}
+                            {% if o.status=='En producción' %}status-produccion{% endif %}
+                            {% if o.status=='Terminado' %}status-terminado{% endif %}"
+                            title="Cliente: {{ o.client_name }} | Estado: {{ o.status }}">
+                            {{ o.code }}
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endfor %}
 
 </div>
-
 </section>
 
 <section class="panel">
 
 <table>
-
+<thead>
 <tr>
-  <th>Nº</th>
-  <th>Tipo</th>
-  <th>Módulo</th>
-  <th>Cliente</th>
-  <th>Entrega</th>
-  <th>Total</th>
-  <th>Saldo</th>
-  <th>Días terminado</th>
-  <th>💰 Recargo</th>
-  <th>💵 Total Hoy</th>
-  <th>Estado / WhatsApp</th>
-  <th>Acciones</th>
+    <th>N.º impresión</th>
+    <th>Código de pedido</th>
+    <th>Tipo</th>
+    <th>Módulo</th>
+    <th>Cliente</th>
+    <th>Entrega</th>
+    <th>Total</th>
+    <th>Saldo</th>
+    <th>Días terminado</th>
+    <th>💰 Recargo</th>
+    <th>💵 Total hoy</th>
+    <th class="no-print">Estado / WhatsApp</th>
+    <th class="no-print">Acciones</th>
 </tr>
+</thead>
 
+<tbody>
 {% for r in rows %}
-
 <tr>
 
-  <td>{{r.code}}</td>
-  <td>{{r.document_type}}</td>
-  <td>{{r.order_module}}</td>
-  <td>{{r.client_name}}</td>
-  <td>{{r.date_delivery}}</td>
-  <td>${{"%.2f"|format(r.total)}}</td>
-  <td class="red">${{"%.2f"|format(r.balance)}}</td>
+    <td>{{ loop.index }}</td>
+    <td>{{ r.code }}</td>
+    <td>{{ r.document_type }}</td>
+    <td>{{ r.order_module }}</td>
+    <td>{{ r.client_name }}</td>
+    <td>{{ r.date_delivery }}</td>
+    <td>${{ "%.2f"|format(r.total or 0) }}</td>
+    <td class="red">${{ "%.2f"|format(r.balance or 0) }}</td>
 
-  <td>
+    <td>
+        {% if r.status == 'Terminado' and r.days_finished is not none %}
+            {% if r.days_finished < 7 %}
+                <span style="color:green;font-weight:bold;">
+                    ✅ {{ r.days_finished }} días
+                </span>
+            {% elif r.days_finished < 14 %}
+                <span style="color:orange;font-weight:bold;">
+                    ⚠️ {{ r.days_finished }} días
+                </span>
+            {% else %}
+                <span style="color:red;font-weight:bold;">
+                    🔴 {{ r.days_finished }} días
+                </span>
+            {% endif %}
+        {% else %}
+            —
+        {% endif %}
+    </td>
 
-{% if r.status=='Terminado' and r.days_finished is not none %}
+    <td>${{ "%.0f"|format(r.late_fee or 0) }}</td>
 
-    {% if r.days_finished < 7 %}
+    <td style="font-weight:bold;color:#008000;">
+        ${{ "%.0f"|format(r.total_due_today or 0) }}
+    </td>
 
-        <span style="color:green;font-weight:bold;">
-            ✅ {{r.days_finished}} días
-        </span>
+    <td class="no-print">
+        <form method="post"
+              action="/orders/{{ r.id }}/status"
+              class="inline">
 
-    {% elif r.days_finished < 14 %}
+            <select name="status">
+                <option {% if r.status=='Ingreso' %}selected{% endif %}>Ingreso</option>
+                <option {% if r.status=='En diseño' %}selected{% endif %}>En diseño</option>
+                <option {% if r.status=='En producción' %}selected{% endif %}>En producción</option>
+                <option {% if r.status=='Terminado' %}selected{% endif %}>Terminado</option>
+                <option {% if r.status=='Entregado' %}selected{% endif %}>Entregado</option>
+            </select>
 
-        <span style="color:orange;font-weight:bold;">
-            ⚠️ {{r.days_finished}} días
-        </span>
+            <button type="submit" title="Guardar estado">💾</button>
+        </form>
 
-    {% else %}
+        {% if r.status == 'Terminado' and r.days_finished is not none %}
+            {% if r.days_finished < 7 %}
+                <div style="color:green;font-weight:bold;margin-top:5px;">
+                    ✅ Hace {{ r.days_finished }} días
+                </div>
+            {% elif r.days_finished < 14 %}
+                <div style="color:orange;font-weight:bold;margin-top:5px;">
+                    ⚠️ Hace {{ r.days_finished }} días
+                </div>
+            {% else %}
+                <div style="color:red;font-weight:bold;margin-top:5px;">
+                    🔴 Hace {{ r.days_finished }} días
+                </div>
+            {% endif %}
+        {% endif %}
+    </td>
 
-        <span style="color:red;font-weight:bold;">
-            🔴 {{r.days_finished}} días
-        </span>
+    <td class="actions no-print">
 
-    {% endif %}
+        <a href="/orders/{{ r.id }}" title="Comprobante">📄</a>
 
-{% else %}
-    —
-{% endif %}
+        <a href="/orders/{{ r.id }}/edit" title="Editar pedido">✏️</a>
 
-</td>
-      
-<td>
-${{"%.0f"|format(r.late_fee or 0)}}
-</td>
+        <form method="post"
+              action="/orders/{{ r.id }}/delete"
+              style="display:inline;"
+              onsubmit="return confirm('¿Seguro que querés eliminar este pedido?')">
 
-<td style="font-weight:bold;color:#008000;">
-${{"%.0f"|format(r.total_due_today or 0)}}
-</td>
+            <button type="submit" class="btn red" title="Eliminar pedido">
+                🗑️
+            </button>
+        </form>
 
-<td>
+        {% if r.order_module == 'Indumentaria' %}
+            <a href="/orders/{{ r.id }}/workshop"
+               target="_blank"
+               title="Hoja de taller">🏭</a>
 
-  <form method="post"
-        action="/orders/{{r.id}}/status"
-        class="inline">
+            <a href="/orders/{{ r.id }}/edit"
+               title="Editar taller">🧵</a>
+        {% endif %}
 
-      <select name="status">
-
-        <option {% if r.status=='Ingreso' %}selected{% endif %}>
-          Ingreso
-        </option>
-
-        <option {% if r.status=='En diseño' %}selected{% endif %}>
-          En diseño
-        </option>
-
-        <option {% if r.status=='En producción' %}selected{% endif %}>
-          En producción
-        </option>
-
-        <option {% if r.status=='Terminado' %}selected{% endif %}>
-          Terminado
-        </option>
-
-        <option {% if r.status=='Entregado' %}selected{% endif %}>
-          Entregado
-        </option>
-
-      </select>
-
-      <button type="submit"
-              title="Guardar estado">
-          💾
-      </button>
-
-
-    </form>
-
-    {% if r.status=='Terminado' and r.days_finished is not none %}
-
-      {% if r.days_finished < 7 %}
-
-        <div style="color:green;font-weight:bold;margin-top:5px;">
-          ✅ Hace {{r.days_finished}} días
-        </div>
-
-      {% elif r.days_finished < 14 %}
-
-        <div style="color:orange;font-weight:bold;margin-top:5px;">
-          ⚠️ Hace {{r.days_finished}} días
-        </div>
-
-      {% else %}
-
-        <div style="color:red;font-weight:bold;margin-top:5px;">
-          🔴 Hace {{r.days_finished}} días
-        </div>
-
-      {% endif %}
-
-    {% endif %}
-
-</td>  
-
-<td class="actions">
-
-    <a href="/orders/{{r.id}}" title="Comprobante">
-      📄
-    </a>
-
-    <a href="/orders/{{r.id}}/edit" title="Editar pedido">
-      ✏️
-    </a>
-
-    <form method="post"
-          action="/orders/{{r.id}}/delete"
-          style="display:inline;"
-          onsubmit="return confirm('¿Seguro que querés eliminar este pedido?')">
-
-      <button type="submit"
-              class="btn red"
-              title="Eliminar pedido">
-        🗑️
-      </button>
-
-    </form>
-
-    {% if r.order_module=='Indumentaria' %}
-
-      <a href="/orders/{{r.id}}/workshop"
-         target="_blank"
-         title="Hoja de taller">
-        🏭
-      </a>
-
-      <a href="/orders/{{r.id}}/edit"
-         title="Editar taller">
-        🧵
-      </a>
-
-    {% endif %}
-
-</td>
+    </td>
 
 </tr>
-
 {% endfor %}
-
+</tbody>
 </table>
 
 </section>
