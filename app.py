@@ -684,6 +684,31 @@ def whatsapp_templates():
         rows=rows
     )
     
+def day_totals(cur, date):
+    """Devuelve ingresos y gastos del día separados por medio de pago."""
+    efectivo = cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Efectivo' AND type!='Gasto'",
+        (date,)
+    ).fetchone()['s']
+
+    transferencia = cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Transferencia' AND type!='Gasto'",
+        (date,)
+    ).fetchone()['s']
+
+    gastos_ef = cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Efectivo' AND type='Gasto'",
+        (date,)
+    ).fetchone()['s']
+
+    gastos_tr = cur.execute(
+        "SELECT COALESCE(SUM(amount), 0) AS s FROM cash WHERE date=? AND method='Transferencia' AND type='Gasto'",
+        (date,)
+    ).fetchone()['s']
+
+    return efectivo, transferencia, gastos_ef, gastos_tr
+
+
 @app.route('/')
 @login_required
 def dashboard():
