@@ -10,6 +10,14 @@
         <input name="client_name" value="{{ order.client_name or '' }}">
     </label>
 
+    <label>Teléfono
+        <input name="client_phone" value="{{ order.client_phone or '' }}">
+    </label>
+
+    <label>Dirección
+        <input name="client_address" value="{{ order.client_address or '' }}">
+    </label>
+
     <label>DNI / CUIT del cliente (opcional)
         <input
             type="text"
@@ -18,14 +26,6 @@
             placeholder="Ingresar DNI o CUIT"
             maxlength="20"
             autocomplete="off">
-    </label>
-
-    <label>Teléfono
-        <input name="client_phone" value="{{ order.client_phone or '' }}">
-    </label>
-
-    <label>Dirección
-        <input name="client_address" value="{{ order.client_address or '' }}">
     </label>
 
     <label>Fecha de entrega
