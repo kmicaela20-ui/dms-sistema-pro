@@ -3,6 +3,12 @@
 
 <h1>🎓 Editar pedido de Egresaditos</h1>
 
+<div style="display:flex;flex-wrap:wrap;gap:10px;margin:12px 0 20px;">
+    <a class="btn" href="/egresaditos/{{ order['id'] }}/print-list" target="_blank" rel="noopener">
+        🖨️ Imprimir listado de nombres y talles
+    </a>
+</div>
+
 <section class="panel">
     <h2>📋 Datos del pedido</h2>
     <p><strong>Pedido:</strong> {{ order['code'] or '-' }}</p>
@@ -119,16 +125,23 @@
         <section class="panel"
                  style="border:1px solid #d6dce5;margin:18px 0;padding:18px;">
 
-            <!-- DATOS DEL ALUMNO -->
-
             <h2>
                 {{ loop.index }}. {{ student['student_name'] or 'Alumno sin nombre' }}
             </h2>
 
+            <p><strong>Nombre para la prenda:</strong> {{ student['printed_name'] or '-' }}</p>
             <p><strong>Prendas:</strong> {{ student['garment_name'] or '-' }}</p>
-            <p><strong>Talle chomba:</strong> {{ student['shirt_size'] or '-' }}</p>
+            <p><strong>Talle chomba/remera:</strong> {{ student['shirt_size'] or '-' }}</p>
             <p><strong>Talle campera:</strong> {{ student['jacket_size'] or '-' }}</p>
+            <p><strong>Talle buzo:</strong> {{ student['hoodie_size'] or '-' }}</p>
             <p><strong>Detalle:</strong> {{ student['detail'] or '-' }}</p>
+
+            <div style="display:flex;flex-wrap:wrap;gap:10px;margin:14px 0;">
+                <a class="btn"
+                   href="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/edit">
+                    ✏️ Editar datos del alumno
+                </a>
+            </div>
 
             <p>
                 <strong>Forma de pago:</strong>
