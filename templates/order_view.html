@@ -21,6 +21,9 @@
                     Imprimir lista de alumnos
                 </a>
 
+                <a class="btn" href="{{ roster_public_url }}" target="_blank" rel="noopener">
+                    Abrir enlace del cliente
+                </a>
                 <button type="button" class="btn"
                         onclick="copiarEnlace({{ roster_public_url|tojson }})">
                     Copiar enlace para el cliente
@@ -301,12 +304,42 @@
 
 <script>
 async function copiarEnlace(enlace) {
-    try {
-        await navigator.clipboard.writeText(enlace);
-        alert('Enlace copiado correctamente.');
-    } catch (error) {
-        window.prompt('Copiá este enlace:', enlace);
+    if (!enlace || enlace === "null" || enlace === "undefined") {
+        alert('No se encontró el enlace. Recargá el pedido y, si sigue igual, usá «Crear enlace para lista de alumnos».');
+        return;
     }
+
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(enlace);
+            alert('Enlace copiado correctamente. Ahora podés pegarlo en WhatsApp.');
+            return;
+        }
+    } catch (error) {
+        // Continuar con la alternativa compatible.
+    }
+
+    try {
+        const campo = document.createElement('textarea');
+        campo.value = enlace;
+        campo.setAttribute('readonly', '');
+        campo.style.position = 'fixed';
+        campo.style.left = '-9999px';
+        document.body.appendChild(campo);
+        campo.focus();
+        campo.select();
+        campo.setSelectionRange(0, campo.value.length);
+        const copiado = document.execCommand('copy');
+        document.body.removeChild(campo);
+        if (copiado) {
+            alert('Enlace copiado correctamente. Ahora podés pegarlo en WhatsApp.');
+            return;
+        }
+    } catch (error) {
+        // Usar el último recurso.
+    }
+
+    window.prompt('Copiá el enlace que aparece abajo y pegalo en WhatsApp:', enlace);
 }
 </script>
 
