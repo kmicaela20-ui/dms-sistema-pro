@@ -1,4 +1,3 @@
-```html
 {% extends "base.html" %}
 {% block content %}
 
@@ -9,6 +8,16 @@
 <section class="panel formgrid">
     <label>Cliente
         <input name="client_name" value="{{ order.client_name or '' }}">
+    </label>
+
+    <label>DNI / CUIT del cliente (opcional)
+        <input
+            type="text"
+            name="client_dni_cuit"
+            value="{{ order.client_dni_cuit or '' }}"
+            placeholder="Ingresar DNI o CUIT"
+            maxlength="20"
+            autocomplete="off">
     </label>
 
     <label>Teléfono
@@ -503,4 +512,3 @@ if (document.querySelector('.gradPrice')) calcGrad();
 </script>
 
 {% endblock %}
-```
