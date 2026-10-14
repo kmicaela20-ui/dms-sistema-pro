@@ -1,123 +1,182 @@
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import os, datetime, urllib.parse, unicodedata
-import psycopg2, psycopg2.extras
-from werkzeug.security import generate_password_hash, check_password_hash
-
-app=Flask(__name__)
-app.secret_key=os.environ.get('SECRET_KEY','CAMBIAR_SECRET_KEY_DMS')
-PHONE='Sucursal Perico: 3884794349 | Sucursal El Carmen: 3885911211'
-
-class PGCursor:
-    def __init__(self, cur):
-        self.cur=cur
-        self.lastrowid=None
-    def _sql(self, sql):
-        return sql.replace('?', '%s')
-    def execute(self, sql, params=None):
-        q=self._sql(sql)
-        s=q.strip().lower()
-        if s.startswith('insert into clients') and 'returning id' not in s:
-            q += ' RETURNING id'
-        if s.startswith('insert into orders') and 'returning id' not in s:
-            q += ' RETURNING id'
-        self.cur.execute(q, params or ())
-        if s.startswith('insert into clients') or s.startswith('insert into orders'):
-            try:
-                row=self.cur.fetchone(); self.lastrowid=row['id'] if row else None
-            except Exception:
-                self.lastrowid=None
-        return self
-    def executemany(self, sql, seq):
-        self.cur.executemany(self._sql(sql), seq)
-        return self
-    def executescript(self, script):
-        for part in script.split(';'):
-            st=part.strip()
-            if not st: continue
-            st=st.replace('id INTEGER PRIMARY KEY','id SERIAL PRIMARY KEY')
-            st=st.replace('REAL','NUMERIC')
-            st=st.replace('user TEXT','username TEXT')
-            self.cur.execute(st)
-        return self
-    def fetchone(self): return self.cur.fetchone()
-    def fetchall(self): return self.cur.fetchall()
-
-class PGConn:
-    def __init__(self):
-        url=os.environ.get('DATABASE_URL','').strip()
-        if not url:
-            raise RuntimeError('Falta DATABASE_URL. En Render agregá la variable DATABASE_URL de PostgreSQL.')
-        self.conn=psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
-    def cursor(self): return PGCursor(self.conn.cursor())
-    def execute(self, sql, params=None):
-        cur=self.cursor(); return cur.execute(sql, params)
-    def commit(self): return self.conn.commit()
-    def close(self): return self.conn.close()
-
-def db():
-    return PGConn()
-
-def today(): return datetime.date.today().isoformat()
-def now(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-def money(v):
-    try: return float(v or 0)
-    except: return 0
-
-def category_code(text):
-    text=(text or 'GEN').strip().upper()
-    text=''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c)!='Mn')
-    letters=''.join(c for c in text if c.isalnum())
-    return (letters or 'GEN')[:3].ljust(3,'X')
-
-def next_inventory_code(cur, category, category_prefix=None):
-    prefix=category_code(category_prefix or category)
-    row=cur.execute("SELECT sku FROM inventory WHERE sku LIKE ? ORDER BY id DESC LIMIT 1",(prefix+'-%',)).fetchone()
-    if not row or not row['sku']:
-        n=1
-    else:
-        try: n=int(row['sku'].split('-')[-1])+1
-        except: n=1
-    return f"{prefix}-{n:03d}"
-
 def init():
-    con=db()
-    cur=con.cursor()
+    con = db()
+    cur = con.cursor()
 
     cur.executescript("""
-    CREATE TABLE IF NOT EXISTS users(id INTEGER PRIMARY KEY, username TEXT UNIQUE, password_hash TEXT, role TEXT, active TEXT);
-    CREATE TABLE IF NOT EXISTS clients(id INTEGER PRIMARY KEY, name TEXT, phone TEXT, address TEXT);
-    CREATE TABLE IF NOT EXISTS inventory_categories(id INTEGER PRIMARY KEY, name TEXT UNIQUE, code TEXT UNIQUE);
-    CREATE TABLE IF NOT EXISTS inventory(id INTEGER PRIMARY KEY, sku TEXT, category TEXT, item TEXT, detail TEXT, unit TEXT, cost_price REAL, retail_price REAL, wholesale_price REAL, stock_qty REAL, min_stock REAL, active TEXT);
-    CREATE TABLE IF NOT EXISTS orders(id INTEGER PRIMARY KEY, code TEXT, document_type TEXT, order_module TEXT, reception_channel TEXT, client_id INTEGER, client_name TEXT, client_phone TEXT, client_address TEXT, date_taken TEXT, date_delivery TEXT, status TEXT, receptionist TEXT, client_notes TEXT, school_name TEXT, school_grade TEXT, fabric_type TEXT, team_design_notes TEXT, discount REAL, subtotal REAL, total REAL, deposit REAL, balance REAL, payment_method TEXT, payment_note TEXT, created_at TEXT);
-    CREATE TABLE IF NOT EXISTS general_items(id INTEGER PRIMARY KEY, order_id INTEGER, inventory_id INTEGER, product TEXT, detail TEXT, qty REAL, unit_price REAL, subtotal REAL);
-    CREATE TABLE IF NOT EXISTS apparel_items(id INTEGER PRIMARY KEY, order_id INTEGER, article TEXT, person_name TEXT, number TEXT, upper_size TEXT, lower_size TEXT, price REAL);
-    CREATE TABLE IF NOT EXISTS apparel_sponsors(id INTEGER PRIMARY KEY, order_id INTEGER, garment_part TEXT, location TEXT, sponsor_name TEXT, note TEXT);
-    CREATE TABLE IF NOT EXISTS grad_items(id INTEGER PRIMARY KEY, order_id INTEGER, person_name TEXT, cap_size TEXT, stole_size TEXT, note TEXT, price REAL);
-    CREATE TABLE IF NOT EXISTS payments(id INTEGER PRIMARY KEY, order_id INTEGER, dt TEXT, concept TEXT, amount REAL, method TEXT, note TEXT, user TEXT);
-    CREATE TABLE IF NOT EXISTS cash(id INTEGER PRIMARY KEY, date TEXT, dt TEXT, type TEXT, concept TEXT, amount REAL, method TEXT, order_id INTEGER, user TEXT, note TEXT);
-    CREATE TABLE IF NOT EXISTS cash_sessions(id INTEGER PRIMARY KEY, date TEXT, opened_at TEXT, closed_at TEXT, opening_cash REAL, closing_cash REAL, total_efectivo REAL, total_transferencia REAL, total_gastos REAL, final_cash REAL, user TEXT, notes TEXT, status TEXT);
-    CREATE TABLE IF NOT EXISTS whatsapp_templates(id INTEGER PRIMARY KEY, status_key TEXT UNIQUE, title TEXT, message TEXT);
-    CREATE TABLE IF NOT EXISTS egresaditos_students(
-    id INTEGER PRIMARY KEY,
-    order_id INTEGER,
-    student_name TEXT,
-    garment_name TEXT,
-    shirt_size TEXT,
-    jacket_size TEXT,
-    detail TEXT,
-    payment_type TEXT,
-    normal_price REAL DEFAULT 0,
-    final_price REAL DEFAULT 0,
-    reservation_plan REAL DEFAULT 0
-);
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password_hash TEXT,
+        role TEXT,
+        active TEXT
+    );
 
-CREATE TABLE IF NOT EXISTS egresaditos_installments(
-    id INTEGER PRIMARY KEY,
-    order_id INTEGER,
-    installment_number INTEGER,
-    due_date TEXT
-);
+    CREATE TABLE IF NOT EXISTS clients(
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        phone TEXT,
+        address TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory_categories(
+        id INTEGER PRIMARY KEY,
+        name TEXT UNIQUE,
+        code TEXT UNIQUE
+    );
+
+    CREATE TABLE IF NOT EXISTS inventory(
+        id INTEGER PRIMARY KEY,
+        sku TEXT,
+        category TEXT,
+        item TEXT,
+        detail TEXT,
+        unit TEXT,
+        cost_price REAL,
+        retail_price REAL,
+        wholesale_price REAL,
+        stock_qty REAL,
+        min_stock REAL,
+        active TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS orders(
+        id INTEGER PRIMARY KEY,
+        code TEXT,
+        document_type TEXT,
+        order_module TEXT,
+        reception_channel TEXT,
+        client_id INTEGER,
+        client_name TEXT,
+        client_phone TEXT,
+        client_address TEXT,
+        date_taken TEXT,
+        date_delivery TEXT,
+        status TEXT,
+        receptionist TEXT,
+        client_notes TEXT,
+        school_name TEXT,
+        school_grade TEXT,
+        fabric_type TEXT,
+        team_design_notes TEXT,
+        discount REAL,
+        subtotal REAL,
+        total REAL,
+        deposit REAL,
+        balance REAL,
+        payment_method TEXT,
+        payment_note TEXT,
+        created_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS general_items(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        inventory_id INTEGER,
+        product TEXT,
+        detail TEXT,
+        qty REAL,
+        unit_price REAL,
+        subtotal REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS apparel_items(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        article TEXT,
+        person_name TEXT,
+        number TEXT,
+        upper_size TEXT,
+        lower_size TEXT,
+        price REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS apparel_sponsors(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        garment_part TEXT,
+        location TEXT,
+        sponsor_name TEXT,
+        note TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS grad_items(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        person_name TEXT,
+        cap_size TEXT,
+        stole_size TEXT,
+        note TEXT,
+        price REAL
+    );
+
+    CREATE TABLE IF NOT EXISTS payments(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        dt TEXT,
+        concept TEXT,
+        amount REAL,
+        method TEXT,
+        note TEXT,
+        user TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS cash(
+        id INTEGER PRIMARY KEY,
+        date TEXT,
+        dt TEXT,
+        type TEXT,
+        concept TEXT,
+        amount REAL,
+        method TEXT,
+        order_id INTEGER,
+        user TEXT,
+        note TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS cash_sessions(
+        id INTEGER PRIMARY KEY,
+        date TEXT,
+        opened_at TEXT,
+        closed_at TEXT,
+        opening_cash REAL,
+        closing_cash REAL,
+        total_efectivo REAL,
+        total_transferencia REAL,
+        total_gastos REAL,
+        final_cash REAL,
+        user TEXT,
+        notes TEXT,
+        status TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS whatsapp_templates(
+        id INTEGER PRIMARY KEY,
+        status_key TEXT UNIQUE,
+        title TEXT,
+        message TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS egresaditos_students(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        student_name TEXT,
+        garment_name TEXT,
+        shirt_size TEXT,
+        jacket_size TEXT,
+        detail TEXT,
+        payment_type TEXT,
+        normal_price REAL DEFAULT 0,
+        final_price REAL DEFAULT 0,
+        reservation_plan REAL DEFAULT 0
+    );
+
+    CREATE TABLE IF NOT EXISTS egresaditos_installments(
+        id INTEGER PRIMARY KEY,
+        order_id INTEGER,
+        installment_number INTEGER,
+        due_date TEXT
+    );
 
     CREATE TABLE IF NOT EXISTS egresaditos_payments(
         id INTEGER PRIMARY KEY,
@@ -138,58 +197,99 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
 
     try:
         cur.execute(
-            "ALTER TABLE apparel_items ADD COLUMN IF NOT EXISTS number TEXT"
+            "ALTER TABLE apparel_items "
+            "ADD COLUMN IF NOT EXISTS number TEXT"
         )
         con.commit()
     except Exception as e:
+        con.conn.rollback()
         print("ERROR apparel_items number:", e)
 
     try:
         cur.execute(
-            "ALTER TABLE orders ADD COLUMN IF NOT EXISTS finished_at TEXT"
+            "ALTER TABLE orders "
+            "ADD COLUMN IF NOT EXISTS finished_at TEXT"
         )
         con.commit()
         print("OK finished_at")
     except Exception as e:
+        con.conn.rollback()
         print("ERROR finished_at:", e)
+
+    # ============================================================
+    # DATOS DE TALLER PARA EGRESADITOS
+    # ============================================================
+
+    try:
+        cur.execute("""
+            ALTER TABLE egresaditos_students
+            ADD COLUMN IF NOT EXISTS printed_name TEXT
+        """)
+
+        cur.execute("""
+            ALTER TABLE egresaditos_students
+            ADD COLUMN IF NOT EXISTS hoodie_size TEXT
+        """)
+
+        con.commit()
+        print("OK: columnas de taller de Egresaditos")
+
+    except Exception as e:
+        con.conn.rollback()
+        print("ERROR columnas de taller Egresaditos:", e)
 
     # ============================================================
     # USUARIOS INICIALES
     # ============================================================
 
     if cur.execute(
-        'SELECT COUNT(*) c FROM users'
-    ).fetchone()['c'] == 0:
+        "SELECT COUNT(*) c FROM users"
+    ).fetchone()["c"] == 0:
 
         cur.execute(
-            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            """
+            INSERT INTO users(
+                username, password_hash, role, active
+            )
+            VALUES(?,?,?,?)
+            """,
             (
-                os.environ.get('ADMIN_USERNAME', 'admin'),
+                os.environ.get("ADMIN_USERNAME", "admin"),
                 generate_password_hash(
-                    os.environ.get('ADMIN_PASSWORD', 'admin')
+                    os.environ.get("ADMIN_PASSWORD", "admin")
                 ),
-                'Admin',
-                'Sí'
+                "Admin",
+                "Sí"
             )
         )
 
         cur.execute(
-            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            """
+            INSERT INTO users(
+                username, password_hash, role, active
+            )
+            VALUES(?,?,?,?)
+            """,
             (
-                'caja',
-                generate_password_hash('caja123'),
-                'Caja',
-                'Sí'
+                "caja",
+                generate_password_hash("caja123"),
+                "Caja",
+                "Sí"
             )
         )
 
         cur.execute(
-            'INSERT INTO users(username,password_hash,role,active) VALUES(?,?,?,?)',
+            """
+            INSERT INTO users(
+                username, password_hash, role, active
+            )
+            VALUES(?,?,?,?)
+            """,
             (
-                'produccion',
-                generate_password_hash('produccion123'),
-                'Producción',
-                'Sí'
+                "produccion",
+                generate_password_hash("produccion123"),
+                "Producción",
+                "Sí"
             )
         )
 
@@ -198,19 +298,19 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
     # ============================================================
 
     if cur.execute(
-        'SELECT COUNT(*) c FROM inventory_categories'
-    ).fetchone()['c'] == 0:
+        "SELECT COUNT(*) c FROM inventory_categories"
+    ).fetchone()["c"] == 0:
 
         cats = [
-            ('Indumentaria', 'IND'),
-            ('Polímero', 'POL'),
-            ('Remeras', 'REM'),
-            ('Vidrios', 'VID'),
-            ('Escolar', 'ESC')
+            ("Indumentaria", "IND"),
+            ("Polímero", "POL"),
+            ("Remeras", "REM"),
+            ("Vidrios", "VID"),
+            ("Escolar", "ESC")
         ]
 
         cur.executemany(
-            'INSERT INTO inventory_categories(name,code) VALUES(?,?)',
+            "INSERT INTO inventory_categories(name,code) VALUES(?,?)",
             cats
         )
 
@@ -219,149 +319,107 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
     # ============================================================
 
     if cur.execute(
-        'SELECT COUNT(*) c FROM inventory'
-    ).fetchone()['c'] == 0:
+        "SELECT COUNT(*) c FROM inventory"
+    ).fetchone()["c"] == 0:
 
         rows = [
             (
-                'INS-001',
-                'Insumos',
-                'Taza blanca AAA',
-                'Para sublimar',
-                'u',
-                2200,
-                3500,
-                3000,
-                5,
-                10,
-                'Sí'
+                "INS-001", "Insumos", "Taza blanca AAA",
+                "Para sublimar", "u", 2200, 3500, 3000,
+                5, 10, "Sí"
             ),
             (
-                'INS-002',
-                'Insumos',
-                'Vinilo textil blanco',
-                'Metro',
-                'm',
-                1200,
-                2200,
-                1900,
-                3,
-                10,
-                'Sí'
+                "INS-002", "Insumos", "Vinilo textil blanco",
+                "Metro", "m", 1200, 2200, 1900,
+                3, 10, "Sí"
             ),
             (
-                'IND-001',
-                'Indumentaria',
-                'Remera Dry Fit Sublimada',
-                'Frente completo',
-                'u',
-                4200,
-                6500,
-                5900,
-                12,
-                15,
-                'Sí'
+                "IND-001", "Indumentaria",
+                "Remera Dry Fit Sublimada",
+                "Frente completo", "u", 4200, 6500, 5900,
+                12, 15, "Sí"
             ),
             (
-                'IND-002',
-                'Indumentaria',
-                'Short deportivo',
-                'Con logo',
-                'u',
-                2500,
-                4000,
-                3500,
-                8,
-                15,
-                'Sí'
+                "IND-002", "Indumentaria", "Short deportivo",
+                "Con logo", "u", 2500, 4000, 3500,
+                8, 15, "Sí"
             ),
             (
-                'EGR-001',
-                'Egresados',
-                'Birrete personalizado',
-                'Color a elección',
-                'u',
-                5000,
-                8500,
-                7500,
-                10,
-                15,
-                'Sí'
+                "EGR-001", "Egresados", "Birrete personalizado",
+                "Color a elección", "u", 5000, 8500, 7500,
+                10, 15, "Sí"
             ),
             (
-                'EGR-002',
-                'Egresados',
-                'Estola personalizada',
-                'Con nombre/logo',
-                'u',
-                4500,
-                7500,
-                6500,
-                10,
-                15,
-                'Sí'
+                "EGR-002", "Egresados", "Estola personalizada",
+                "Con nombre/logo", "u", 4500, 7500, 6500,
+                10, 15, "Sí"
             )
         ]
 
         cur.executemany(
-            '''
+            """
             INSERT INTO inventory(
-                sku,
-                category,
-                item,
-                detail,
-                unit,
-                cost_price,
-                retail_price,
-                wholesale_price,
-                stock_qty,
-                min_stock,
-                active
+                sku, category, item, detail, unit,
+                cost_price, retail_price, wholesale_price,
+                stock_qty, min_stock, active
             )
             VALUES(?,?,?,?,?,?,?,?,?,?,?)
-            ''',
+            """,
             rows
         )
 
-    # =====================================================
-    # MINIMO DE CANTIDAD PARA PRECIO MAYORISTA
-    # =====================================================
+    # ============================================================
+    # MÍNIMO DE CANTIDAD PARA PRECIO MAYORISTA
+    # ============================================================
 
     try:
         cur.execute(
-            'ALTER TABLE inventory ADD COLUMN IF NOT EXISTS wholesale_min_qty INTEGER DEFAULT 1'
+            """
+            ALTER TABLE inventory
+            ADD COLUMN IF NOT EXISTS wholesale_min_qty
+            INTEGER DEFAULT 1
+            """
         )
     except Exception as e:
+        con.conn.rollback()
         print("ERROR wholesale_min_qty:", e)
+
     # ============================================================
     # DATOS PERMANENTES DE ENTREGA
     # ============================================================
 
     try:
         cur.execute(
-            'ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TEXT'
+            """
+            ALTER TABLE orders
+            ADD COLUMN IF NOT EXISTS delivered_at TEXT
+            """
         )
     except Exception as e:
+        con.conn.rollback()
         print("ERROR delivered_at:", e)
 
     try:
         cur.execute(
-            '''
+            """
             ALTER TABLE orders
-            ADD COLUMN IF NOT EXISTS delivery_final_payment REAL DEFAULT 0
-            '''
+            ADD COLUMN IF NOT EXISTS delivery_final_payment
+            REAL DEFAULT 0
+            """
         )
     except Exception as e:
+        con.conn.rollback()
         print("ERROR delivery_final_payment:", e)
 
     try:
         cur.execute(
-            '''
+            """
             ALTER TABLE orders
             ADD COLUMN IF NOT EXISTS delivery_payment_method TEXT
-            '''
+            """
         )
     except Exception as e:
+        con.conn.rollback()
         print("ERROR delivery_payment_method:", e)
 
     # ============================================================
@@ -371,144 +429,7 @@ CREATE TABLE IF NOT EXISTS egresaditos_installments(
     con.commit()
     con.close()
 
-def login_required(fn):
-    def wrap(*a,**k):
-        if 'user' not in session: return redirect('/login')
-        return fn(*a,**k)
-    wrap.__name__=fn.__name__
-    return wrap
 
-def role_required(*roles):
-    def deco(fn):
-        def wrap(*a,**k):
-            if 'user' not in session:
-                return redirect('/login')
-            if session.get('role') not in roles and session.get('role')!='Admin':
-                flash('No tenés permiso para entrar a este módulo.')
-                return redirect('/')
-            return fn(*a,**k)
-        wrap.__name__=fn.__name__
-        return wrap
-    return deco
-
-def prefix(doc): return 'FAC' if doc=='Pedido/Factura' else 'PRE'
-
-def next_code(doc,module):
-    con=db()
-    n=con.execute('SELECT COUNT(*) c FROM orders WHERE document_type=? AND order_module=?',(doc,module)).fetchone()['c']+1
-    con.close()
-    mod={'General':'GEN','Indumentaria':'IND','Birretes/Estolas':'EGR','Egresaditos':'EGA'}[module]
-    return f'{prefix(doc)}-{mod}-{n:06d}'
-
-def save_client(cur,name,phone,address):
-    name=(name or '').strip(); phone=(phone or '').strip(); address=(address or '').strip()
-    if not name: return None
-    old=cur.execute('SELECT * FROM clients WHERE name=? AND phone=?',(name,phone)).fetchone()
-    if old:
-        cur.execute('UPDATE clients SET address=? WHERE id=?',(address,old['id']))
-        return old['id']
-    cur.execute('INSERT INTO clients(name,phone,address) VALUES(?,?,?)',(name,phone,address))
-    return cur.lastrowid
-
-def register_cash_payment(cur, oid, code, concept, amount, method, note):
-    cur.execute('INSERT INTO payments(order_id,dt,concept,amount,method,note,username) VALUES(?,?,?,?,?,?,?)',(oid,now(),concept,amount,method,note,session.get('user','admin')))
-    cur.execute('INSERT INTO cash(date,dt,type,concept,amount,method,order_id,username,note) VALUES(?,?,?,?,?,?,?,?,?)',(today(),now(),'Ingreso',f'{concept} {code}',amount,method,oid,session.get('user','admin'),note))
-
-def common_order_insert(cur, doc, module, subtotal, extra):
-    code=next_code(doc,module)
-    cid=save_client(cur, request.form.get('client_name'), request.form.get('client_phone'), request.form.get('client_address'))
-    discount=money(request.form.get('discount')); total=max(0,subtotal-discount)
-    deposit = 0 if doc == 'Presupuesto' or module == 'Egresaditos' else money(request.form.get('deposit'))
-    balance=max(0,total-deposit)
-    vals=(code,doc,module,request.form.get('reception_channel'),cid,request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('date_taken') or today(),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),extra.get('school_name'),extra.get('school_grade'),extra.get('fabric_type'),extra.get('team_design_notes'),discount,subtotal,total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),now())
-    cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
-    oid=cur.lastrowid
-
-    if deposit>0:
-        register_cash_payment(
-            cur,
-            oid,
-            code,
-            f'[{module}] Seña',
-            deposit,
-            request.form.get('payment_method'),
-            request.form.get('payment_note')
-        )
-
-    return oid,code
-def whatsapp_url(order, msg=None):
-    phone=(order['client_phone'] or '').replace(' ','').replace('-','')
-    if not phone: return ''
-    text=msg or f"Hola, desde DMS Sublimaciones te informamos que tu pedido {order['code']} está en estado: {order['status']}. Saldo pendiente: ${order['balance']:.2f}."
-    return 'https://wa.me/54'+phone+'?text='+urllib.parse.quote(text)
-
-
-def day_totals(cur, date):
-    efectivo = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Efectivo' AND type!='Gasto'", (date,)).fetchone()['s']
-    transferencia = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Transferencia' AND type!='Gasto'", (date,)).fetchone()['s']
-    gastos_ef = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Efectivo' AND type='Gasto'", (date,)).fetchone()['s']
-    gastos_tr = cur.execute("SELECT COALESCE(SUM(amount),0) s FROM cash WHERE date=? AND method='Transferencia' AND type='Gasto'", (date,)).fetchone()['s']
-    return efectivo, transferencia, gastos_ef, gastos_tr
-
-
-def whatsapp_message_for_order(order):
-
-    status = (order.get('status') or '').strip().lower()
-
-    key_map = {
-        'ingreso': 'ingresado',
-        'en diseño': 'diseno',
-        'en diseno': 'diseno',
-        'en producción': 'produccion',
-        'en produccion': 'produccion',
-        'terminado': 'terminado',
-        'entregado': 'entregado'
-    }
-
-    status_key = key_map.get(status, 'ingresado')
-
-    con = db()
-    cur = con.cursor()
-
-    tpl = cur.execute(
-        'SELECT message FROM whatsapp_templates WHERE status_key=?',
-        (status_key,)
-    ).fetchone()
-
-    con.close()
-
-    if not tpl:
-        return "Hola"
-
-    msg = tpl['message']
-
-    msg = msg.replace(
-        '{cliente}',
-        str(order.get('client_name') or '')
-    )
-
-    msg = msg.replace(
-        '{pedido}',
-        str(order.get('code') or '')
-    )
-
-    msg = msg.replace(
-        '{total}',
-        f"{float(order.get('total') or 0):.2f}"
-    )
-
-    msg = msg.replace(
-        '{deposito}',
-        f"{float(order.get('deposit') or 0):.2f}"
-    )
-
-    msg = msg.replace(
-        '{saldo}',
-        f"{float(order.get('balance') or 0):.2f}"
-    )
-
-    return msg
-    
 @app.route('/consulta', methods=['GET','POST'])
 def consulta_cliente():
 
