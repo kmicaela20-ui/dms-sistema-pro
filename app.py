@@ -2099,6 +2099,143 @@ def edit_order(oid):
     )
     
 
+
+# ==========================================================
+# AGREGAR ALUMNO A UN PEDIDO DE EGRESADITOS
+# ==========================================================
+
+@app.route('/egresaditos/<int:oid>/student/add', methods=['POST'])
+@login_required
+def egresaditos_add_student(oid):
+    con = db()
+    cur = con.cursor()
+
+    try:
+        student_name = (request.form.get('student_name') or '').strip()
+        garments = request.form.getlist('garments')
+        payment_type = (request.form.get('payment_type') or '').strip()
+        final_price = money(request.form.get('final_price'))
+        reservation_plan = money(request.form.get('reservation_plan'))
+
+        allowed_garments = {
+            'Chomba',
+            'Campera',
+            'Remera',
+            'Conjunto completo',
+            'Otra prenda'
+        }
+
+        if not student_name:
+            flash('Ingresá el nombre y apellido del alumno.')
+            con.close()
+            return redirect(url_for('edit_order', oid=oid))
+
+        if not garments or any(g not in allowed_garments for g in garments):
+            flash('Seleccioná al menos una prenda.')
+            con.close()
+            return redirect(url_for('edit_order', oid=oid))
+
+        if payment_type not in ('cash', 'installment'):
+            flash('Seleccioná contado o cuotas.')
+            con.close()
+            return redirect(url_for('edit_order', oid=oid))
+
+        if final_price <= 0:
+            flash('El precio final debe ser mayor a cero.')
+            con.close()
+            return redirect(url_for('edit_order', oid=oid))
+
+        if reservation_plan < 0 or reservation_plan > final_price:
+            flash('La reserva prevista debe estar entre $0 y el precio final.')
+            con.close()
+            return redirect(url_for('edit_order', oid=oid))
+
+        order = cur.execute(
+            'SELECT id, order_module FROM orders WHERE id=?',
+            (oid,)
+        ).fetchone()
+
+        if not order or order['order_module'] != 'Egresaditos':
+            flash('El pedido no existe o no corresponde a Egresaditos.')
+            con.close()
+            return redirect('/orders')
+
+        garment_name = ', '.join(garments)
+
+        cur.execute(
+            '''
+            INSERT INTO egresaditos_students (
+                order_id,
+                student_name,
+                garment_name,
+                shirt_size,
+                jacket_size,
+                detail,
+                payment_type,
+                normal_price,
+                final_price,
+                reservation_plan
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''',
+            (
+                oid,
+                student_name,
+                garment_name,
+                '',
+                '',
+                '',
+                payment_type,
+                final_price,
+                final_price,
+                reservation_plan
+            )
+        )
+
+        total_row = cur.execute(
+            '''
+            SELECT COALESCE(SUM(final_price), 0) AS total
+            FROM egresaditos_students
+            WHERE order_id=?
+            ''',
+            (oid,)
+        ).fetchone()
+        total = float(total_row['total'] or 0)
+
+        paid_row = cur.execute(
+            '''
+            SELECT COALESCE(SUM(amount), 0) AS paid
+            FROM egresaditos_payments
+            WHERE order_id=?
+            ''',
+            (oid,)
+        ).fetchone()
+        paid = float(paid_row['paid'] or 0)
+
+        cur.execute(
+            '''
+            UPDATE orders
+            SET subtotal=?, total=?, deposit=?, balance=?
+            WHERE id=?
+            ''',
+            (total, total, paid, max(total - paid, 0), oid)
+        )
+
+        con.commit()
+        con.close()
+        flash('Alumno agregado correctamente.')
+        return redirect(url_for('edit_order', oid=oid))
+
+    except Exception as e:
+        print('ERROR AGREGANDO ALUMNO EGRESADITOS:', e)
+        try:
+            con.close()
+        except Exception:
+            pass
+        flash('No se pudo agregar el alumno. Revisá los datos e intentá nuevamente.')
+        return redirect(url_for('edit_order', oid=oid))
+
+
 @app.route('/egresaditos/<int:oid>/student/<int:student_id>/payment', methods=['POST'])
 @login_required
 def egresaditos_add_payment(oid, student_id):
