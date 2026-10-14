@@ -1,0 +1,137 @@
+
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .print-container {
+        max-width: 1100px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        color: #222;
+        border-radius: 10px;
+    }
+
+    .print-header {
+        text-align: center;
+        margin-bottom: 20px;
+    }
+
+    .print-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+    }
+
+    .print-table th,
+    .print-table td {
+        border: 1px solid #333;
+        padding: 9px;
+        text-align: left;
+        font-size: 13px;
+    }
+
+    .print-table th {
+        background: #eee;
+    }
+
+    .print-actions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    @media print {
+        body {
+            background: white !important;
+        }
+
+        .print-actions,
+        header,
+        nav,
+        footer {
+            display: none !important;
+        }
+
+        .print-container {
+            max-width: 100%;
+            margin: 0;
+            padding: 0;
+            border-radius: 0;
+        }
+
+        .print-table th {
+            background: #eee !important;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+    }
+</style>
+
+<div class="print-container">
+
+    <div class="print-actions">
+        <button type="button" onclick="window.print()">
+            🖨️ Imprimir listado
+        </button>
+
+        <a class="btn" href="/orders/{{ order['id'] }}/edit">
+            ⬅ Volver al pedido
+        </a>
+    </div>
+
+    <div class="print-header">
+        <h1>LISTADO DE ALUMNOS Y TALLES</h1>
+        <h2>{{ order['code'] or 'Pedido de egresaditos' }}</h2>
+        <p><strong>Cliente:</strong> {{ order['client_name'] or '-' }}</p>
+        <p><strong>Fecha:</strong> {{ now if now is defined else '' }}</p>
+    </div>
+
+    <table class="print-table">
+        <thead>
+            <tr>
+                <th>N.º</th>
+                <th>Nombre y apellido</th>
+                <th>Nombre para la prenda</th>
+                <th>Prendas</th>
+                <th>Talle chomba/remera</th>
+                <th>Talle campera</th>
+                <th>Talle buzo</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ student['student_name'] or '-' }}</td>
+                <td>{{ student['printed_name'] or '-' }}</td>
+                <td>{{ student['garment_name'] or '-' }}</td>
+                <td>{{ student['shirt_size'] or '-' }}</td>
+                <td>{{ student['jacket_size'] or '-' }}</td>
+                <td>{{ student['hoodie_size'] or '-' }}</td>
+                <td>{{ student['detail'] or '-' }}</td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="8" style="text-align:center;">
+                    No hay alumnos cargados en este pedido.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <p style="margin-top:20px;">
+        <strong>Total de alumnos:</strong> {{ students|length }}
+    </p>
+
+</div>
+
+{% endblock %}
