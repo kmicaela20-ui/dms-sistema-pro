@@ -176,6 +176,13 @@
         <span>{{ order['client_name'] or '-' }}</span>
     </div>
 
+    {% if order.get('client_dni_cuit') %}
+    <div class="fila">
+        <span>DNI / CUIT</span>
+        <span>{{ order['client_dni_cuit'] }}</span>
+    </div>
+    {% endif %}
+
     <div class="fila">
         <span>Fecha de entrega</span>
         <span>{{ delivery_date }}</span>
