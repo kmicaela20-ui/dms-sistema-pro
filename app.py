@@ -90,6 +90,7 @@ def money(v):
     try: return float(v or 0)
     except: return 0
 
+
 def prefix(doc): return 'FAC' if doc=='Pedido/Factura' else 'PRE'
 
 
@@ -123,8 +124,8 @@ def common_order_insert(cur, doc, module, subtotal, extra):
     discount=money(request.form.get('discount')); total=max(0,subtotal-discount)
     deposit = 0 if doc == 'Presupuesto' or module == 'Egresaditos' else money(request.form.get('deposit'))
     balance=max(0,total-deposit)
-    vals=(code,doc,module,request.form.get('reception_channel'),cid,request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('date_taken') or today(),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),extra.get('school_name'),extra.get('school_grade'),extra.get('fabric_type'),extra.get('team_design_notes'),discount,subtotal,total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),now())
-    cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
+    vals=(code,doc,module,request.form.get('reception_channel'),cid,request.form.get('client_name'),request.form.get('client_phone'),request.form.get('client_address'),request.form.get('client_dni_cuit','').strip(),request.form.get('date_taken') or today(),request.form.get('date_delivery'),request.form.get('status'),request.form.get('receptionist'),request.form.get('client_notes'),extra.get('school_name'),extra.get('school_grade'),extra.get('fabric_type'),extra.get('team_design_notes'),discount,subtotal,total,deposit,balance,request.form.get('payment_method'),request.form.get('payment_note'),now())
+    cur.execute('''INSERT INTO orders(code,document_type,order_module,reception_channel,client_id,client_name,client_phone,client_address,client_dni_cuit,date_taken,date_delivery,status,receptionist,client_notes,school_name,school_grade,fabric_type,team_design_notes,discount,subtotal,total,deposit,balance,payment_method,payment_note,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)''', vals)
     oid=cur.lastrowid
 
     if deposit>0:
@@ -391,6 +392,16 @@ def init():
         con.conn.rollback()
         print("ERROR finished_at:", e)
 
+
+    # DNI/CUIT opcional del cliente, compatible con bases existentes.
+    try:
+        cur.execute("ALTER TABLE orders ADD COLUMN IF NOT EXISTS client_dni_cuit TEXT DEFAULT ''")
+        con.commit()
+        print("OK client_dni_cuit")
+    except Exception as e:
+        con.conn.rollback()
+        print("ERROR client_dni_cuit:", e)
+
     # ============================================================
     # TALLE DE TOGA PARA BIRRETES / ESTOLAS
     # ============================================================
@@ -624,15 +635,6 @@ def init():
                 responsible_name TEXT DEFAULT '',
                 institution_name TEXT DEFAULT '',
                 course_name TEXT DEFAULT '',
-                birrete_type TEXT DEFAULT '',
-                birrete_font TEXT DEFAULT '',
-                estola_font TEXT DEFAULT '',
-                birrete_color TEXT DEFAULT '',
-                estola_color TEXT DEFAULT '',
-                birrete_text_color TEXT DEFAULT '',
-                estola_text_color TEXT DEFAULT '',
-                birrete_text TEXT DEFAULT '',
-                estola_text TEXT DEFAULT '',
                 submitted_at TEXT DEFAULT ''
             )
         """)
@@ -641,29 +643,9 @@ def init():
                 id SERIAL PRIMARY KEY,
                 roster_id INTEGER NOT NULL,
                 student_name TEXT NOT NULL,
-                article_name TEXT DEFAULT '',
-                cap_size TEXT DEFAULT '',
-                stole_size TEXT DEFAULT '',
-                toga_size TEXT DEFAULT '',
-                observations TEXT DEFAULT '',
                 position INTEGER DEFAULT 0
             )
         """)
-        # Migraciones seguras para las tablas que ya existían
-        for column in [
-            ('birrete_type', "TEXT DEFAULT ''"), ('birrete_font', "TEXT DEFAULT ''"),
-            ('estola_font', "TEXT DEFAULT ''"), ('birrete_color', "TEXT DEFAULT ''"),
-            ('estola_color', "TEXT DEFAULT ''"), ('birrete_text_color', "TEXT DEFAULT ''"),
-            ('estola_text_color', "TEXT DEFAULT ''"), ('birrete_text', "TEXT DEFAULT ''"),
-            ('estola_text', "TEXT DEFAULT ''")
-        ]:
-            cur.execute(f'ALTER TABLE grad_rosters ADD COLUMN IF NOT EXISTS {column[0]} {column[1]}')
-        for column in [
-            ('article_name', "TEXT DEFAULT ''"), ('cap_size', "TEXT DEFAULT ''"),
-            ('stole_size', "TEXT DEFAULT ''"), ('toga_size', "TEXT DEFAULT ''"),
-            ('observations', "TEXT DEFAULT ''"), ('price', 'REAL DEFAULT 0')
-        ]:
-            cur.execute(f'ALTER TABLE grad_roster_students ADD COLUMN IF NOT EXISTS {column[0]} {column[1]}')
         con.commit()
     except Exception as e:
         con.conn.rollback()
@@ -1775,67 +1757,31 @@ def create_grad_roster_link(oid):
 def public_grad_roster(token):
     con = db()
     cur = con.cursor()
-    roster = cur.execute(
-        "SELECT r.*, o.code FROM grad_rosters r JOIN orders o ON o.id=r.order_id WHERE r.token=? AND o.order_module=?",
-        (token, 'Birretes/Estolas')
-    ).fetchone()
+    roster = cur.execute("SELECT r.*, o.code FROM grad_rosters r JOIN orders o ON o.id=r.order_id WHERE r.token=? AND o.order_module=?",
+                         (token, 'Birretes/Estolas')).fetchone()
     if not roster:
         con.close()
         return render_template('grad_roster_invalid.html'), 404
-
     if request.method == 'POST':
         responsible = (request.form.get('responsible_name') or '').strip()
         institution = (request.form.get('institution_name') or '').strip()
         course = (request.form.get('course_name') or '').strip()
-        roster_fields = {
-            'birrete_type': (request.form.get('birrete_type') or '').strip(),
-            'birrete_font': (request.form.get('birrete_font') or '').strip(),
-            'estola_font': (request.form.get('estola_font') or '').strip(),
-            'birrete_color': (request.form.get('birrete_color') or '').strip(),
-            'estola_color': (request.form.get('estola_color') or '').strip(),
-            'birrete_text_color': (request.form.get('birrete_text_color') or '').strip(),
-            'estola_text_color': (request.form.get('estola_text_color') or '').strip(),
-            'birrete_text': (request.form.get('birrete_text') or '').strip(),
-            'estola_text': (request.form.get('estola_text') or '').strip(),
-        }
-        names = request.form.getlist('student_name')
-        articles = request.form.getlist('article_name')
-        cap_sizes = request.form.getlist('cap_size')
-        stole_sizes = request.form.getlist('stole_size')
-        toga_sizes = request.form.getlist('toga_size')
-        observations = request.form.getlist('observations')
-        students = []
-        for i, raw_name in enumerate(names):
-            name = (raw_name or '').strip()
-            if not name:
-                continue
-            getval = lambda values: (values[i] or '').strip() if i < len(values) else ''
-            students.append((name, getval(articles), getval(cap_sizes), getval(stole_sizes), getval(toga_sizes), getval(observations)))
-
-        if not responsible or not institution or not course or not students:
+        names = [n.strip() for n in request.form.getlist('student_name') if n.strip()]
+        if not responsible or not institution or not course or not names:
             con.close()
-            flash('Completá responsable, institución, curso y al menos un alumno con apellido y nombre.')
+            flash('Completá los datos del responsable, institución, curso y al menos un alumno.')
             return redirect(url_for('public_grad_roster', token=token))
-
-        cur.execute('''UPDATE grad_rosters SET responsible_name=?, institution_name=?, course_name=?,
-            birrete_type=?, birrete_font=?, estola_font=?, birrete_color=?, estola_color=?,
-            birrete_text_color=?, estola_text_color=?, birrete_text=?, estola_text=?, submitted_at=? WHERE id=?''',
-            (responsible, institution, course, roster_fields['birrete_type'], roster_fields['birrete_font'],
-             roster_fields['estola_font'], roster_fields['birrete_color'], roster_fields['estola_color'],
-             roster_fields['birrete_text_color'], roster_fields['estola_text_color'], roster_fields['birrete_text'],
-             roster_fields['estola_text'], now(), roster['id']))
+        cur.execute('UPDATE grad_rosters SET responsible_name=?, institution_name=?, course_name=?, submitted_at=? WHERE id=?',
+                    (responsible, institution, course, now(), roster['id']))
         cur.execute('DELETE FROM grad_roster_students WHERE roster_id=?', (roster['id'],))
-        for pos, student in enumerate(students, start=1):
-            cur.execute('''INSERT INTO grad_roster_students
-                (roster_id, student_name, article_name, cap_size, stole_size, toga_size, observations, position)
-                VALUES(?,?,?,?,?,?,?,?)''', (roster['id'], *student, pos))
+        for pos, name in enumerate(names, start=1):
+            cur.execute('INSERT INTO grad_roster_students(roster_id, student_name, position) VALUES(?,?,?)',
+                        (roster['id'], name, pos))
         con.commit()
         con.close()
         return render_template('grad_roster_success.html', code=roster['code'])
-
-    existing_students = cur.execute(
-        'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)
-    ).fetchall()
+    existing_students = cur.execute('SELECT student_name FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
+                                    (roster['id'],)).fetchall()
     con.close()
     return render_template('public_grad_roster.html', roster=roster, existing_students=existing_students)
 
@@ -1892,27 +1838,7 @@ def view_order(oid):
     roster = con.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
     roster_students = []
     if roster:
-        roster_students = con.execute(
-            'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
-            (roster['id'],)
-        ).fetchall()
-
-    # Compatibilidad con las plantillas que todavía leen la variable "grads".
-    # La lista actual de Birretes/Estolas está guardada en grad_roster_students.
-    if order['order_module'] == 'Birretes/Estolas' and roster_students:
-        grads = [
-            {
-                'id': student['id'],
-                'person_name': student['student_name'] or '',
-                'note': student['article_name'] or '',
-                'cap_size': student['cap_size'] or '',
-                'stole_size': student['stole_size'] or '',
-                'toga_size': student['toga_size'] or '',
-                'observations': student['observations'] or '',
-                'price': money(student.get('price')),
-            }
-            for student in roster_students
-        ]
+        roster_students = con.execute('SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)).fetchall()
 
     # Datos especiales para comprobante de Egresaditos
     students = []
@@ -1959,174 +1885,471 @@ def view_order(oid):
 @app.route('/orders/<int:oid>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_order(oid):
+
     con = db()
     cur = con.cursor()
-    order = cur.execute('SELECT * FROM orders WHERE id=?', (oid,)).fetchone()
+
+    order = cur.execute(
+        'SELECT * FROM orders WHERE id=?',
+        (oid,)
+    ).fetchone()
+
     if not order:
         con.close()
         flash('Pedido no encontrado.')
         return redirect('/orders')
 
-    module = order['order_module']
+    # =========================================================
+    # GUARDAR MODIFICACIONES
+    # =========================================================
 
     if request.method == 'POST':
+
         new_status = request.form.get('status')
-        finished_at = order['finished_at'] if 'finished_at' in order.keys() else None
+
+        # -----------------------------------------------------
+        # FECHA DE FINALIZACIÓN
+        # -----------------------------------------------------
+
+        finished_at = (
+            order['finished_at']
+            if 'finished_at' in order.keys()
+            else None
+        )
+
         if new_status == 'Terminado' and not finished_at:
             finished_at = now()
-        elif new_status != 'Terminado':
+
+        if new_status != 'Terminado':
             finished_at = None
 
-        subtotal = 0.0
+        # -----------------------------------------------------
+        # CALCULAR ITEMS
+        # -----------------------------------------------------
+
+        subtotal = 0
         item_rows = []
-        roster = None
-        roster_students = []
 
-        if module == 'Birretes/Estolas':
-            roster = cur.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
-            if roster:
-                # Guardar personalización general del pedido.
-                cur.execute('''UPDATE grad_rosters SET
-                    responsible_name=?, institution_name=?, course_name=?,
-                    birrete_type=?, birrete_font=?, estola_font=?,
-                    birrete_color=?, estola_color=?, birrete_text_color=?,
-                    estola_text_color=?, birrete_text=?, estola_text=?
-                    WHERE id=?''', (
-                    request.form.get('responsible_name', roster['responsible_name'] or ''),
-                    request.form.get('institution_name', roster['institution_name'] or ''),
-                    request.form.get('course_name', roster['course_name'] or ''),
-                    request.form.get('birrete_type', roster['birrete_type'] or ''),
-                    request.form.get('birrete_font', roster['birrete_font'] or ''),
-                    request.form.get('estola_font', roster['estola_font'] or ''),
-                    request.form.get('birrete_color', roster['birrete_color'] or ''),
-                    request.form.get('estola_color', roster['estola_color'] or ''),
-                    request.form.get('birrete_text_color', roster['birrete_text_color'] or ''),
-                    request.form.get('estola_text_color', roster['estola_text_color'] or ''),
-                    request.form.get('birrete_text', roster['birrete_text'] or ''),
-                    request.form.get('estola_text', roster['estola_text'] or ''),
-                    roster['id']))
+        count = int(
+            request.form.get('item_count', '1')
+        )
 
-                try:
-                    student_count = max(0, min(1000, int(request.form.get('roster_student_count', '0'))))
-                except (TypeError, ValueError):
-                    student_count = 0
+        for i in range(1, count + 1):
 
-                for i in range(1, student_count + 1):
-                    student_name = (request.form.get(f'roster_student_name_{i}') or '').strip()
-                    article_name = (request.form.get(f'roster_article_name_{i}') or '').strip()
-                    cap_size = (request.form.get(f'roster_cap_size_{i}') or '').strip()
-                    stole_size = (request.form.get(f'roster_stole_size_{i}') or '').strip()
-                    toga_size = (request.form.get(f'roster_toga_size_{i}') or '').strip()
-                    observations = (request.form.get(f'roster_observations_{i}') or '').strip()
-                    price = money(request.form.get(f'roster_price_{i}'))
-                    if not any([student_name, article_name, cap_size, stole_size, toga_size, observations, price]):
-                        continue
-                    if not student_name:
-                        student_name = article_name or f'Alumno {i}'
-                    subtotal += price
-                    roster_students.append((student_name, article_name, cap_size, stole_size, toga_size, observations, price))
+            article = request.form.get(
+                f'article_{i}'
+            ) or ''
 
-                # Reemplazar la lista completa con los datos editados, incluyendo precio por alumno.
-                cur.execute('DELETE FROM grad_roster_students WHERE roster_id=?', (roster['id'],))
-                for position, student in enumerate(roster_students, start=1):
-                    cur.execute('''INSERT INTO grad_roster_students
-                        (roster_id, student_name, article_name, cap_size, stole_size, toga_size, observations, price, position)
-                        VALUES(?,?,?,?,?,?,?,?,?)''', (roster['id'], *student, position))
-            else:
-                # Si todavía no existe lista, se conservan los importes de los artículos antiguos.
-                old_items = cur.execute('SELECT price FROM grad_items WHERE order_id=?', (oid,)).fetchall()
-                subtotal = sum(money(row['price']) for row in old_items)
+            name = request.form.get(
+                f'name_{i}'
+            ) or ''
 
-        else:
-            try:
-                count = max(0, min(1000, int(request.form.get('item_count', '1'))))
-            except (TypeError, ValueError):
-                count = 1
-            for i in range(1, count + 1):
-                article = request.form.get(f'article_{i}') or ''
-                name = request.form.get(f'name_{i}') or ''
-                number = request.form.get(f'numero_{i}') or ''
-                upper_size = request.form.get(f'upper_{i}') or ''
-                lower_size = request.form.get(f'lower_{i}') or ''
-                toga_size = request.form.get(f'toga_size_{i}') or ''
-                qty = money(request.form.get(f'qty_{i}')) or 1
-                price = money(request.form.get(f'price_{i}'))
-                if not any([article, name, number, upper_size, lower_size, toga_size, price > 0]):
-                    continue
-                if module == 'General':
-                    line_subtotal = qty * price
-                    subtotal += line_subtotal
-                    item_rows.append((article, name, qty, price, line_subtotal))
+            number = request.form.get(
+                f'numero_{i}'
+            ) or ''
+
+            upper_size = request.form.get(
+                f'upper_{i}'
+            ) or ''
+
+            lower_size = request.form.get(
+                f'lower_{i}'
+            ) or ''
+
+            toga_size = request.form.get(
+                f'toga_size_{i}'
+            ) or ''
+
+            qty = money(
+                request.form.get(f'qty_{i}')
+            ) or 1
+
+            price = money(
+                request.form.get(f'price_{i}')
+            )
+
+            # -------------------------------------------------
+            # SI ES GENERAL
+            # -------------------------------------------------
+
+            if (
+                article
+                or name
+                or upper_size
+                or lower_size
+                or toga_size
+                or price > 0
+            ):
+
+                if order['order_module'] == 'General':
+
+                    subtotal_item = qty * price
+
+                    subtotal += subtotal_item
+
+                    item_rows.append(
+                        (
+                            article,
+                            name,
+                            qty,
+                            price,
+                            subtotal_item
+                        )
+                    )
+
+                # -------------------------------------------------
+                # INDUMENTARIA / BIRRETES / ESTOLAS
+                # -------------------------------------------------
+
                 else:
+
                     subtotal += price
-                    item_rows.append((article, name, number, upper_size, lower_size, toga_size, price))
 
-        discount = money(request.form.get('discount'))
-        total = max(0, subtotal - discount)
-        deposit = money(request.form.get('deposit'))
-        balance = max(0, total - deposit)
+                    item_rows.append(
+                        (
+                            article,
+                            name,
+                            number,
+                            upper_size,
+                            lower_size,
+                            toga_size,
+                            price
+                        )
+                    )
 
-        cur.execute('''UPDATE orders SET
-            client_name=?, client_phone=?, client_address=?, date_delivery=?, status=?,
-            receptionist=?, client_notes=?, school_name=?, school_grade=?, fabric_type=?,
-            team_design_notes=?, discount=?, subtotal=?, total=?, deposit=?, balance=?,
-            payment_method=?, payment_note=?, finished_at=?
-            WHERE id=?''', (
-            request.form.get('client_name'), request.form.get('client_phone'),
-            request.form.get('client_address'), request.form.get('date_delivery'), new_status,
-            request.form.get('receptionist'), request.form.get('client_notes'),
-            request.form.get('school_name'), request.form.get('school_grade'),
-            request.form.get('fabric_type'), request.form.get('team_design_notes'),
-            discount, subtotal, total, deposit, balance,
-            request.form.get('payment_method'), request.form.get('payment_note'), finished_at, oid))
+        # -----------------------------------------------------
+        # DESCUENTO / TOTAL / SEÑA / SALDO
+        # -----------------------------------------------------
 
-        if module == 'General':
-            cur.execute('DELETE FROM general_items WHERE order_id=?', (oid,))
-            for article, name, qty, price, line_subtotal in item_rows:
-                cur.execute('''INSERT INTO general_items
-                    (order_id, inventory_id, product, detail, qty, unit_price, subtotal)
-                    VALUES(?,?,?,?,?,?,?)''', (oid, None, article, name, qty, price, line_subtotal))
-        elif module == 'Indumentaria':
-            cur.execute('DELETE FROM apparel_items WHERE order_id=?', (oid,))
-            for article, name, number, upper_size, lower_size, toga_size, price in item_rows:
-                cur.execute('''INSERT INTO apparel_items
-                    (order_id, article, person_name, number, upper_size, lower_size, price)
-                    VALUES(?,?,?,?,?,?,?)''', (oid, article, name, number, upper_size, lower_size, price))
+        discount = money(
+            request.form.get('discount')
+        )
+
+        total = max(
+            0,
+            subtotal - discount
+        )
+
+        deposit = money(
+            request.form.get('deposit')
+        )
+
+        balance = max(
+            0,
+            total - deposit
+        )
+
+        # -----------------------------------------------------
+        # ACTUALIZAR PEDIDO
+        # -----------------------------------------------------
+
+        cur.execute(
+            '''
+            UPDATE orders SET
+                client_name=?,
+                client_phone=?,
+                client_address=?,
+                client_dni_cuit=?,
+                date_delivery=?,
+                status=?,
+                receptionist=?,
+                client_notes=?,
+                school_name=?,
+                school_grade=?,
+                fabric_type=?,
+                team_design_notes=?,
+                discount=?,
+                subtotal=?,
+                total=?,
+                deposit=?,
+                balance=?,
+                payment_method=?,
+                payment_note=?,
+                finished_at=?
+            WHERE id=?
+            ''',
+            (
+                request.form.get('client_name'),
+                request.form.get('client_phone'),
+                request.form.get('client_address'),
+                (request.form.get('client_dni_cuit') or '').strip(),
+                request.form.get('date_delivery'),
+                request.form.get('status'),
+                request.form.get('receptionist'),
+                request.form.get('client_notes'),
+                request.form.get('school_name'),
+                request.form.get('school_grade'),
+                request.form.get('fabric_type'),
+                request.form.get('team_design_notes'),
+                discount,
+                subtotal,
+                total,
+                deposit,
+                balance,
+                request.form.get('payment_method'),
+                request.form.get('payment_note'),
+                finished_at,
+                oid
+            )
+        )
+
+        # =====================================================
+        # GUARDAR ARTÍCULOS GENERALES
+        # =====================================================
+
+        if order['order_module'] == 'General':
+
+            cur.execute(
+                'DELETE FROM general_items WHERE order_id=?',
+                (oid,)
+            )
+
+            for row in item_rows:
+
+                article, name, qty, price, subtotal_item = row
+
+                cur.execute(
+                    '''
+                    INSERT INTO general_items(
+                        order_id,
+                        inventory_id,
+                        product,
+                        detail,
+                        qty,
+                        unit_price,
+                        subtotal
+                    )
+                    VALUES(?,?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        None,
+                        article,
+                        name,
+                        qty,
+                        price,
+                        subtotal_item
+                    )
+                )
+
+        # =====================================================
+        # GUARDAR ARTÍCULOS DE INDUMENTARIA
+        # =====================================================
+
+        elif order['order_module'] == 'Indumentaria':
+
+            cur.execute(
+                'DELETE FROM apparel_items WHERE order_id=?',
+                (oid,)
+            )
+
+            for row in item_rows:
+
+                article, name, number, upper_size, lower_size, price = row
+
+                cur.execute(
+                    '''
+                    INSERT INTO apparel_items(
+                        order_id,
+                        article,
+                        person_name,
+                        number,
+                        upper_size,
+                        lower_size,
+                        price
+                    )
+                    VALUES(?,?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        article,
+                        name,
+                        number,
+                        upper_size,
+                        lower_size,
+                        price
+                    )
+                )
+
+        # =====================================================
+        # GUARDAR BIRRETES / ESTOLAS
+        # =====================================================
+
+        elif order['order_module'] == 'Birretes/Estolas':
+
+            cur.execute(
+                'DELETE FROM grad_items WHERE order_id=?',
+                (oid,)
+            )
+
+            for row in item_rows:
+
+                # item_rows contiene los datos del alumno y los tres talles.
+                article, name, number, upper_size, lower_size, toga_size, price = row
+
+                cur.execute(
+                    '''
+                    INSERT INTO grad_items(
+                        order_id,
+                        person_name,
+                        cap_size,
+                        stole_size,
+                        toga_size,
+                        note,
+                        price
+                    )
+                    VALUES(?,?,?,?,?,?,?)
+                    ''',
+                    (
+                        oid,
+                        name,
+                        upper_size,
+                        lower_size,
+                        toga_size,
+                        article,
+                        price
+                    )
+                )
+
+        # -----------------------------------------------------
+        # CONFIRMAR CAMBIOS
+        # -----------------------------------------------------
 
         con.commit()
         con.close()
-        return redirect(f'/orders/{oid}')
+
+        return redirect(
+            f'/orders/{oid}'
+        )
+
+    # =========================================================
+    # CARGAR DATOS PARA EDITAR
+    # =========================================================
 
     items = []
-    roster = None
-    roster_students = []
 
-    if module == 'General':
-        items = cur.execute('''SELECT product AS article, detail AS person_name,
-            qty, unit_price AS price, subtotal FROM general_items WHERE order_id=? ORDER BY id''', (oid,)).fetchall()
-    elif module == 'Indumentaria':
-        items = cur.execute('''SELECT article, person_name, number, upper_size, lower_size, price
-            FROM apparel_items WHERE order_id=? ORDER BY id''', (oid,)).fetchall()
-    elif module == 'Birretes/Estolas':
-        roster = cur.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
-        if roster:
-            roster_students = cur.execute('''SELECT * FROM grad_roster_students
-                WHERE roster_id=? ORDER BY position, id''', (roster['id'],)).fetchall()
-            # Compatibilidad: si hay artículos antiguos y todavía no se cargó lista, no los borramos.
-        else:
-            items = cur.execute('''SELECT note AS article, person_name,
-                cap_size AS upper_size, stole_size AS lower_size, toga_size, price
-                FROM grad_items WHERE order_id=? ORDER BY id''', (oid,)).fetchall()
-    elif module == 'Egresaditos':
-        students = cur.execute('SELECT * FROM egresaditos_students WHERE order_id=? ORDER BY id', (oid,)).fetchall()
-        installments = cur.execute('SELECT * FROM egresaditos_installments WHERE order_id=? ORDER BY installment_number', (oid,)).fetchall()
-        payments = cur.execute('SELECT * FROM egresaditos_payments WHERE order_id=? ORDER BY id', (oid,)).fetchall()
+    # =========================================================
+    # GENERAL
+    # =========================================================
+
+    if order['order_module'] == 'General':
+
+        items = cur.execute(
+            '''
+            SELECT
+                product AS article,
+                detail AS person_name,
+                qty,
+                unit_price AS price,
+                subtotal
+            FROM general_items
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # INDUMENTARIA
+    # =========================================================
+
+    elif order['order_module'] == 'Indumentaria':
+
+        items = cur.execute(
+            '''
+            SELECT
+                article,
+                person_name,
+                upper_size,
+                lower_size,
+                price
+            FROM apparel_items
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # BIRRETES / ESTOLAS
+    # =========================================================
+
+    elif order['order_module'] == 'Birretes/Estolas':
+
+        items = cur.execute(
+            '''
+            SELECT
+                note AS article,
+                person_name,
+                cap_size AS upper_size,
+                stole_size AS lower_size,
+                toga_size,
+                price
+            FROM grad_items
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
+    # =========================================================
+    # EGRESADITOS
+    # =========================================================
+
+    elif order['order_module'] == 'Egresaditos':
+
+        students = cur.execute(
+            '''
+            SELECT *
+            FROM egresaditos_students
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
+        installments = cur.execute(
+            '''
+            SELECT *
+            FROM egresaditos_installments
+            WHERE order_id=?
+            ORDER BY installment_number
+            ''',
+            (oid,)
+        ).fetchall()
+
+        payments = cur.execute(
+            '''
+            SELECT *
+            FROM egresaditos_payments
+            WHERE order_id=?
+            ORDER BY id
+            ''',
+            (oid,)
+        ).fetchall()
+
         con.close()
-        return render_template('edit_egresaditos.html', order=order, students=students, installments=installments, payments=payments)
+
+        return render_template(
+            'edit_egresaditos.html',
+            order=order,
+            students=students,
+            installments=installments,
+            payments=payments
+        )
+
+    # =========================================================
+    # MOSTRAR FORMULARIO DE EDICIÓN
+    # =========================================================
 
     con.close()
-    return render_template('edit_order.html', order=order, items=items, roster=roster, roster_students=roster_students)
 
+    return render_template(
+        'edit_order.html',
+        order=order,
+        items=items
+    )
+    
 
 @app.route('/egresaditos/<int:oid>/installments/edit', methods=['POST'])
 @login_required
@@ -3000,38 +3223,13 @@ def workshop(oid):
     apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
     sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
     grads=con.execute('SELECT * FROM grad_items WHERE order_id=?',(oid,)).fetchall()
-    roster=con.execute('SELECT * FROM grad_rosters WHERE order_id=?',(oid,)).fetchone()
-    roster_students=[]
-    if roster:
-        roster_students=con.execute(
-            'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
-            (roster['id'],)
-        ).fetchall()
-        # Adaptar los registros de la lista actual a las claves que usa la plantilla.
-        # Si el nombre para estampar está vacío, mostrar el nombre del alumno como respaldo.
-        if roster_students:
-            grads = [
-                {
-                    'id': student['id'],
-                    'person_name': (student['student_name'] or ''),
-                    'student_name': (student['student_name'] or ''),
-                    'article_name': (student['article_name'] or student['student_name'] or ''),
-                    'note': (student['article_name'] or student['student_name'] or ''),
-                    'cap_size': (student['cap_size'] or ''),
-                    'stole_size': (student['stole_size'] or ''),
-                    'toga_size': (student['toga_size'] or ''),
-                    'observations': (student['observations'] or ''),
-                    'price': money(student['price']) if 'price' in student.keys() else 0,
-                }
-                for student in roster_students
-            ]
     students=con.execute(
     'SELECT * FROM egresaditos_students WHERE order_id=? ORDER BY id',
     (oid,)
     ).fetchall()
     con.close()
     if order['order_module']=='Indumentaria': return render_template('workshop_indumentaria.html',order=order,apparel=apparel,sponsors=sponsors)
-    if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads,roster=roster,roster_students=roster_students)
+    if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads)
     if order['order_module']=='Egresaditos':
         return render_template(
             'workshop_egresaditos.html',
