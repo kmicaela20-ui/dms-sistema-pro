@@ -2098,6 +2098,7 @@ def edit_order(oid):
         items=items
     )
     
+
 @app.route('/egresaditos/<int:oid>/student/<int:student_id>/payment', methods=['POST'])
 @login_required
 def egresaditos_add_payment(oid, student_id):
@@ -2168,18 +2169,117 @@ def egresaditos_add_payment(oid, student_id):
     except Exception as e:
         try:
             con.rollback()
-        except:
+        except Exception:
             pass
 
         try:
             con.close()
-        except:
+        except Exception:
             pass
 
         print('ERROR REGISTRANDO PAGO EGRESADITOS:', e)
 
         return 'Error registrando pago: ' + str(e), 500
 
+
+# ==========================================================
+# ELIMINAR ALUMNO EGRESADITOS
+# Solo permite eliminar alumnos sin pagos registrados
+# ==========================================================
+
+@app.route(
+    '/egresaditos/<int:oid>/student/<int:student_id>/delete',
+    methods=['POST']
+)
+@login_required
+def egresaditos_delete_student(oid, student_id):
+    con = db()
+    cur = con.cursor()
+
+    try:
+        # Verificar que el pedido exista y sea de Egresaditos
+        order = cur.execute(
+            '''
+            SELECT id, order_module
+            FROM orders
+            WHERE id=?
+            ''',
+            (oid,)
+        ).fetchone()
+
+        if not order or order['order_module'] != 'Egresaditos':
+            con.close()
+            flash('El pedido no existe o no corresponde a Egresaditos.')
+            return redirect('/orders')
+
+        # Verificar que el alumno pertenezca al pedido
+        student = cur.execute(
+            '''
+            SELECT id
+            FROM egresaditos_students
+            WHERE id=? AND order_id=?
+            ''',
+            (student_id, oid)
+        ).fetchone()
+
+        if not student:
+            con.close()
+            flash('No se encontró al alumno en este pedido.')
+            return redirect(url_for('edit_order', oid=oid))
+
+        # Verificar si el alumno tiene pagos registrados
+        payment = cur.execute(
+            '''
+            SELECT COUNT(*) AS total
+            FROM egresaditos_payments
+            WHERE order_id=? AND student_id=?
+            ''',
+            (oid, student_id)
+        ).fetchone()
+
+        if payment and payment['total'] > 0:
+            con.close()
+            flash(
+                'No se puede eliminar al alumno porque tiene pagos '
+                'registrados. Revisá su cuenta y el historial de pagos.'
+            )
+            return redirect(url_for('edit_order', oid=oid))
+
+        # Eliminar solamente al alumno sin pagos
+        cur.execute(
+            '''
+            DELETE FROM egresaditos_students
+            WHERE id=? AND order_id=?
+            ''',
+            (student_id, oid)
+        )
+
+        con.commit()
+        con.close()
+
+        flash('Alumno eliminado correctamente.')
+        return redirect(url_for('edit_order', oid=oid))
+
+    except Exception as e:
+        try:
+            con.rollback()
+        except Exception:
+            pass
+
+        try:
+            con.close()
+        except Exception:
+            pass
+
+        print('ERROR ELIMINANDO ALUMNO EGRESADITOS:', e)
+
+        flash('Ocurrió un error al intentar eliminar al alumno.')
+        return redirect(url_for('edit_order', oid=oid))
+
+
+# ==========================================================
+# ELIMINAR PEDIDO COMPLETO
+# ==========================================================
 
 @app.route('/orders/<int:oid>/delete', methods=['POST'])
 @login_required
@@ -2189,31 +2289,56 @@ def delete_order(oid):
     cur = con.cursor()
 
     # eliminar items generales
-    cur.execute('DELETE FROM general_items WHERE order_id=?', (oid,))
+    cur.execute(
+        'DELETE FROM general_items WHERE order_id=?',
+        (oid,)
+    )
 
     # eliminar items indumentaria
-    cur.execute('DELETE FROM apparel_items WHERE order_id=?', (oid,))
+    cur.execute(
+        'DELETE FROM apparel_items WHERE order_id=?',
+        (oid,)
+    )
 
     # eliminar sponsors
-    cur.execute('DELETE FROM apparel_sponsors WHERE order_id=?', (oid,))
+    cur.execute(
+        'DELETE FROM apparel_sponsors WHERE order_id=?',
+        (oid,)
+    )
 
     # eliminar items egresados
-    cur.execute('DELETE FROM grad_items WHERE order_id=?', (oid,))
+    cur.execute(
+        'DELETE FROM grad_items WHERE order_id=?',
+        (oid,)
+    )
 
-    # eliminar pagos
-    cur.execute('DELETE FROM payments WHERE order_id=?', (oid,))
+    # eliminar pagos generales
+    cur.execute(
+        'DELETE FROM payments WHERE order_id=?',
+        (oid,)
+    )
 
     # eliminar movimientos de caja
-    cur.execute('DELETE FROM cash WHERE order_id=?', (oid,))
+    cur.execute(
+        'DELETE FROM cash WHERE order_id=?',
+        (oid,)
+    )
 
     # eliminar pedido principal
-    cur.execute('DELETE FROM orders WHERE id=?', (oid,))
+    cur.execute(
+        'DELETE FROM orders WHERE id=?',
+        (oid,)
+    )
 
     con.commit()
     con.close()
 
     return redirect('/orders')
-    
+
+
+# ==========================================================
+# ACTUALIZAR ESTADO DEL PEDIDO
+# ==========================================================
 
 @app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
@@ -2221,10 +2346,7 @@ def update_status(oid):
 
     status = request.form.get('status')
 
-    # =====================================================
-    # SI QUIEREN ENTREGAR EL PEDIDO
-    # =====================================================
-
+    # Si quieren entregar el pedido
     if status == 'Entregado':
 
         con = db()
@@ -2241,30 +2363,14 @@ def update_status(oid):
             flash('Pedido no encontrado.')
             return redirect('/orders')
 
-        # No lo marcamos todavía como entregado.
-        # Primero vamos a confirmar el pago final.
+        # Antes de entregar, confirmar el pago final
         return redirect(f'/orders/{oid}/delivery-confirm')
 
-
-    # =====================================================
-    # RESTO DE LOS ESTADOS
-    # =====================================================
-
+    # Resto de los estados
     con = db()
     cur = con.cursor()
 
-    # =====================================================
-    # PEDIDO TERMINADO
-    # =====================================================
-    # Si nunca tuvo fecha de finalización, se guarda la fecha
-    # actual.
-    #
-    # Si ya tenía finished_at, SE CONSERVA la fecha original.
-    #
-    # Esto evita que volver a seleccionar "Terminado"
-    # reinicie el contador de días.
-    # =====================================================
-
+    # Si el pedido se termina, conservar la fecha original
     if status == 'Terminado':
 
         cur.execute(
@@ -2279,12 +2385,6 @@ def update_status(oid):
 
     else:
 
-        # IMPORTANTE:
-        # No modificamos finished_at.
-        #
-        # De esta manera, si por error cambian un pedido de
-        # "Terminado" a otro estado y luego nuevamente a
-        # "Terminado", se conserva la fecha original.
         cur.execute(
             '''
             UPDATE orders
@@ -2303,19 +2403,15 @@ def update_status(oid):
 
     con.close()
 
-
-    # =====================================================
-    # MENSAJE DE WHATSAPP DESDE PLANTILLA
-    # =====================================================
-
+    # Mensaje de WhatsApp desde plantilla
     msg = whatsapp_message_for_order(order)
-
     url = whatsapp_url(order, msg)
 
     if url:
         return redirect(url)
 
     return redirect('/orders')
+
     
 
 
