@@ -1,0 +1,152 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lista de alumnos - DMS Sublimaciones</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            color: #111;
+            margin: 25px;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #111;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+        h1 { margin-bottom: 5px; font-size: 23px; }
+        .datos {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+        .dato {
+            border: 1px solid #aaa;
+            padding: 10px;
+            min-height: 20px;
+        }
+        .etiqueta {
+            font-size: 11px;
+            color: #555;
+            display: block;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+        th, td {
+            border: 1px solid #555;
+            padding: 9px;
+            text-align: left;
+        }
+        th { background: #eee; }
+        .numero { width: 55px; text-align: center; }
+        .firma { margin-top: 45px; display: flex; justify-content: space-around; }
+        .firma div {
+            width: 40%;
+            text-align: center;
+            border-top: 1px solid #333;
+            padding-top: 8px;
+        }
+        .acciones { margin-bottom: 20px; text-align: center; }
+        button {
+            padding: 10px 18px;
+            border: 0;
+            border-radius: 6px;
+            background: #222;
+            color: white;
+            cursor: pointer;
+            margin: 4px;
+        }
+        .pie {
+            margin-top: 25px;
+            text-align: center;
+            font-size: 11px;
+            color: #555;
+        }
+        @media print {
+            body { margin: 10mm; }
+            .acciones { display: none; }
+            th { background: #eee !important; print-color-adjust: exact; }
+        }
+        @media (max-width: 500px) {
+            .datos { grid-template-columns: 1fr; }
+            body { margin: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="acciones">
+        <button onclick="window.print()">Imprimir lista</button>
+        <button onclick="history.back()">Volver al pedido</button>
+    </div>
+
+    <header class="header">
+        <h1>LISTA DE ALUMNOS</h1>
+        <strong>DMS SUBLIMACIONES</strong>
+        <p>Pedido N.º {{ order['code'] }}</p>
+    </header>
+
+    <section class="datos">
+        <div class="dato">
+            <span class="etiqueta">Institución</span>
+            {{ roster['institution_name'] or 'No informado' }}
+        </div>
+        <div class="dato">
+            <span class="etiqueta">Curso, grado, año y división</span>
+            {{ roster['course_name'] or 'No informado' }}
+        </div>
+        <div class="dato">
+            <span class="etiqueta">Responsable</span>
+            {{ roster['responsible_name'] or 'No informado' }}
+        </div>
+        <div class="dato">
+            <span class="etiqueta">Cantidad de alumnos</span>
+            {{ students|length }}
+        </div>
+    </section>
+
+    <h3>Nómina de alumnos</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th class="numero">N.º</th>
+                <th>Apellido y nombre completo</th>
+                <th>Medida</th>
+                <th>Observaciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for student in students %}
+            <tr>
+                <td class="numero">{{ loop.index }}</td>
+                <td>{{ student['student_name'] }}</td>
+                <td></td>
+                <td></td>
+            </tr>
+            {% else %}
+            <tr>
+                <td colspan="4">Todavía no se cargaron alumnos en esta lista.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="firma">
+        <div>Firma del responsable</div>
+        <div>Firma de recepción</div>
+    </div>
+
+    <div class="pie">
+        DMS Sublimaciones · Perico y El Carmen, Jujuy
+    </div>
+</body>
+</html>
