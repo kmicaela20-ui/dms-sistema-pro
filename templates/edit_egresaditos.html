@@ -11,13 +11,13 @@
     <p><strong>Estado:</strong> {{ order['status'] or '-' }}</p>
 </section>
 
-<!-- EDITAR CANTIDAD DE CUOTAS -->
+<!-- CORREGIR CANTIDAD DE CUOTAS -->
 
 <section class="panel" style="border:2px solid #0d6efd;">
     <h2>✏️ Corregir cantidad de cuotas</h2>
     <p>
-        Esta opción permite corregir la cantidad de cuotas cargada
-        al crear el pedido. Los pagos y las señas registrados se conservan.
+        Podés corregir la cantidad de cuotas cargada por error.
+        Los pagos y las señas existentes deben conservarse.
     </p>
 
     {% set cuota_actual = namespace(total=0) %}
@@ -104,142 +104,254 @@
 <section class="panel">
     <h2>👧👦 Alumnos del curso</h2>
 
-    <div style="overflow-x:auto;">
-        <table>
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Alumno</th>
-                    <th>Prendas</th>
-                    <th>Talle chomba</th>
-                    <th>Talle campera</th>
-                    <th>Detalle</th>
-                    <th>Pago</th>
-                    <th>Precio</th>
-                    <th>Reserva prevista</th>
-                    <th>Pagado</th>
-                    <th>Saldo</th>
-                    <th>Pago</th>
-                    <th>Eliminar</th>
-                </tr>
-            </thead>
+    {% for student in students %}
 
-            <tbody>
-                {% for student in students %}
-                    {% set ns = namespace(paid=0) %}
+        {% set cuenta = namespace(pagado=0) %}
 
-                    {% for payment in payments %}
-                        {% if payment['student_id'] == student['id'] %}
-                            {% set ns.paid = ns.paid + (payment['amount'] or 0) %}
-                        {% endif %}
-                    {% endfor %}
+        {% for payment in payments %}
+            {% if payment['student_id'] == student['id'] %}
+                {% set cuenta.pagado = cuenta.pagado + (payment['amount'] or 0) %}
+            {% endif %}
+        {% endfor %}
 
-                    {% set saldo = (student['final_price'] or 0) - ns.paid %}
+        {% set saldo = (student['final_price'] or 0) - cuenta.pagado %}
 
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><strong>{{ student['student_name'] or '-' }}</strong></td>
-                        <td>{{ student['garment_name'] or '-' }}</td>
-                        <td>{{ student['shirt_size'] or '-' }}</td>
-                        <td>{{ student['jacket_size'] or '-' }}</td>
-                        <td>{{ student['detail'] or '-' }}</td>
-                        <td>
-                            {% if student['payment_type'] == 'cash' %}
-                                Contado
-                            {% else %}
-                                Cuotas
-                            {% endif %}
-                        </td>
-                        <td>${{ "%.2f"|format(student['final_price'] or 0) }}</td>
-                        <td>${{ "%.2f"|format(student['reservation_plan'] or 0) }}</td>
-                        <td>${{ "%.2f"|format(ns.paid) }}</td>
-                        <td>${{ "%.2f"|format([saldo, 0]|max) }}</td>
-                        <td><a class="btn" href="#pago-{{ student['id'] }}">💵 Cargar pago</a></td>
-                        <td>
-                            <form method="POST"
-                                  action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/delete"
-                                  onsubmit="return confirm('¿Eliminar este alumno? Si tiene pagos, el sistema debe bloquear la eliminación.');">
-                                <button type="submit"
-                                        style="background:#dc3545;color:white;border:0;padding:8px;border-radius:6px;">
-                                    🗑️ Eliminar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
+        <section class="panel"
+                 style="border:1px solid #d6dce5;margin:18px 0;padding:18px;">
 
-                    <!-- FORMULARIO DE PAGO DEL ALUMNO -->
+            <!-- DATOS DEL ALUMNO -->
 
-                    <tr id="pago-{{ student['id'] }}">
-                        <td colspan="13">
-                            <div style="padding:15px;background:#f4f7fb;border-radius:10px;">
-                                <h3>💰 Registrar pago — {{ student['student_name'] }}</h3>
+            <h2>
+                {{ loop.index }}. {{ student['student_name'] or 'Alumno sin nombre' }}
+            </h2>
 
-                                <form method="POST"
-                                      action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/payment">
+            <p><strong>Prendas:</strong> {{ student['garment_name'] or '-' }}</p>
+            <p><strong>Talle chomba:</strong> {{ student['shirt_size'] or '-' }}</p>
+            <p><strong>Talle campera:</strong> {{ student['jacket_size'] or '-' }}</p>
+            <p><strong>Detalle:</strong> {{ student['detail'] or '-' }}</p>
 
-                                    <div class="grid">
-                                        <label>
-                                            Tipo de pago
-                                            <select name="payment_type" required>
-                                                <option value="reservation">Reserva / Seña</option>
-                                                <option value="installment">Cuota</option>
-                                                <option value="cash">Pago contado</option>
-                                                <option value="other">Otro pago</option>
-                                            </select>
-                                        </label>
+            <p>
+                <strong>Forma de pago:</strong>
+                {% if student['payment_type'] == 'cash' %}
+                    Contado
+                {% else %}
+                    Cuotas
+                {% endif %}
+            </p>
 
-                                        <label>
-                                            Número de cuota
-                                            <select name="installment_number">
-                                                <option value="0">No corresponde</option>
-                                                {% for installment in installments %}
-                                                    <option value="{{ installment['installment_number'] }}">
-                                                        Cuota {{ installment['installment_number'] }}
-                                                        {% if installment['due_date'] %}
-                                                            — vence {{ installment['due_date'] }}
-                                                        {% endif %}
-                                                    </option>
-                                                {% endfor %}
-                                            </select>
-                                        </label>
+            <!-- RESUMEN INDIVIDUAL -->
 
-                                        <label>
-                                            Importe
-                                            <input type="number" name="amount" min="0.01" step="0.01" required>
-                                        </label>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:18px 0;">
 
-                                        <label>
-                                            Fecha de pago
-                                            <input type="date" name="payment_date" required>
-                                        </label>
+                <div style="padding:14px;background:#eef4ff;border-radius:8px;">
+                    <div>Precio total</div>
+                    <strong>${{ "%.2f"|format(student['final_price'] or 0) }}</strong>
+                </div>
 
-                                        <label>
-                                            Forma de pago
-                                            <select name="payment_method" required>
-                                                <option value="Efectivo">Efectivo</option>
-                                                <option value="Transferencia">Transferencia</option>
-                                                <option value="Mercado Pago">Mercado Pago</option>
-                                                <option value="Tarjeta">Tarjeta</option>
-                                                <option value="Otro">Otro</option>
-                                            </select>
-                                        </label>
+                <div style="padding:14px;background:#eaf8ee;border-radius:8px;">
+                    <div>Total abonado</div>
+                    <strong>${{ "%.2f"|format(cuenta.pagado) }}</strong>
+                </div>
 
-                                        <label>
-                                            Nota
-                                            <input type="text" name="note" placeholder="Ej.: transferencia">
-                                        </label>
-                                    </div>
+                <div style="padding:14px;background:#fff3e8;border-radius:8px;">
+                    <div>Saldo pendiente</div>
+                    <strong>${{ "%.2f"|format([saldo, 0]|max) }}</strong>
+                </div>
 
-                                    <br>
-                                    <button type="submit" class="savebtn">💾 Registrar pago</button>
-                                </form>
-                            </div>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
+                <div style="padding:14px;background:#f3f0ff;border-radius:8px;">
+                    <div>Reserva prevista</div>
+                    <strong>${{ "%.2f"|format(student['reservation_plan'] or 0) }}</strong>
+                </div>
+
+            </div>
+
+            <!-- PAGOS REALIZADOS DE ESTE ALUMNO -->
+
+            <h3>🧾 Pagos realizados</h3>
+
+            {% set tiene_pagos = namespace(valor=false) %}
+
+            {% for payment in payments %}
+                {% if payment['student_id'] == student['id'] %}
+                    {% set tiene_pagos.valor = true %}
+                {% endif %}
+            {% endfor %}
+
+            {% if tiene_pagos.valor %}
+
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tipo de pago</th>
+                                <th>Cuota</th>
+                                <th>Importe</th>
+                                <th>Fecha</th>
+                                <th>Forma de pago</th>
+                                <th>Nota</th>
+                                <th>Ticket</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            {% for payment in payments %}
+                                {% if payment['student_id'] == student['id'] %}
+                                    <tr>
+                                        <td>
+                                            {% if payment['payment_type'] == 'reservation' %}
+                                                Reserva / Seña
+                                            {% elif payment['payment_type'] == 'installment' %}
+                                                Cuota
+                                            {% elif payment['payment_type'] == 'cash' %}
+                                                Contado
+                                            {% else %}
+                                                Otro pago
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            {% if payment['installment_number'] %}
+                                                Cuota {{ payment['installment_number'] }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+
+                                        <td>
+                                            <strong>${{ "%.2f"|format(payment['amount'] or 0) }}</strong>
+                                        </td>
+
+                                        <td>{{ payment['payment_date'] or '-' }}</td>
+                                        <td>{{ payment['payment_method'] or '-' }}</td>
+                                        <td>{{ payment['note'] or '-' }}</td>
+
+                                        <td>
+                                            <a class="btn"
+                                               href="/egresaditos/payment/{{ payment['id'] }}/ticket"
+                                               target="_blank"
+                                               rel="noopener">
+                                                🖨️ Imprimir ticket
+                                            </a>
+                                        </td>
+
+                                        <td>
+                                            <form method="POST"
+                                                  action="/egresaditos/payment/{{ payment['id'] }}/delete"
+                                                  onsubmit="return confirm('¿Eliminar este pago? Esta acción no se puede deshacer.');"
+                                                  style="margin:0;">
+
+                                                <button type="submit"
+                                                        style="background:#dc3545;color:white;border:0;padding:8px;border-radius:6px;">
+                                                    🗑️ Eliminar
+                                                </button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            {% else %}
+                <p>Este alumno todavía no tiene pagos registrados.</p>
+            {% endif %}
+
+            <!-- REGISTRAR NUEVO PAGO -->
+
+            <h3>💵 Registrar nuevo pago</h3>
+
+            <form method="POST"
+                  action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/payment">
+
+                <div class="grid">
+
+                    <label>
+                        Tipo de pago
+                        <select name="payment_type" required>
+                            <option value="reservation">Reserva / Seña</option>
+                            <option value="installment">Cuota</option>
+                            <option value="cash">Pago contado</option>
+                            <option value="other">Otro pago</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Número de cuota
+                        <select name="installment_number">
+                            <option value="0">No corresponde</option>
+
+                            {% for installment in installments %}
+                                <option value="{{ installment['installment_number'] }}">
+                                    Cuota {{ installment['installment_number'] }}
+                                    {% if installment['due_date'] %}
+                                        — vence {{ installment['due_date'] }}
+                                    {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </label>
+
+                    <label>
+                        Importe
+                        <input type="number"
+                               name="amount"
+                               min="0.01"
+                               step="0.01"
+                               required>
+                    </label>
+
+                    <label>
+                        Fecha de pago
+                        <input type="date"
+                               name="payment_date"
+                               required>
+                    </label>
+
+                    <label>
+                        Forma de pago
+                        <select name="payment_method" required>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Transferencia">Transferencia</option>
+                            <option value="Mercado Pago">Mercado Pago</option>
+                            <option value="Tarjeta">Tarjeta</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Nota
+                        <input type="text"
+                               name="note"
+                               placeholder="Ej.: transferencia">
+                    </label>
+
+                </div>
+
+                <br>
+                <button type="submit" class="savebtn">
+                    💾 Registrar pago
+                </button>
+            </form>
+
+            <!-- ELIMINAR ALUMNO -->
+
+            <hr style="margin:22px 0;">
+
+            <form method="POST"
+                  action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/delete"
+                  onsubmit="return confirm('¿Querés eliminar este alumno?');">
+
+                <button type="submit"
+                        style="background:#dc3545;color:white;border:0;padding:9px 14px;border-radius:6px;">
+                    🗑️ Eliminar alumno
+                </button>
+            </form>
+
+        </section>
+
+    {% endfor %}
 
     <!-- AGREGAR ALUMNO -->
 
@@ -252,7 +364,9 @@
             <h3>Agregar alumno al curso</h3>
 
             <form method="POST" action="/egresaditos/{{ order['id'] }}/student/add">
+
                 <div class="grid">
+
                     <label>
                         Nombre y apellido
                         <input type="text" name="student_name" required>
@@ -278,147 +392,98 @@
 
                     <label>
                         Precio final ($)
-                        <input type="number" name="final_price" min="0.01" step="0.01" required>
+                        <input type="number"
+                               name="final_price"
+                               min="0.01"
+                               step="0.01"
+                               required>
                     </label>
 
                     <label>
                         Reserva prevista ($)
-                        <input type="number" name="reservation_plan" min="0" step="0.01" value="0" required>
+                        <input type="number"
+                               name="reservation_plan"
+                               min="0"
+                               step="0.01"
+                               value="0"
+                               required>
                     </label>
+
                 </div>
 
-                <p>La reserva prevista no registra un pago. Para registrar dinero recibido, usá «Cargar pago».</p>
-                <button type="submit" class="savebtn">💾 Guardar alumno</button>
+                <p>
+                    La reserva prevista no registra un pago. Para registrar dinero recibido,
+                    usá el formulario de pagos del alumno.
+                </p>
+
+                <button type="submit" class="savebtn">
+                    💾 Guardar alumno
+                </button>
             </form>
         </div>
     </details>
+
 </section>
 
-<!-- PLAN DE CUOTAS -->
+<!-- PLAN DE CUOTAS DEL PEDIDO -->
 
 <section class="panel">
     <h2>📅 Plan de cuotas</h2>
 
     {% if installments %}
-        <table>
-            <thead>
-                <tr><th>Cuota</th><th>Vencimiento</th></tr>
-            </thead>
-            <tbody>
-                {% for installment in installments %}
-                    <tr>
-                        <td>Cuota {{ installment['installment_number'] }}</td>
-                        <td>{{ installment['due_date'] or 'Sin fecha' }}</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% else %}
-        <p>No hay cuotas configuradas.</p>
-    {% endif %}
-</section>
-
-<!-- HISTORIAL DE PAGOS -->
-
-<section class="panel">
-    <h2>🧾 Historial de pagos</h2>
-
-    {% if payments %}
         <div style="overflow-x:auto;">
             <table>
                 <thead>
                     <tr>
-                        <th>Alumno</th>
-                        <th>Tipo</th>
                         <th>Cuota</th>
-                        <th>Importe</th>
-                        <th>Fecha</th>
-                        <th>Forma de pago</th>
-                        <th>Nota</th>
-                        <th>Ticket</th>
-                        <th>Eliminar</th>
+                        <th>Vencimiento</th>
                     </tr>
                 </thead>
+
                 <tbody>
-                    {% for payment in payments %}
+                    {% for installment in installments %}
                         <tr>
-                            <td>
-                                {% for student in students %}
-                                    {% if student['id'] == payment['student_id'] %}
-                                        {{ student['student_name'] }}
-                                    {% endif %}
-                                {% endfor %}
-                            </td>
-
-                            <td>
-                                {% if payment['payment_type'] == 'reservation' %}
-                                    Reserva
-                                {% elif payment['payment_type'] == 'installment' %}
-                                    Cuota
-                                {% elif payment['payment_type'] == 'cash' %}
-                                    Contado
-                                {% else %}
-                                    Otro
-                                {% endif %}
-                            </td>
-
-                            <td>
-                                {% if payment['installment_number'] %}
-                                    Cuota {{ payment['installment_number'] }}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-
-                            <td>${{ "%.2f"|format(payment['amount'] or 0) }}</td>
-                            <td>{{ payment['payment_date'] or '-' }}</td>
-                            <td>{{ payment['payment_method'] or '-' }}</td>
-                            <td>{{ payment['note'] or '-' }}</td>
-
-                            <td>
-                                <a class="btn"
-                                   href="/egresaditos/payment/{{ payment['id'] }}/ticket"
-                                   target="_blank">🖨️ Ticket</a>
-                            </td>
-
-                            <td>
-                                <form method="POST"
-                                      action="/egresaditos/payment/{{ payment['id'] }}/delete"
-                                      onsubmit="return confirm('¿Eliminar este pago?');">
-                                    <button type="submit"
-                                            style="background:#dc3545;color:white;border:0;padding:8px;border-radius:6px;">
-                                        🗑️ Eliminar
-                                    </button>
-                                </form>
-                            </td>
+                            <td>Cuota {{ installment['installment_number'] }}</td>
+                            <td>{{ installment['due_date'] or 'Sin fecha' }}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <p>Todavía no se registraron pagos para este pedido.</p>
+        <p>No hay cuotas configuradas.</p>
     {% endif %}
 </section>
 
-<!-- RESUMEN GENERAL -->
+<!-- RESUMEN GENERAL DEL CURSO -->
 
 <section class="panel">
-    <h2>💰 Resumen general</h2>
+    <h2>💰 Resumen general del curso</h2>
 
-    {% set resumen = namespace(total=0, paid=0) %}
+    {% set resumen = namespace(total=0, pagado=0) %}
 
     {% for student in students %}
         {% set resumen.total = resumen.total + (student['final_price'] or 0) %}
     {% endfor %}
 
     {% for payment in payments %}
-        {% set resumen.paid = resumen.paid + (payment['amount'] or 0) %}
+        {% set resumen.pagado = resumen.pagado + (payment['amount'] or 0) %}
     {% endfor %}
 
-    <p><strong>Total del curso:</strong> ${{ "%.2f"|format(resumen.total) }}</p>
-    <p><strong>Total cobrado:</strong> ${{ "%.2f"|format(resumen.paid) }}</p>
-    <p><strong>Saldo pendiente:</strong> ${{ "%.2f"|format([resumen.total - resumen.paid, 0]|max) }}</p>
+    <p>
+        <strong>Total del curso:</strong>
+        ${{ "%.2f"|format(resumen.total) }}
+    </p>
+
+    <p>
+        <strong>Total cobrado:</strong>
+        ${{ "%.2f"|format(resumen.pagado) }}
+    </p>
+
+    <p>
+        <strong>Saldo pendiente:</strong>
+        ${{ "%.2f"|format([resumen.total - resumen.pagado, 0]|max) }}
+    </p>
 </section>
 
 <a href="/orders" class="btn">⬅ Volver a pedidos</a>
