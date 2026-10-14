@@ -1,4 +1,86 @@
 
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+import os, datetime, urllib.parse, unicodedata
+import psycopg2, psycopg2.extras
+from werkzeug.security import generate_password_hash, check_password_hash
+
+app=Flask(__name__)
+app.secret_key=os.environ.get('SECRET_KEY','CAMBIAR_SECRET_KEY_DMS')
+PHONE='Sucursal Perico: 3884794349 | Sucursal El Carmen: 3885911211'
+
+class PGCursor:
+    def __init__(self, cur):
+        self.cur=cur
+        self.lastrowid=None
+    def _sql(self, sql):
+        return sql.replace('?', '%s')
+    def execute(self, sql, params=None):
+        q=self._sql(sql)
+        s=q.strip().lower()
+        if s.startswith('insert into clients') and 'returning id' not in s:
+            q += ' RETURNING id'
+        if s.startswith('insert into orders') and 'returning id' not in s:
+            q += ' RETURNING id'
+        self.cur.execute(q, params or ())
+        if s.startswith('insert into clients') or s.startswith('insert into orders'):
+            try:
+                row=self.cur.fetchone(); self.lastrowid=row['id'] if row else None
+            except Exception:
+                self.lastrowid=None
+        return self
+    def executemany(self, sql, seq):
+        self.cur.executemany(self._sql(sql), seq)
+        return self
+    def executescript(self, script):
+        for part in script.split(';'):
+            st=part.strip()
+            if not st: continue
+            st=st.replace('id INTEGER PRIMARY KEY','id SERIAL PRIMARY KEY')
+            st=st.replace('REAL','NUMERIC')
+            st=st.replace('user TEXT','username TEXT')
+            self.cur.execute(st)
+        return self
+    def fetchone(self): return self.cur.fetchone()
+    def fetchall(self): return self.cur.fetchall()
+
+class PGConn:
+    def __init__(self):
+        url=os.environ.get('DATABASE_URL','').strip()
+        if not url:
+            raise RuntimeError('Falta DATABASE_URL. En Render agregá la variable DATABASE_URL de PostgreSQL.')
+        self.conn=psycopg2.connect(url, cursor_factory=psycopg2.extras.RealDictCursor)
+    def cursor(self): return PGCursor(self.conn.cursor())
+    def execute(self, sql, params=None):
+        cur=self.cursor(); return cur.execute(sql, params)
+    def commit(self): return self.conn.commit()
+    def close(self): return self.conn.close()
+
+def db():
+    return PGConn()
+
+def today(): return datetime.date.today().isoformat()
+def now(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+def money(v):
+    try: return float(v or 0)
+    except: return 0
+
+def category_code(text):
+    text=(text or 'GEN').strip().upper()
+    text=''.join(c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c)!='Mn')
+    letters=''.join(c for c in text if c.isalnum())
+    return (letters or 'GEN')[:3].ljust(3,'X')
+
+def next_inventory_code(cur, category, category_prefix=None):
+    prefix=category_code(category_prefix or category)
+    row=cur.execute("SELECT sku FROM inventory WHERE sku LIKE ? ORDER BY id DESC LIMIT 1",(prefix+'-%',)).fetchone()
+    if not row or not row['sku']:
+        n=1
+    else:
+        try: n=int(row['sku'].split('-')[-1])+1
+        except: n=1
+    return f"{prefix}-{n:03d}"
+
+
 def init():
     con = db()
     cur = con.cursor()
@@ -162,6 +244,7 @@ def init():
         order_id INTEGER,
         student_name TEXT,
         garment_name TEXT,
+        printed_name TEXT,
         shirt_size TEXT,
         jacket_size TEXT,
         detail TEXT,
@@ -1158,6 +1241,10 @@ def new_egresaditos():
                     request.form.get(f'garment_name_{i}') or ''
                 ).strip()
 
+                printed_name = (
+                    request.form.get(f'printed_name_{i}') or ''
+                ).strip()
+
                 shirt_size = (
                     request.form.get(f'shirt_size_{i}') or ''
                 ).strip()
@@ -1195,19 +1282,19 @@ def new_egresaditos():
 
                 installments_paid = []
 
-                for cuota in range(1, 7):
-
+                # Leer las cuotas según la cantidad configurada para este pedido.
+                # Si el formulario todavía no tiene un campo para alguna cuota,
+                # se toma como 0 sin interrumpir la creación del pedido.
+                for cuota in range(1, installment_count + 1):
                     amount = money(
-                        request.form.get(
-                            f'installment_{cuota}_{i}'
-                        )
+                        request.form.get(f'installment_{cuota}_{i}')
                     )
-
                     installments_paid.append(amount)
 
                 students.append({
                     'student_name': student_name,
                     'garment_name': garment_name,
+                    'printed_name': printed_name,
                     'shirt_size': shirt_size,
                     'jacket_size': jacket_size,
                     'detail': detail,
@@ -1285,6 +1372,7 @@ def new_egresaditos():
                         order_id,
                         student_name,
                         garment_name,
+                        printed_name,
                         shirt_size,
                         jacket_size,
                         detail,
@@ -1293,13 +1381,14 @@ def new_egresaditos():
                         final_price,
                         reservation_plan
                     )
-                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                    VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
                     RETURNING id
                     """,
                     (
                         oid,
                         student['student_name'],
                         student['garment_name'],
+                        student['printed_name'],
                         student['shirt_size'],
                         student['jacket_size'],
                         student['detail'],
@@ -2276,6 +2365,11 @@ def egresaditos_add_student(oid):
         ).strip()
 
         garments = request.form.getlist('garments')
+        printed_name = (request.form.get('printed_name') or '').strip()
+        shirt_size = (request.form.get('shirt_size') or '').strip()
+        jacket_size = (request.form.get('jacket_size') or '').strip()
+        hoodie_size = (request.form.get('hoodie_size') or '').strip()
+        detail = (request.form.get('detail') or '').strip()
         payment_type = request.form.get('payment_type') or ''
         final_price = money(request.form.get('final_price'))
         reservation_plan = money(
@@ -2344,17 +2438,27 @@ def egresaditos_add_student(oid):
                 order_id,
                 student_name,
                 garment_name,
+                printed_name,
+                shirt_size,
+                jacket_size,
+                hoodie_size,
+                detail,
                 payment_type,
                 normal_price,
                 final_price,
                 reservation_plan
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ''',
             (
                 oid,
                 student_name,
                 garment_name,
+                printed_name,
+                shirt_size,
+                jacket_size,
+                hoodie_size,
+                detail,
                 payment_type,
                 final_price,
                 final_price,
@@ -2384,6 +2488,67 @@ def egresaditos_add_student(oid):
         flash('No se pudo agregar el alumno.')
         return redirect(url_for('edit_order', oid=oid))
 
+
+
+@app.route(
+    '/egresaditos/<int:oid>/student/<int:student_id>/workshop-update',
+    methods=['POST']
+)
+@login_required
+def egresaditos_update_workshop_student(oid, student_id):
+    # Actualiza los datos de confeccion sin alterar los pagos del alumno.
+    con = db()
+    cur = con.cursor()
+    try:
+        student = cur.execute(
+            'SELECT id FROM egresaditos_students WHERE id=? AND order_id=?',
+            (student_id, oid)
+        ).fetchone()
+        if not student:
+            con.close()
+            flash('No se encontró el alumno en este pedido.')
+            return redirect('/orders')
+
+        cur.execute(
+            '''
+            UPDATE egresaditos_students
+            SET student_name=?,
+                garment_name=?,
+                printed_name=?,
+                shirt_size=?,
+                jacket_size=?,
+                hoodie_size=?,
+                detail=?
+            WHERE id=? AND order_id=?
+            ''',
+            (
+                (request.form.get('student_name') or '').strip(),
+                (request.form.get('garment_name') or '').strip(),
+                (request.form.get('printed_name') or '').strip(),
+                (request.form.get('shirt_size') or '').strip(),
+                (request.form.get('jacket_size') or '').strip(),
+                (request.form.get('hoodie_size') or '').strip(),
+                (request.form.get('detail') or '').strip(),
+                student_id,
+                oid
+            )
+        )
+        con.commit()
+        con.close()
+        flash('Datos de taller actualizados correctamente.')
+        return redirect(f'/orders/{oid}/workshop')
+    except Exception as e:
+        try:
+            con.rollback()
+        except Exception:
+            pass
+        try:
+            con.close()
+        except Exception:
+            pass
+        print('ERROR ACTUALIZANDO DATOS DE TALLER EGRESADITOS:', e)
+        flash('No se pudieron actualizar los datos de taller.')
+        return redirect(f'/orders/{oid}/workshop')
 
 @app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
@@ -3040,8 +3205,6 @@ def delete_egresaditos_payment(payment_id):
     # Volvemos al pedido
     return redirect(f'/orders/{order_id}/edit')
 
-
-init()
 
 @app.route('/corregir-mia-20260808')
 @login_required
