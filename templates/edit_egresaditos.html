@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -6,134 +7,11 @@
 
 <section class="panel">
     <h2>📋 Datos del pedido</h2>
-
     <p><strong>Pedido:</strong> {{ order['code'] }}</p>
-
-    <p>
-        <strong>Cliente:</strong>
-        {{ order['client_name'] or '-' }}
-    </p>
-
-    <p>
-        <strong>Teléfono:</strong>
-        {{ order['client_phone'] or '-' }}
-    </p>
-
-    <p>
-        <strong>Estado:</strong>
-        {{ order['status'] or '-' }}
-    </p>
+    <p><strong>Cliente:</strong> {{ order['client_name'] or '-' }}</p>
+    <p><strong>Teléfono:</strong> {{ order['client_phone'] or '-' }}</p>
+    <p><strong>Estado:</strong> {{ order['status'] or '-' }}</p>
 </section>
-
-
-<!-- ==========================================
-     AGREGAR ALUMNO
-========================================== -->
-
-<section class="panel">
-    <h2>➕ Agregar alumno</h2>
-
-    <form method="POST"
-          action="/egresaditos/{{ order['id'] }}/student/add">
-
-        <div class="grid">
-
-            <label>
-                Nombre y apellido
-                <input
-                    type="text"
-                    name="student_name"
-                    placeholder="Nombre completo del alumno"
-                    required
-                >
-            </label>
-
-            <fieldset>
-                <legend>Prendas seleccionadas</legend>
-
-                <label>
-                    <input type="checkbox"
-                           name="garments"
-                           value="Conjunto completo">
-                    Conjunto completo
-                </label>
-
-                <label>
-                    <input type="checkbox"
-                           name="garments"
-                           value="Chomba">
-                    Chomba
-                </label>
-
-                <label>
-                    <input type="checkbox"
-                           name="garments"
-                           value="Campera">
-                    Campera
-                </label>
-
-                <label>
-                    <input type="checkbox"
-                           name="garments"
-                           value="Remera">
-                    Remera
-                </label>
-
-                <label>
-                    <input type="checkbox"
-                           name="garments"
-                           value="Otra prenda">
-                    Otra prenda
-                </label>
-            </fieldset>
-
-            <label>
-                Forma de pago
-                <select name="payment_type" required>
-                    <option value="installment">Cuotas</option>
-                    <option value="cash">Contado</option>
-                </select>
-            </label>
-
-            <label>
-                Precio final ($)
-                <input
-                    type="number"
-                    name="final_price"
-                    min="0.01"
-                    step="0.01"
-                    placeholder="Ej.: 98000"
-                    required
-                >
-            </label>
-
-            <label>
-                Reserva prevista ($)
-                <input
-                    type="number"
-                    name="reservation_plan"
-                    min="0"
-                    step="0.01"
-                    value="0"
-                    required
-                >
-            </label>
-
-        </div>
-
-        <br>
-
-        <button type="submit" class="savebtn">
-            ➕ Guardar alumno
-        </button>
-
-    </form>
-</section>
-
-
-<!-- ==========================================
-     ALUMNOS DEL CURSO
-========================================== -->
 
 <section class="panel">
     <h2>👧👦 Alumnos del curso</h2>
@@ -160,7 +38,6 @@
 
             <tbody>
                 {% for student in students %}
-
                 {% set ns = namespace(paid=0) %}
 
                 {% for payment in payments %}
@@ -173,28 +50,11 @@
 
                 <tr>
                     <td>{{ loop.index }}</td>
-
-                    <td>
-                        <strong>
-                            {{ student['student_name'] or '-' }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        {{ student['garment_name'] or '-' }}
-                    </td>
-
-                    <td>
-                        {{ student['shirt_size'] or '-' }}
-                    </td>
-
-                    <td>
-                        {{ student['jacket_size'] or '-' }}
-                    </td>
-
-                    <td>
-                        {{ student['detail'] or '-' }}
-                    </td>
+                    <td><strong>{{ student['student_name'] or '-' }}</strong></td>
+                    <td>{{ student['garment_name'] or '-' }}</td>
+                    <td>{{ student['shirt_size'] or '-' }}</td>
+                    <td>{{ student['jacket_size'] or '-' }}</td>
+                    <td>{{ student['detail'] or '-' }}</td>
 
                     <td>
                         {% if student['payment_type'] == 'cash' %}
@@ -204,36 +64,16 @@
                         {% endif %}
                     </td>
 
-                    <td>
-                        ${{ "%.2f"|format(student['final_price'] or 0) }}
-                    </td>
+                    <td>${{ "%.2f"|format(student['final_price'] or 0) }}</td>
+                    <td>${{ "%.2f"|format(student['reservation_plan'] or 0) }}</td>
+                    <td><strong>${{ "%.2f"|format(ns.paid) }}</strong></td>
+                    <td><strong>${{ "%.2f"|format([saldo, 0]|max) }}</strong></td>
 
                     <td>
-                        ${{ "%.2f"|format(student['reservation_plan'] or 0) }}
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${{ "%.2f"|format(ns.paid) }}
-                        </strong>
-                    </td>
-
-                    <td>
-                        <strong>
-                            ${{ "%.2f"|format([saldo, 0]|max) }}
-                        </strong>
-                    </td>
-
-                    <!-- REGISTRAR PAGO -->
-
-                    <td>
-                        <a class="btn"
-                           href="#pago-{{ student['id'] }}">
+                        <a class="btn" href="#pago-{{ student['id'] }}">
                             💵 Cargar pago
                         </a>
                     </td>
-
-                    <!-- ELIMINAR ALUMNO -->
 
                     <td>
                         <form method="POST"
@@ -249,58 +89,30 @@
                     </td>
                 </tr>
 
-                <!-- ==========================================
-                     FORMULARIO DE PAGO
-                ========================================== -->
-
                 <tr id="pago-{{ student['id'] }}">
                     <td colspan="13">
-
                         <div style="padding:15px;background:#f4f7fb;border-radius:10px;margin:8px 0;">
-
-                            <h3>
-                                💰 Registrar pago — {{ student['student_name'] }}
-                            </h3>
+                            <h3>💰 Registrar pago — {{ student['student_name'] }}</h3>
 
                             <form method="post"
                                   action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/payment">
 
                                 <div class="grid">
-
-                                    <label>
-                                        Tipo de pago
-
+                                    <label>Tipo de pago
                                         <select name="payment_type" required>
-                                            <option value="reservation">
-                                                Reserva / Seña
-                                            </option>
-
-                                            <option value="installment">
-                                                Cuota
-                                            </option>
-
-                                            <option value="cash">
-                                                Pago contado
-                                            </option>
-
-                                            <option value="other">
-                                                Otro pago
-                                            </option>
+                                            <option value="reservation">Reserva / Seña</option>
+                                            <option value="installment">Cuota</option>
+                                            <option value="cash">Pago contado</option>
+                                            <option value="other">Otro pago</option>
                                         </select>
                                     </label>
 
-                                    <label>
-                                        N.º de cuota
-
+                                    <label>N° de cuota
                                         <select name="installment_number">
-                                            <option value="0">
-                                                No corresponde
-                                            </option>
-
+                                            <option value="0">No corresponde</option>
                                             {% for installment in installments %}
                                             <option value="{{ installment['installment_number'] }}">
                                                 Cuota {{ installment['installment_number'] }}
-
                                                 {% if installment['due_date'] %}
                                                     - vence {{ installment['due_date'] }}
                                                 {% endif %}
@@ -309,66 +121,32 @@
                                         </select>
                                     </label>
 
-                                    <label>
-                                        Importe
-
-                                        <input type="number"
-                                               name="amount"
-                                               min="0"
-                                               step="0.01"
-                                               required>
+                                    <label>Importe
+                                        <input type="number" name="amount" min="0.01" step="0.01" required>
                                     </label>
 
-                                    <label>
-                                        Fecha de pago
-
-                                        <input type="date"
-                                               name="payment_date"
-                                               required>
+                                    <label>Fecha de pago
+                                        <input type="date" name="payment_date" required>
                                     </label>
 
-                                    <label>
-                                        Forma de pago
-
+                                    <label>Forma de pago
                                         <select name="payment_method" required>
-                                            <option value="Efectivo">
-                                                Efectivo
-                                            </option>
-
-                                            <option value="Transferencia">
-                                                Transferencia
-                                            </option>
-
-                                            <option value="Mercado Pago">
-                                                Mercado Pago
-                                            </option>
-
-                                            <option value="Tarjeta">
-                                                Tarjeta
-                                            </option>
-
-                                            <option value="Otro">
-                                                Otro
-                                            </option>
+                                            <option value="Efectivo">Efectivo</option>
+                                            <option value="Transferencia">Transferencia</option>
+                                            <option value="Mercado Pago">Mercado Pago</option>
+                                            <option value="Tarjeta">Tarjeta</option>
+                                            <option value="Otro">Otro</option>
                                         </select>
                                     </label>
 
-                                    <label>
-                                        Nota
-
-                                        <input type="text"
-                                               name="note"
-                                               placeholder="Ej.: pagó mamá / transferencia">
+                                    <label>Nota
+                                        <input type="text" name="note"
+                                               placeholder="Ej: Pagó mamá / transferencia / etc.">
                                     </label>
-
                                 </div>
 
                                 <br>
-
-                                <button type="submit" class="savebtn">
-                                    💾 Registrar pago
-                                </button>
-
+                                <button type="submit" class="savebtn">💾 Registrar pago</button>
                             </form>
                         </div>
                     </td>
@@ -378,168 +156,173 @@
             </tbody>
         </table>
     </div>
+
+    <!-- BOTÓN Y FORMULARIO PARA AGREGAR ALUMNO -->
+    <details style="margin-top:18px;">
+        <summary style="display:inline-block;background:#198754;color:#fff;padding:12px 18px;border-radius:8px;cursor:pointer;font-weight:bold;list-style:none;">
+            ➕ Agregar alumno
+        </summary>
+
+        <div style="background:#f4f7fb;padding:18px;border-radius:10px;margin-top:12px;">
+            <h3>Agregar alumno al curso</h3>
+
+            <form method="POST"
+                  action="/egresaditos/{{ order['id'] }}/student/add">
+
+                <div class="grid">
+                    <label>Nombre y apellido del alumno
+                        <input type="text" name="student_name"
+                               required placeholder="Nombre completo">
+                    </label>
+
+                    <fieldset style="border:1px solid #d6dce5;border-radius:8px;padding:12px;">
+                        <legend>Prendas</legend>
+                        <label><input type="checkbox" name="garments" value="Chomba"> Chomba</label>
+                        <label><input type="checkbox" name="garments" value="Campera"> Campera</label>
+                        <label><input type="checkbox" name="garments" value="Remera"> Remera</label>
+                        <label><input type="checkbox" name="garments" value="Conjunto completo"> Conjunto completo</label>
+                        <label><input type="checkbox" name="garments" value="Otra prenda"> Otra prenda</label>
+                    </fieldset>
+
+                    <label>Forma de pago
+                        <select name="payment_type" required>
+                            <option value="">Seleccionar...</option>
+                            <option value="cash">Contado</option>
+                            <option value="installment">Cuotas</option>
+                        </select>
+                    </label>
+
+                    <label>Precio final ($)
+                        <input type="number" name="final_price"
+                               min="0.01" step="0.01"
+                               required placeholder="Ej. 98000">
+                    </label>
+
+                    <label>Reserva prevista ($)
+                        <input type="number" name="reservation_plan"
+                               min="0" step="0.01" value="0" required>
+                    </label>
+                </div>
+
+                <p style="color:#526174;font-size:14px;">
+                    El alumno se agregará a este pedido. La reserva prevista no registra un pago; los pagos se cargan desde «Cargar pago».
+                </p>
+
+                <button type="submit" class="savebtn">
+                    💾 Guardar alumno
+                </button>
+            </form>
+        </div>
+    </details>
 </section>
-
-
-<!-- ==========================================
-     VENCIMIENTOS
-========================================== -->
 
 <section class="panel">
     <h2>📅 Plan de cuotas</h2>
 
     {% if installments %}
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Cuota</th>
-                    <th>Vencimiento</th>
-                </tr>
-            </thead>
-
-            <tbody>
-                {% for installment in installments %}
-                <tr>
-                    <td>
-                        Cuota {{ installment['installment_number'] }}
-                    </td>
-
-                    <td>
-                        {{ installment['due_date'] or 'Sin fecha' }}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
+    <table>
+        <thead>
+            <tr>
+                <th>Cuota</th>
+                <th>Vencimiento</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for installment in installments %}
+            <tr>
+                <td>Cuota {{ installment['installment_number'] }}</td>
+                <td>{{ installment['due_date'] or 'Sin fecha' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
-
-        <p>No hay cuotas configuradas.</p>
-
+    <p>No hay cuotas configuradas.</p>
     {% endif %}
 </section>
-
-
-<!-- ==========================================
-     HISTORIAL DE PAGOS
-========================================== -->
 
 <section class="panel">
     <h2>🧾 Historial de pagos</h2>
 
     {% if payments %}
+    <div style="overflow-x:auto;">
+        <table>
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Tipo</th>
+                    <th>Cuota</th>
+                    <th>Importe</th>
+                    <th>Fecha</th>
+                    <th>Forma de pago</th>
+                    <th>Nota</th>
+                    <th>Ticket</th>
+                    <th>Eliminar</th>
+                </tr>
+            </thead>
 
-        <div style="overflow-x:auto;">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Alumno</th>
-                        <th>Tipo</th>
-                        <th>Cuota</th>
-                        <th>Importe</th>
-                        <th>Fecha</th>
-                        <th>Forma de pago</th>
-                        <th>Nota</th>
-                        <th>Ticket</th>
-                        <th>Eliminar</th>
-                    </tr>
-                </thead>
-
-                <tbody>
-                    {% for payment in payments %}
-
-                    <tr>
-                        <td>
-                            {% for student in students %}
-                                {% if student['id'] == payment['student_id'] %}
-                                    {{ student['student_name'] }}
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-
-                        <td>
-                            {% if payment['payment_type'] == 'reservation' %}
-                                Reserva
-                            {% elif payment['payment_type'] == 'installment' %}
-                                Cuota
-                            {% elif payment['payment_type'] == 'cash' %}
-                                Contado
-                            {% else %}
-                                Otro
+            <tbody>
+                {% for payment in payments %}
+                <tr>
+                    <td>
+                        {% for student in students %}
+                            {% if student['id'] == payment['student_id'] %}
+                                {{ student['student_name'] }}
                             {% endif %}
-                        </td>
+                        {% endfor %}
+                    </td>
 
-                        <td>
-                            {% if payment['installment_number'] %}
-                                Cuota {{ payment['installment_number'] }}
-                            {% else %}
-                                -
-                            {% endif %}
-                        </td>
+                    <td>
+                        {% if payment['payment_type'] == 'reservation' %}
+                            Reserva
+                        {% elif payment['payment_type'] == 'installment' %}
+                            Cuota
+                        {% elif payment['payment_type'] == 'cash' %}
+                            Contado
+                        {% else %}
+                            Otro
+                        {% endif %}
+                    </td>
 
-                        <td>
-                            <strong>
-                                ${{ "%.2f"|format(payment['amount'] or 0) }}
-                            </strong>
-                        </td>
+                    <td>
+                        {% if payment['installment_number'] %}
+                            Cuota {{ payment['installment_number'] }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
 
-                        <td>
-                            {{ payment['payment_date'] or '-' }}
-                        </td>
+                    <td><strong>${{ "%.2f"|format(payment['amount'] or 0) }}</strong></td>
+                    <td>{{ payment['payment_date'] or '-' }}</td>
+                    <td>{{ payment['payment_method'] or '-' }}</td>
+                    <td>{{ payment['note'] or '-' }}</td>
 
-                        <td>
-                            {{ payment['payment_method'] or '-' }}
-                        </td>
+                    <td>
+                        <a class="btn"
+                           href="/egresaditos/payment/{{ payment['id'] }}/ticket"
+                           target="_blank">🖨️ Ticket</a>
+                    </td>
 
-                        <td>
-                            {{ payment['note'] or '-' }}
-                        </td>
-
-                        <!-- TICKET -->
-
-                        <td>
-                            <a class="btn"
-                               href="/egresaditos/payment/{{ payment['id'] }}/ticket"
-                               target="_blank">
-                                🖨️ Ticket
-                            </a>
-                        </td>
-
-                        <!-- ELIMINAR PAGO -->
-
-                        <td>
-                            <form method="POST"
-                                  action="/egresaditos/payment/{{ payment['id'] }}/delete"
-                                  style="margin:0;"
-                                  onsubmit="return confirm('¿Seguro que querés eliminar este pago? Esta acción no se puede deshacer.');">
-
-                                <button type="submit"
-                                        style="background:#dc3545;color:white;border:none;padding:9px 14px;border-radius:7px;cursor:pointer;font-weight:bold;white-space:nowrap;">
-                                    🗑️ Eliminar
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
+                    <td>
+                        <form method="POST"
+                              action="/egresaditos/payment/{{ payment['id'] }}/delete"
+                              style="margin:0;"
+                              onsubmit="return confirm('¿Seguro que querés eliminar este pago? Esta acción no se puede deshacer.');">
+                            <button type="submit"
+                                    style="background:#dc3545;color:white;border:none;padding:9px 14px;border-radius:7px;cursor:pointer;font-weight:bold;white-space:nowrap;">
+                                🗑️ Eliminar
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
     {% else %}
-
-        <p>
-            Todavía no se registraron pagos para este pedido.
-        </p>
-
+    <p>Todavía no se registraron pagos para este pedido.</p>
     {% endif %}
 </section>
-
-
-<!-- ==========================================
-     RESUMEN GENERAL
-========================================== -->
 
 <section class="panel">
     <h2>💰 Resumen general</h2>
@@ -554,25 +337,11 @@
         {% set resumen.paid = resumen.paid + (payment['amount'] or 0) %}
     {% endfor %}
 
-    <p>
-        <strong>Total del curso:</strong>
-        ${{ "%.2f"|format(resumen.total) }}
-    </p>
-
-    <p>
-        <strong>Total cobrado:</strong>
-        ${{ "%.2f"|format(resumen.paid) }}
-    </p>
-
-    <p>
-        <strong>Saldo pendiente:</strong>
-        ${{ "%.2f"|format([resumen.total - resumen.paid, 0]|max) }}
-    </p>
+    <p><strong>Total del curso:</strong> ${{ "%.2f"|format(resumen.total) }}</p>
+    <p><strong>Total cobrado:</strong> ${{ "%.2f"|format(resumen.paid) }}</p>
+    <p><strong>Saldo pendiente:</strong> ${{ "%.2f"|format([resumen.total - resumen.paid, 0]|max) }}</p>
 </section>
 
-
-<a href="/orders" class="btn">
-    ⬅ Volver a pedidos
-</a>
+<a href="/orders" class="btn">⬅ Volver a pedidos</a>
 
 {% endblock %}
