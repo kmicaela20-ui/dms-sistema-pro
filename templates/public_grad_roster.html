@@ -1,0 +1,215 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lista de alumnos | DMS Sublimaciones</title>
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            padding: 20px 12px;
+            background: #f3f4f6;
+            color: #222;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 3px 14px #00000012;
+        }
+        h1 { margin-top: 0; font-size: 25px; }
+        .intro { color: #555; line-height: 1.5; }
+        label {
+            display: block;
+            font-weight: bold;
+            margin: 17px 0 7px;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 7px;
+            font-size: 16px;
+        }
+        .student {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 9px 0;
+        }
+        .student input { flex: 1; min-width: 0; }
+        button {
+            border: 0;
+            border-radius: 7px;
+            padding: 12px 16px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .remove { background: #fee2e2; color: #991b1b; }
+        .add {
+            width: 100%;
+            margin-top: 12px;
+            background: #e5e7eb;
+            color: #222;
+        }
+        .submit {
+            width: 100%;
+            margin-top: 22px;
+            background: #171717;
+            color: white;
+        }
+        .brand {
+            color: #555;
+            font-size: 13px;
+            margin-top: 22px;
+            text-align: center;
+        }
+        @media (max-width: 480px) {
+            .container { padding: 18px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Lista de alumnos</h1>
+
+    <p class="intro">
+        Pedido <strong>{{ roster['code'] }}</strong><br>
+        Completá los datos del curso y escribí el nombre completo
+        de cada alumno. Revisá la lista antes de enviarla.
+    </p>
+
+    <form method="POST">
+        <label for="responsible_name">Nombre completo del responsable</label>
+        <input
+            id="responsible_name"
+            name="responsible_name"
+            type="text"
+            maxlength="150"
+            value="{{ roster['responsible_name'] or '' }}"
+            required
+        >
+
+        <label for="institution_name">Nombre de la institución</label>
+        <input
+            id="institution_name"
+            name="institution_name"
+            type="text"
+            maxlength="200"
+            value="{{ roster['institution_name'] or '' }}"
+            required
+        >
+
+        <label for="course_name">Curso, grado, año y división</label>
+        <input
+            id="course_name"
+            name="course_name"
+            type="text"
+            maxlength="100"
+            placeholder="Ej.: 7.º grado, división A"
+            value="{{ roster['course_name'] or '' }}"
+            required
+        >
+
+        <label>Nombre completo de los alumnos</label>
+
+        <div id="students">
+            {% if existing_students %}
+                {% for student in existing_students %}
+                <div class="student">
+                    <input
+                        type="text"
+                        name="student_name"
+                        maxlength="150"
+                        value="{{ student['student_name'] }}"
+                        placeholder="Apellido y nombre"
+                        required
+                    >
+                    <button
+                        type="button"
+                        class="remove"
+                        onclick="removeStudent(this)"
+                        aria-label="Eliminar alumno"
+                    >Quitar</button>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="student">
+                    <input
+                        type="text"
+                        name="student_name"
+                        maxlength="150"
+                        placeholder="Apellido y nombre"
+                        required
+                    >
+                    <button
+                        type="button"
+                        class="remove"
+                        onclick="removeStudent(this)"
+                        aria-label="Eliminar alumno"
+                    >Quitar</button>
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="button" class="add" onclick="addStudent()">
+            + Agregar otro alumno
+        </button>
+
+        <button type="submit" class="submit">
+            Enviar lista de alumnos
+        </button>
+    </form>
+
+    <p class="brand">DMS Sublimaciones · Perico y El Carmen, Jujuy</p>
+</div>
+
+<script>
+function addStudent() {
+    const container = document.getElementById('students');
+    const row = document.createElement('div');
+    row.className = 'student';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.name = 'student_name';
+    input.maxLength = 150;
+    input.placeholder = 'Apellido y nombre';
+    input.required = true;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'remove';
+    button.textContent = 'Quitar';
+    button.setAttribute('aria-label', 'Eliminar alumno');
+    button.onclick = function() {
+        removeStudent(button);
+    };
+
+    row.appendChild(input);
+    row.appendChild(button);
+    container.appendChild(row);
+    input.focus();
+}
+
+function removeStudent(button) {
+    const container = document.getElementById('students');
+    const rows = container.querySelectorAll('.student');
+
+    if (rows.length <= 1) {
+        rows[0].querySelector('input').value = '';
+        return;
+    }
+
+    button.closest('.student').remove();
+}
+</script>
+</body>
+</html>
