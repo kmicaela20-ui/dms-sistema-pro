@@ -53,6 +53,7 @@ td{border:1px solid #d8dee9;padding:7px}
       <div class="row"><b>Cliente</b><span>{{order.client_name}}</span></div>
       <div class="row"><b>Teléfono</b><span>{{order.client_phone}}</span></div>
       <div class="row"><b>Dirección</b><span>{{order.client_address}}</span></div>
+      {% if order.client_dni_cuit %}<div class="row"><b>DNI / CUIT</b><span>{{order.client_dni_cuit}}</span></div>{% endif %}
       {% if order.school_name %}<div class="row"><b>Escuela</b><span>{{order.school_name}}</span></div>{% endif %}
       {% if order.school_grade %}<div class="row"><b>Grado/Año</b><span>{{order.school_grade}}</span></div>{% endif %}
     </div>
