@@ -1936,7 +1936,7 @@ def view_order(oid):
         roster_public_url=(request.url_root.rstrip('/') + url_for('public_grad_roster', token=roster['token'])) if roster else None
     )
     
-app.route('/orders/<int:oid>/edit', methods=['GET', 'POST'])
+@app.route('/orders/<int:oid>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_order(oid):
     con = db()
