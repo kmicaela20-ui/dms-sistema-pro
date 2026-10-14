@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 {% block content %}
 
@@ -41,7 +42,7 @@
             padding:12px 0;
             border-bottom:1px solid #ddd;
         ">
-            <span>Total del pedido</span>
+            <span>Total original del pedido</span>
 
             <strong>
                 ${{ "%.2f"|format(total) }}
@@ -64,6 +65,52 @@
 
 
         <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #ddd;
+        ">
+            <span>Saldo original pendiente</span>
+
+            <strong>
+                ${{ "%.2f"|format(balance) }}
+            </strong>
+        </div>
+
+
+        <div style="
+            display:flex;
+            justify-content:space-between;
+            padding:12px 0;
+            border-bottom:1px solid #ddd;
+        ">
+            <span>Recargo por demora (10% semanal)</span>
+
+            <strong style="color:#d97706;">
+                ${{ "%.2f"|format(surcharge) }}
+            </strong>
+        </div>
+
+
+        {% if surcharge > 0 %}
+
+        <div style="
+            margin-top:15px;
+            padding:12px;
+            background:#fff3cd;
+            border-radius:8px;
+            text-align:center;
+            font-weight:bold;
+        ">
+            ⚠️ Este pedido superó el plazo de
+            7 días desde su finalización.
+            Se aplicó el recargo correspondiente.
+        </div>
+
+        {% endif %}
+
+
+        <div style="
             margin-top:20px;
             padding:20px;
             background:#fff3cd;
@@ -76,7 +123,7 @@
                 font-size:15px;
                 font-weight:bold;
             ">
-                SALDO A COBRAR
+                TOTAL A COBRAR AL ENTREGAR
             </div>
 
             <div style="
@@ -84,7 +131,7 @@
                 font-weight:bold;
                 margin-top:8px;
             ">
-                ${{ "%.2f"|format(balance) }}
+                ${{ "%.2f"|format(total_due_today) }}
             </div>
 
         </div>
@@ -153,10 +200,15 @@
                 text-align:center;
             ">
 
-                Al confirmar, el pedido quedará como
+                Al confirmar, se registrará el pago
+                del saldo más el recargo correspondiente.
+
+                <br><br>
+
+                El pedido quedará como
                 <strong>ENTREGADO</strong>
-                y su saldo quedará en
-                <strong>$0.</strong>
+                y su saldo pendiente será
+                <strong>$0.00</strong>.
 
             </div>
 
@@ -170,7 +222,7 @@
                     padding:14px;
                     font-size:17px;
                 "
-                onclick="return confirm('¿Confirmar el pago del saldo y la entrega del pedido?')"
+                onclick="return confirm('¿Confirmar el cobro total, incluyendo el recargo si corresponde, y la entrega del pedido?')"
             >
                 ✅ Confirmar pago y entrega
             </button>
