@@ -2598,6 +2598,68 @@ def egresaditos_add_student(oid):
 
 
 
+
+@app.route(
+    '/egresaditos/<int:oid>/student/<int:student_id>/edit',
+    methods=['GET']
+)
+@login_required
+def egresaditos_edit_workshop_student(oid, student_id):
+    con = db()
+    cur = con.cursor()
+    order = cur.execute(
+        "SELECT * FROM orders WHERE id=? AND order_module='Egresaditos'",
+        (oid,)
+    ).fetchone()
+    student = cur.execute(
+        "SELECT * FROM egresaditos_students WHERE id=? AND order_id=?",
+        (student_id, oid)
+    ).fetchone()
+    con.close()
+
+    if not order or not student:
+        flash('No se encontró el alumno o el pedido.')
+        return redirect('/orders')
+
+    return render_template(
+        'edit_egresadito_student.html',
+        order=order,
+        student=student
+    )
+
+
+@app.route('/egresaditos/<int:oid>/print-list')
+@login_required
+def egresaditos_print_list(oid):
+    con = db()
+    order = con.execute(
+        "SELECT * FROM orders WHERE id=? AND order_module='Egresaditos'",
+        (oid,)
+    ).fetchone()
+
+    if not order:
+        con.close()
+        flash('No se encontró el pedido de Egresaditos.')
+        return redirect('/orders')
+
+    students = con.execute(
+        """
+        SELECT *
+        FROM egresaditos_students
+        WHERE order_id=?
+        ORDER BY student_name, id
+        """,
+        (oid,)
+    ).fetchall()
+    con.close()
+
+    return render_template(
+        'print_egresaditos.html',
+        order=order,
+        students=students
+    )
+
+
 @app.route(
     '/egresaditos/<int:oid>/student/<int:student_id>/workshop-update',
     methods=['POST']
@@ -2644,7 +2706,7 @@ def egresaditos_update_workshop_student(oid, student_id):
         con.commit()
         con.close()
         flash('Datos de taller actualizados correctamente.')
-        return redirect(f'/orders/{oid}/workshop')
+        return redirect(url_for('edit_order', oid=oid))
     except Exception as e:
         try:
             con.rollback()
@@ -2656,7 +2718,7 @@ def egresaditos_update_workshop_student(oid, student_id):
             pass
         print('ERROR ACTUALIZANDO DATOS DE TALLER EGRESADITOS:', e)
         flash('No se pudieron actualizar los datos de taller.')
-        return redirect(f'/orders/{oid}/workshop')
+        return redirect(url_for('edit_order', oid=oid))
 
 @app.route('/orders/<int:oid>/status', methods=['POST'])
 @login_required
