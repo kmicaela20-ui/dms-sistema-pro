@@ -1,229 +1,551 @@
+```html
 {% extends "base.html" %}
 {% block content %}
 
-<h1>Editar pedido {{order.code}}</h1>
+<h1>Editar pedido {{ order.code }}</h1>
 
-<form method="post">
+<form method="post" id="editOrderForm">
 
 <section class="panel formgrid">
-<label>Cliente<input name="client_name" value="{{order.client_name or ''}}"></label>
-<label>Teléfono<input name="client_phone" value="{{order.client_phone or ''}}"></label>
-<label>Dirección<input name="client_address" value="{{order.client_address or ''}}"></label>
-<label>Fecha entrega<input type="date" name="date_delivery" value="{{order.date_delivery or ''}}"></label>
+    <label>Cliente
+        <input name="client_name" value="{{ order.client_name or '' }}">
+    </label>
 
-<label>Estado
-<select name="status">
-<option {% if order.status=='Ingreso' %}selected{% endif %}>Ingreso</option>
-<option {% if order.status=='En diseño' %}selected{% endif %}>En diseño</option>
-<option {% if order.status=='En producción' %}selected{% endif %}>En producción</option>
-<option {% if order.status=='Terminado' %}selected{% endif %}>Terminado</option>
-<option {% if order.status=='Entregado' %}selected{% endif %}>Entregado</option>
-</select>
-</label>
+    <label>Teléfono
+        <input name="client_phone" value="{{ order.client_phone or '' }}">
+    </label>
 
-<label>Recepciona<input name="receptionist" value="{{order.receptionist or ''}}"></label>
-<label>Escuela<input name="school_name" value="{{order.school_name or ''}}"></label>
-<label>Grado/Año<input name="school_grade" value="{{order.school_grade or ''}}"></label>
-<label>Tipo de tela<input name="fabric_type" value="{{order.fabric_type or ''}}"></label>
-<label>Descuento<input name="discount" type="number" step="0.01" value="{{order.discount or 0}}" oninput="recalcTotals()"></label>
-<label>Seña/abonado<input name="deposit" type="number" step="0.01" value="{{order.deposit or 0}}" oninput="recalcTotals()"></label>
+    <label>Dirección
+        <input name="client_address" value="{{ order.client_address or '' }}">
+    </label>
+
+    <label>Fecha de entrega
+        <input type="date" name="date_delivery" value="{{ order.date_delivery or '' }}">
+    </label>
+
+    <label>Estado
+        <select name="status">
+            {% for estado in ['Ingreso', 'En diseño', 'En producción', 'Terminado', 'Entregado'] %}
+            <option value="{{ estado }}" {% if order.status == estado %}selected{% endif %}>
+                {{ estado }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label>Recepciona
+        <input name="receptionist" value="{{ order.receptionist or '' }}">
+    </label>
+
+    <label>Escuela
+        <input name="school_name" value="{{ order.school_name or '' }}">
+    </label>
+
+    <label>Grado / Año
+        <input name="school_grade" value="{{ order.school_grade or '' }}">
+    </label>
+
+    <label>Tipo de tela
+        <input name="fabric_type" value="{{ order.fabric_type or '' }}">
+    </label>
+
+    <label>Descuento
+        <input name="discount" type="number" min="0" step="0.01"
+               value="{{ order.discount or 0 }}" oninput="recalcTotals()">
+    </label>
+
+    <label>Seña / Abonado
+        <input name="deposit" type="number" min="0" step="0.01"
+               value="{{ order.deposit or 0 }}" oninput="recalcTotals()">
+    </label>
+
+    <label>Forma de pago
+        <input name="payment_method" value="{{ order.payment_method or '' }}">
+    </label>
 </section>
 
 <section class="panel">
-<label>Observaciones<textarea name="client_notes">{{order.client_notes or ''}}</textarea></label>
-<label>Diseño general / taller<textarea name="team_design_notes">{{order.team_design_notes or ''}}</textarea></label>
-<label>Nota pago<input name="payment_note" value="{{order.payment_note or ''}}"></label>
+    <label>Observaciones del cliente
+        <textarea name="client_notes">{{ order.client_notes or '' }}</textarea>
+    </label>
+
+    <label>Diseño general / Taller
+        <textarea name="team_design_notes">{{ order.team_design_notes or '' }}</textarea>
+    </label>
+
+    <label>Nota de pago
+        <input name="payment_note" value="{{ order.payment_note or '' }}">
+    </label>
 </section>
+
+
+{% if order.order_module == 'Birretes/Estolas' %}
 
 <section class="panel">
-<h2>Artículos</h2>
+    <h2>Personalización de birretes y estolas</h2>
 
-<input type="hidden" name="item_count" id="item_count" value="{{ items|length if items else 1 }}">
+    {% if roster %}
 
-{% if order.order_module == 'General' %}
+    <div class="formgrid">
+        <label>Responsable
+            <input name="responsible_name"
+                   value="{{ roster.responsible_name or '' }}">
+        </label>
 
-<table id="items">
-<tr>
-<th>#</th>
-<th>Producto</th>
-<th>Detalle</th>
-<th>Cantidad</th>
-<th>Precio unitario</th>
-<th>Subtotal</th>
-</tr>
+        <label>Institución
+            <input name="institution_name"
+                   value="{{ roster.institution_name or '' }}">
+        </label>
 
-{% if items %}
-{% for it in items %}
-<tr>
-<td>{{loop.index}}</td>
-<td><input name="article_{{loop.index}}" value="{{it.article}}"></td>
-<td><input name="name_{{loop.index}}" value="{{it.person_name}}"></td>
-<td><input class="qtyInput" name="qty_{{loop.index}}" type="number" step="0.01" value="{{it.qty if it.qty is defined else 1}}" oninput="calcGeneral()"></td>
-<td><input class="priceInput" name="price_{{loop.index}}" type="number" step="0.01" value="{{it.price}}" oninput="calcGeneral()"></td>
-<td><input class="subtotalItem" type="text" value="0" readonly></td>
-</tr>
-{% endfor %}
-{% else %}
-<tr>
-<td>1</td>
-<td><input name="article_1"></td>
-<td><input name="name_1"></td>
-<td><input class="qtyInput" name="qty_1" type="number" step="0.01" value="1" oninput="calcGeneral()"></td>
-<td><input class="priceInput" name="price_1" type="number" step="0.01" value="0" oninput="calcGeneral()"></td>
-<td><input class="subtotalItem" type="text" value="0" readonly></td>
-</tr>
-{% endif %}
-</table>
+        <label>Curso / Promoción
+            <input name="course_name"
+                   value="{{ roster.course_name or '' }}">
+        </label>
 
-<button type="button" class="btn" onclick="addGeneralItem()">+ Agregar artículo</button>
+        <label>Tipo de birrete
+            <input name="birrete_type"
+                   value="{{ roster.birrete_type or '' }}"
+                   placeholder="Ej.: clásico, con visera...">
+        </label>
 
-{% else %}
+        <label>Tipo de letra del birrete
+            <input name="birrete_font"
+                   value="{{ roster.birrete_font or '' }}">
+        </label>
 
-<table id="items">
-<tr>
-<th>#</th>
-<th>Artículo</th>
-<th>Nombre / Detalle</th>
-<th>Número</th>
-<th>Talle superior</th>
-<th>Talle inferior</th>
-<th>Precio</th>
-</tr>
+        <label>Tipo de letra de la estola
+            <input name="estola_font"
+                   value="{{ roster.estola_font or '' }}">
+        </label>
 
-{% if items %}
-{% for it in items %}
-<tr>
-<td>{{loop.index}}</td>
-<td><input name="article_{{loop.index}}" value="{{it.article}}"></td>
-<td><input name="name_{{loop.index}}" value="{{it.person_name}}"></td>
-<td><input name="numero_{{loop.index}}" value="{{it.number or ''}}"></td>
-<td><input name="upper_{{loop.index}}" value="{{it.upper_size}}"></td>
-<td><input name="lower_{{loop.index}}" value="{{it.lower_size}}"></td>
-<td><input class="itemPrice" name="price_{{loop.index}}" type="number" step="0.01" value="{{it.price}}" oninput="calc()"></td>
-</tr>
-{% endfor %}
-{% else %}
-<tr>
-<td>1</td>
-<td><input name="article_1"></td>
-<td><input name="name_1"></td>
-<td><input name="numero_1" placeholder="Número"></td>
-<td><input name="upper_1"></td>
-<td><input name="lower_1"></td>
-<td><input class="itemPrice" name="price_1" type="number" step="0.01" value="0" oninput="calc()"></td>
-</tr>
-{% endif %}
-</table>
+        <label>Color del birrete
+            <input name="birrete_color"
+                   value="{{ roster.birrete_color or '' }}">
+        </label>
 
-<button type="button" class="btn" onclick="addItem()">+ Agregar artículo</button>
+        <label>Color de la estola
+            <input name="estola_color"
+                   value="{{ roster.estola_color or '' }}">
+        </label>
 
-{% endif %}
+        <label>Color de letras del birrete
+            <input name="birrete_text_color"
+                   value="{{ roster.birrete_text_color or '' }}">
+        </label>
 
+        <label>Color de letras de la estola
+            <input name="estola_text_color"
+                   value="{{ roster.estola_text_color or '' }}">
+        </label>
+    </div>
+
+    <label>Texto que llevará el birrete
+        <textarea name="birrete_text">{{ roster.birrete_text or '' }}</textarea>
+    </label>
+
+    <label>Texto que llevará la estola
+        <textarea name="estola_text">{{ roster.estola_text or '' }}</textarea>
+    </label>
+
+    {% else %}
+
+    <p>
+        Todavía no se generó la lista de alumnos para este pedido.
+        Guardá el pedido y generá el enlace desde la ficha del pedido
+        para poder cargar la personalización y los alumnos.
+    </p>
+
+    {% endif %}
 </section>
 
-<input type="hidden" name="subtotal" id="subtotalInput" value="{{order.subtotal or 0}}">
 
 <section class="panel">
-<h3>Totales</h3>
-<p>Subtotal: <b id="subtotalBox">${{order.subtotal or 0}}</b></p>
-<p>Total: <b id="totalBox">${{order.total or 0}}</b></p>
-<p>Saldo: <b id="balanceBox">${{order.balance or 0}}</b></p>
+    <h2>Lista de alumnos</h2>
+
+    {% if roster %}
+
+    <p>
+        Estos datos se guardan junto con el pedido y se utilizan en la
+        ficha imprimible de alumnos.
+    </p>
+
+    <input type="hidden" name="roster_student_count"
+           id="roster_student_count"
+           value="{{ roster_students|length }}">
+
+    <div style="overflow-x:auto;">
+        <table id="rosterTable" style="min-width:1100px; width:100%;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Apellido y nombre completo</th>
+                    <th>Nombre para el artículo</th>
+                    <th>Talle birrete</th>
+                    <th>Talle estola</th>
+                    <th>Talle toga</th>
+                    <th>Observaciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for alumno in roster_students %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+
+                    <td>
+                        <input name="roster_student_name_{{ loop.index }}"
+                               value="{{ alumno.student_name or '' }}"
+                               required>
+                    </td>
+
+                    <td>
+                        <input name="roster_article_name_{{ loop.index }}"
+                               value="{{ alumno.article_name or '' }}">
+                    </td>
+
+                    <td>
+                        <input name="roster_cap_size_{{ loop.index }}"
+                               value="{{ alumno.cap_size or '' }}"
+                               placeholder="Talle">
+                    </td>
+
+                    <td>
+                        <input name="roster_stole_size_{{ loop.index }}"
+                               value="{{ alumno.stole_size or '' }}"
+                               placeholder="Talle">
+                    </td>
+
+                    <td>
+                        <input name="roster_toga_size_{{ loop.index }}"
+                               value="{{ alumno.toga_size or '' }}"
+                               placeholder="Talle">
+                    </td>
+
+                    <td>
+                        <input name="roster_observations_{{ loop.index }}"
+                               value="{{ alumno.observations or '' }}">
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if not roster_students %}
+    <p>El cliente todavía no cargó alumnos en la lista.</p>
+    {% endif %}
+
+    {% else %}
+    <p>
+        La lista aparecerá aquí cuando se genere el enlace y el cliente
+        complete los datos de los alumnos.
+    </p>
+    {% endif %}
 </section>
 
-<button class="savebtn">Guardar cambios</button>
+{% endif %}
+
+
+<section class="panel">
+    <h2>Artículos e importes del pedido</h2>
+
+    <p>
+        Esta tabla corresponde a los artículos y sus precios.
+        La lista de alumnos se administra por separado.
+    </p>
+
+    <input type="hidden" name="item_count" id="item_count"
+           value="{{ items|length if items else 1 }}">
+
+    {% if order.order_module == 'General' %}
+
+    <div style="overflow-x:auto;">
+        <table id="items" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Producto</th>
+                    <th>Detalle</th>
+                    <th>Cantidad</th>
+                    <th>Precio unitario</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                    {% for it in items %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <input name="article_{{ loop.index }}"
+                                   value="{{ it.article or '' }}">
+                        </td>
+                        <td>
+                            <input name="name_{{ loop.index }}"
+                                   value="{{ it.person_name or '' }}">
+                        </td>
+                        <td>
+                            <input class="qtyInput"
+                                   name="qty_{{ loop.index }}"
+                                   type="number" min="0" step="0.01"
+                                   value="{{ it.qty or 1 }}"
+                                   oninput="calcGeneral()">
+                        </td>
+                        <td>
+                            <input class="priceInput"
+                                   name="price_{{ loop.index }}"
+                                   type="number" min="0" step="0.01"
+                                   value="{{ it.price or 0 }}"
+                                   oninput="calcGeneral()">
+                        </td>
+                        <td>
+                            <input class="subtotalItem" type="text" readonly>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td>1</td>
+                        <td><input name="article_1"></td>
+                        <td><input name="name_1"></td>
+                        <td><input class="qtyInput" name="qty_1"
+                                   type="number" min="0" step="0.01"
+                                   value="1" oninput="calcGeneral()"></td>
+                        <td><input class="priceInput" name="price_1"
+                                   type="number" min="0" step="0.01"
+                                   value="0" oninput="calcGeneral()"></td>
+                        <td><input class="subtotalItem" type="text" readonly></td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <button type="button" class="btn" onclick="addGeneralItem()">
+        + Agregar artículo
+    </button>
+
+    {% else %}
+
+    <div style="overflow-x:auto;">
+        <table id="items" style="width:100%;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Artículo</th>
+                    <th>Nombre / Detalle</th>
+                    <th>Número</th>
+                    <th>Talle superior / Birrete</th>
+                    <th>Talle inferior / Estola</th>
+                    {% if order.order_module == 'Birretes/Estolas' %}
+                    <th>Talle toga</th>
+                    {% endif %}
+                    <th>Precio</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if items %}
+                    {% for it in items %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            <input name="article_{{ loop.index }}"
+                                   value="{{ it.article or '' }}">
+                        </td>
+                        <td>
+                            <input name="name_{{ loop.index }}"
+                                   value="{{ it.person_name or '' }}">
+                        </td>
+                        <td>
+                            <input name="numero_{{ loop.index }}"
+                                   value="{{ it.number or '' }}">
+                        </td>
+                        <td>
+                            <input name="upper_{{ loop.index }}"
+                                   value="{{ it.upper_size or '' }}">
+                        </td>
+                        <td>
+                            <input name="lower_{{ loop.index }}"
+                                   value="{{ it.lower_size or '' }}">
+                        </td>
+                        {% if order.order_module == 'Birretes/Estolas' %}
+                        <td>
+                            <input name="toga_size_{{ loop.index }}"
+                                   value="{{ it.toga_size or '' }}">
+                        </td>
+                        {% endif %}
+                        <td>
+                            <input class="itemPrice"
+                                   name="price_{{ loop.index }}"
+                                   type="number" min="0" step="0.01"
+                                   value="{{ it.price or 0 }}"
+                                   oninput="calc()">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td>1</td>
+                        <td><input name="article_1"></td>
+                        <td><input name="name_1"></td>
+                        <td><input name="numero_1" placeholder="Número"></td>
+                        <td><input name="upper_1"></td>
+                        <td><input name="lower_1"></td>
+                        {% if order.order_module == 'Birretes/Estolas' %}
+                        <td><input name="toga_size_1"></td>
+                        {% endif %}
+                        <td>
+                            <input class="itemPrice" name="price_1"
+                                   type="number" min="0" step="0.01"
+                                   value="0" oninput="calc()">
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <button type="button" class="btn" onclick="addItem()">
+        + Agregar artículo
+    </button>
+
+    {% endif %}
+</section>
+
+
+<input type="hidden" name="subtotal" id="subtotalInput"
+       value="{{ order.subtotal or 0 }}">
+
+<section class="panel">
+    <h3>Totales</h3>
+    <p>Subtotal: <strong id="subtotalBox">$0.00</strong></p>
+    <p>Total: <strong id="totalBox">$0.00</strong></p>
+    <p>Saldo: <strong id="balanceBox">$0.00</strong></p>
+</section>
+
+<button type="submit" class="savebtn">Guardar cambios</button>
 
 </form>
 
+
 <script>
-function addItem(){
-  let n = +document.getElementById('item_count').value + 1;
-  document.getElementById('item_count').value = n;
-
-  document.getElementById('items').insertAdjacentHTML('beforeend', `
-  <tr>
-    <td>${n}</td>
-    <td><input name="article_${n}"></td>
-    <td><input name="name_${n}"></td>
-    <td><input name="numero_${n}" placeholder="Número"></td>
-    <td><input name="upper_${n}"></td>
-    <td><input name="lower_${n}"></td>
-    <td><input class="itemPrice" name="price_${n}" type="number" step="0.01" value="0" oninput="calc()"></td>
-  </tr>
-  `);
-
-  calc();
+function moneyValue(value) {
+    const number = parseFloat(value);
+    return Number.isFinite(number) ? number : 0;
 }
 
-function addGeneralItem(){
-  let n = +document.getElementById('item_count').value + 1;
-  document.getElementById('item_count').value = n;
+function updateTotals(subtotal) {
+    const discountInput = document.querySelector('[name="discount"]');
+    const depositInput = document.querySelector('[name="deposit"]');
 
-  document.getElementById('items').insertAdjacentHTML('beforeend', `
-  <tr>
-    <td>${n}</td>
-    <td><input name="article_${n}"></td>
-    <td><input name="name_${n}"></td>
-    <td><input class="qtyInput" name="qty_${n}" type="number" step="0.01" value="1" oninput="calcGeneral()"></td>
-    <td><input class="priceInput" name="price_${n}" type="number" step="0.01" value="0" oninput="calcGeneral()"></td>
-    <td><input class="subtotalItem" type="text" value="0" readonly></td>
-  </tr>
-  `);
+    const discount = moneyValue(discountInput ? discountInput.value : 0);
+    const deposit = moneyValue(depositInput ? depositInput.value : 0);
 
-  calcGeneral();
+    const total = Math.max(0, subtotal - discount);
+    const balance = Math.max(0, total - deposit);
+
+    document.getElementById('subtotalInput').value = subtotal.toFixed(2);
+    document.getElementById('subtotalBox').textContent =
+        '$' + subtotal.toFixed(2);
+    document.getElementById('totalBox').textContent =
+        '$' + total.toFixed(2);
+    document.getElementById('balanceBox').textContent =
+        '$' + balance.toFixed(2);
 }
 
-function calc(){
-  let subtotal = 0;
+function calc() {
+    let subtotal = 0;
 
-  document.querySelectorAll('.itemPrice').forEach(x => {
-    subtotal += parseFloat(x.value) || 0;
-  });
+    document.querySelectorAll('.itemPrice').forEach(input => {
+        subtotal += moneyValue(input.value);
+    });
 
-  updateTotals(subtotal);
+    updateTotals(subtotal);
 }
 
-function calcGeneral(){
-  let subtotal = 0;
+function calcGeneral() {
+    let subtotal = 0;
 
-  document.querySelectorAll('#items tr').forEach((row,index)=>{
-    if(index === 0) return;
+    document.querySelectorAll('#items tbody tr').forEach(row => {
+        const qtyInput = row.querySelector('.qtyInput');
+        const priceInput = row.querySelector('.priceInput');
+        const subtotalInput = row.querySelector('.subtotalItem');
 
-    let qty = row.querySelector('.qtyInput');
-    let price = row.querySelector('.priceInput');
-    let subtotalBox = row.querySelector('.subtotalItem');
+        if (!qtyInput || !priceInput || !subtotalInput) return;
 
-    if(qty && price && subtotalBox){
-      let sub = (parseFloat(qty.value) || 0) * (parseFloat(price.value) || 0);
-      subtotalBox.value = sub.toFixed(2);
-      subtotal += sub;
-    }
-  });
+        const qty = moneyValue(qtyInput.value);
+        const price = moneyValue(priceInput.value);
+        const lineSubtotal = qty * price;
 
-  updateTotals(subtotal);
+        subtotalInput.value = lineSubtotal.toFixed(2);
+        subtotal += lineSubtotal;
+    });
+
+    updateTotals(subtotal);
 }
 
-function updateTotals(subtotal){
-  let discount = parseFloat(document.querySelector('[name="discount"]').value) || 0;
-  let deposit = parseFloat(document.querySelector('[name="deposit"]').value) || 0;
+function addItem() {
+    const countInput = document.getElementById('item_count');
+    const table = document.getElementById('items');
+    const n = parseInt(countInput.value || '0', 10) + 1;
 
-  let total = Math.max(0, subtotal - discount);
-  let balance = Math.max(0, total - deposit);
+    countInput.value = n;
 
-  document.getElementById('subtotalInput').value = subtotal;
-  document.getElementById('subtotalBox').innerText = '$' + subtotal.toFixed(2);
-  document.getElementById('totalBox').innerText = '$' + total.toFixed(2);
-  document.getElementById('balanceBox').innerText = '$' + balance.toFixed(2);
-}
+    const isGrad = {{ 'true' if order.order_module == 'Birretes/Estolas' else 'false' }};
+    const row = document.createElement('tr');
 
-function recalcTotals(){
-  if(document.querySelector('.qtyInput')){
-    calcGeneral();
-  }else{
+    row.innerHTML = `
+        <td>${n}</td>
+        <td><input name="article_${n}"></td>
+        <td><input name="name_${n}"></td>
+        <td><input name="numero_${n}" placeholder="Número"></td>
+        <td><input name="upper_${n}"></td>
+        <td><input name="lower_${n}"></td>
+        ${isGrad ? `<td><input name="toga_size_${n}"></td>` : ''}
+        <td><input class="itemPrice" name="price_${n}"
+                   type="number" min="0" step="0.01"
+                   value="0" oninput="calc()"></td>
+    `;
+
+    table.querySelector('tbody').appendChild(row);
     calc();
-  }
+}
+
+function addGeneralItem() {
+    const countInput = document.getElementById('item_count');
+    const table = document.getElementById('items');
+    const n = parseInt(countInput.value || '0', 10) + 1;
+
+    countInput.value = n;
+
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td>${n}</td>
+        <td><input name="article_${n}"></td>
+        <td><input name="name_${n}"></td>
+        <td><input class="qtyInput" name="qty_${n}"
+                   type="number" min="0" step="0.01"
+                   value="1" oninput="calcGeneral()"></td>
+        <td><input class="priceInput" name="price_${n}"
+                   type="number" min="0" step="0.01"
+                   value="0" oninput="calcGeneral()"></td>
+        <td><input class="subtotalItem" type="text" readonly></td>
+    `;
+
+    table.querySelector('tbody').appendChild(row);
+    calcGeneral();
+}
+
+function recalcTotals() {
+    if (document.querySelector('.qtyInput')) {
+        calcGeneral();
+    } else {
+        calc();
+    }
 }
 
 recalcTotals();
 </script>
 
 {% endblock %}
+```
