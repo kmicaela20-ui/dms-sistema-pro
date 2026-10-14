@@ -624,6 +624,15 @@ def init():
                 responsible_name TEXT DEFAULT '',
                 institution_name TEXT DEFAULT '',
                 course_name TEXT DEFAULT '',
+                birrete_type TEXT DEFAULT '',
+                birrete_font TEXT DEFAULT '',
+                estola_font TEXT DEFAULT '',
+                birrete_color TEXT DEFAULT '',
+                estola_color TEXT DEFAULT '',
+                birrete_text_color TEXT DEFAULT '',
+                estola_text_color TEXT DEFAULT '',
+                birrete_text TEXT DEFAULT '',
+                estola_text TEXT DEFAULT '',
                 submitted_at TEXT DEFAULT ''
             )
         """)
@@ -632,9 +641,29 @@ def init():
                 id SERIAL PRIMARY KEY,
                 roster_id INTEGER NOT NULL,
                 student_name TEXT NOT NULL,
+                article_name TEXT DEFAULT '',
+                cap_size TEXT DEFAULT '',
+                stole_size TEXT DEFAULT '',
+                toga_size TEXT DEFAULT '',
+                observations TEXT DEFAULT '',
                 position INTEGER DEFAULT 0
             )
         """)
+        # Migraciones seguras para las tablas que ya existían
+        for column in [
+            ('birrete_type', "TEXT DEFAULT ''"), ('birrete_font', "TEXT DEFAULT ''"),
+            ('estola_font', "TEXT DEFAULT ''"), ('birrete_color', "TEXT DEFAULT ''"),
+            ('estola_color', "TEXT DEFAULT ''"), ('birrete_text_color', "TEXT DEFAULT ''"),
+            ('estola_text_color', "TEXT DEFAULT ''"), ('birrete_text', "TEXT DEFAULT ''"),
+            ('estola_text', "TEXT DEFAULT ''")
+        ]:
+            cur.execute(f'ALTER TABLE grad_rosters ADD COLUMN IF NOT EXISTS {column[0]} {column[1]}')
+        for column in [
+            ('article_name', "TEXT DEFAULT ''"), ('cap_size', "TEXT DEFAULT ''"),
+            ('stole_size', "TEXT DEFAULT ''"), ('toga_size', "TEXT DEFAULT ''"),
+            ('observations', "TEXT DEFAULT ''")
+        ]:
+            cur.execute(f'ALTER TABLE grad_roster_students ADD COLUMN IF NOT EXISTS {column[0]} {column[1]}')
         con.commit()
     except Exception as e:
         con.conn.rollback()
@@ -1746,31 +1775,67 @@ def create_grad_roster_link(oid):
 def public_grad_roster(token):
     con = db()
     cur = con.cursor()
-    roster = cur.execute("SELECT r.*, o.code FROM grad_rosters r JOIN orders o ON o.id=r.order_id WHERE r.token=? AND o.order_module=?",
-                         (token, 'Birretes/Estolas')).fetchone()
+    roster = cur.execute(
+        "SELECT r.*, o.code FROM grad_rosters r JOIN orders o ON o.id=r.order_id WHERE r.token=? AND o.order_module=?",
+        (token, 'Birretes/Estolas')
+    ).fetchone()
     if not roster:
         con.close()
         return render_template('grad_roster_invalid.html'), 404
+
     if request.method == 'POST':
         responsible = (request.form.get('responsible_name') or '').strip()
         institution = (request.form.get('institution_name') or '').strip()
         course = (request.form.get('course_name') or '').strip()
-        names = [n.strip() for n in request.form.getlist('student_name') if n.strip()]
-        if not responsible or not institution or not course or not names:
+        roster_fields = {
+            'birrete_type': (request.form.get('birrete_type') or '').strip(),
+            'birrete_font': (request.form.get('birrete_font') or '').strip(),
+            'estola_font': (request.form.get('estola_font') or '').strip(),
+            'birrete_color': (request.form.get('birrete_color') or '').strip(),
+            'estola_color': (request.form.get('estola_color') or '').strip(),
+            'birrete_text_color': (request.form.get('birrete_text_color') or '').strip(),
+            'estola_text_color': (request.form.get('estola_text_color') or '').strip(),
+            'birrete_text': (request.form.get('birrete_text') or '').strip(),
+            'estola_text': (request.form.get('estola_text') or '').strip(),
+        }
+        names = request.form.getlist('student_name')
+        articles = request.form.getlist('article_name')
+        cap_sizes = request.form.getlist('cap_size')
+        stole_sizes = request.form.getlist('stole_size')
+        toga_sizes = request.form.getlist('toga_size')
+        observations = request.form.getlist('observations')
+        students = []
+        for i, raw_name in enumerate(names):
+            name = (raw_name or '').strip()
+            if not name:
+                continue
+            getval = lambda values: (values[i] or '').strip() if i < len(values) else ''
+            students.append((name, getval(articles), getval(cap_sizes), getval(stole_sizes), getval(toga_sizes), getval(observations)))
+
+        if not responsible or not institution or not course or not students:
             con.close()
-            flash('Completá los datos del responsable, institución, curso y al menos un alumno.')
+            flash('Completá responsable, institución, curso y al menos un alumno con apellido y nombre.')
             return redirect(url_for('public_grad_roster', token=token))
-        cur.execute('UPDATE grad_rosters SET responsible_name=?, institution_name=?, course_name=?, submitted_at=? WHERE id=?',
-                    (responsible, institution, course, now(), roster['id']))
+
+        cur.execute('''UPDATE grad_rosters SET responsible_name=?, institution_name=?, course_name=?,
+            birrete_type=?, birrete_font=?, estola_font=?, birrete_color=?, estola_color=?,
+            birrete_text_color=?, estola_text_color=?, birrete_text=?, estola_text=?, submitted_at=? WHERE id=?''',
+            (responsible, institution, course, roster_fields['birrete_type'], roster_fields['birrete_font'],
+             roster_fields['estola_font'], roster_fields['birrete_color'], roster_fields['estola_color'],
+             roster_fields['birrete_text_color'], roster_fields['estola_text_color'], roster_fields['birrete_text'],
+             roster_fields['estola_text'], now(), roster['id']))
         cur.execute('DELETE FROM grad_roster_students WHERE roster_id=?', (roster['id'],))
-        for pos, name in enumerate(names, start=1):
-            cur.execute('INSERT INTO grad_roster_students(roster_id, student_name, position) VALUES(?,?,?)',
-                        (roster['id'], name, pos))
+        for pos, student in enumerate(students, start=1):
+            cur.execute('''INSERT INTO grad_roster_students
+                (roster_id, student_name, article_name, cap_size, stole_size, toga_size, observations, position)
+                VALUES(?,?,?,?,?,?,?,?)''', (roster['id'], *student, pos))
         con.commit()
         con.close()
         return render_template('grad_roster_success.html', code=roster['code'])
-    existing_students = cur.execute('SELECT student_name FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
-                                    (roster['id'],)).fetchall()
+
+    existing_students = cur.execute(
+        'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)
+    ).fetchall()
     con.close()
     return render_template('public_grad_roster.html', roster=roster, existing_students=existing_students)
 
