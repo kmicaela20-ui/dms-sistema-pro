@@ -95,7 +95,7 @@ tbody td{height:30px}
 {% if roster_students is defined and roster_students %}
   {% for student in roster_students %}
   <tr>
-    <td>{{ student['article_name'] or '' }}</td>
+    <td>{{ student['article_name'] or student['student_name'] or '' }}</td>
     <td>{{ student['cap_size'] or '' }}</td>
     <td>{{ student['stole_size'] or '' }}</td>
     <td>{{ student['toga_size'] or '' }}</td>
