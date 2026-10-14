@@ -4,149 +4,409 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Lista de alumnos - DMS Sublimaciones</title>
+    <title>Ficha de egresados | DMS Sublimaciones</title>
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 24px;
             color: #111;
-            margin: 25px;
+            background: #f3f4f6;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 13px;
         }
+
+        .sheet {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 28px;
+            background: #fff;
+        }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 0 auto 20px;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: 0;
+            border-radius: 6px;
+            background: #171717;
+            color: #fff;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .secondary {
+            background: #e5e7eb;
+            color: #111;
+        }
+
         .header {
+            padding-bottom: 16px;
             text-align: center;
-            border-bottom: 2px solid #111;
-            padding-bottom: 12px;
-            margin-bottom: 20px;
+            border-bottom: 2px solid #222;
         }
-        h1 { margin-bottom: 5px; font-size: 23px; }
-        .datos {
+
+        .header h1 {
+            margin: 0 0 6px;
+            font-size: 25px;
+            letter-spacing: .5px;
+        }
+
+        .header h2 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .header p {
+            margin: 8px 0 0;
+            font-size: 13px;
+        }
+
+        .section-title {
+            margin: 22px 0 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #999;
+            font-size: 16px;
+        }
+
+        .info-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 22px;
+            gap: 10px;
+            margin-top: 18px;
         }
-        .dato {
+
+        .info {
+            min-height: 54px;
+            padding: 9px 11px;
             border: 1px solid #aaa;
-            padding: 10px;
-            min-height: 20px;
+            overflow-wrap: anywhere;
         }
-        .etiqueta {
-            font-size: 11px;
-            color: #555;
+
+        .label {
             display: block;
             margin-bottom: 5px;
+            color: #555;
+            font-size: 10px;
+            font-weight: bold;
             text-transform: uppercase;
         }
+
+        .value {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            font-size: 13px;
+        }
+
+        .full {
+            grid-column: 1 / -1;
+        }
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 12px;
+            margin-top: 10px;
         }
+
         th, td {
-            border: 1px solid #555;
-            padding: 9px;
+            padding: 8px;
+            border: 1px solid #777;
             text-align: left;
+            vertical-align: top;
+            overflow-wrap: anywhere;
         }
-        th { background: #eee; }
-        .numero { width: 55px; text-align: center; }
-        .firma { margin-top: 45px; display: flex; justify-content: space-around; }
-        .firma div {
-            width: 40%;
-            text-align: center;
-            border-top: 1px solid #333;
-            padding-top: 8px;
-        }
-        .acciones { margin-bottom: 20px; text-align: center; }
-        button {
-            padding: 10px 18px;
-            border: 0;
-            border-radius: 6px;
-            background: #222;
-            color: white;
-            cursor: pointer;
-            margin: 4px;
-        }
-        .pie {
-            margin-top: 25px;
-            text-align: center;
+
+        th {
+            background: #eee;
             font-size: 11px;
+        }
+
+        td {
+            min-height: 30px;
+        }
+
+        .number {
+            width: 35px;
+            text-align: center;
+        }
+
+        .name {
+            min-width: 150px;
+        }
+
+        .article-name {
+            min-width: 125px;
+        }
+
+        .size {
+            width: 75px;
+        }
+
+        .observations {
+            min-width: 120px;
+        }
+
+        .signature-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 70px;
+            margin: 65px 25px 25px;
+        }
+
+        .signature {
+            padding-top: 8px;
+            border-top: 1px solid #333;
+            text-align: center;
+        }
+
+        .footer {
+            margin-top: 25px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
             color: #555;
+            font-size: 10px;
+            text-align: center;
         }
+
+        .empty {
+            color: #666;
+            font-style: italic;
+        }
+
+        @media (max-width: 700px) {
+            body {
+                padding: 8px;
+            }
+
+            .sheet {
+                padding: 12px;
+            }
+
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full {
+                grid-column: auto;
+            }
+
+            .table-wrap {
+                overflow-x: auto;
+            }
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 10mm;
+        }
+
         @media print {
-            body { margin: 10mm; }
-            .acciones { display: none; }
-            th { background: #eee !important; print-color-adjust: exact; }
-        }
-        @media (max-width: 500px) {
-            .datos { grid-template-columns: 1fr; }
-            body { margin: 12px; }
+            body {
+                padding: 0;
+                background: #fff;
+                font-size: 10px;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            .sheet {
+                max-width: none;
+                padding: 0;
+            }
+
+            .actions {
+                display: none !important;
+            }
+
+            .header h1 {
+                font-size: 20px;
+            }
+
+            .section-title {
+                margin-top: 14px;
+            }
+
+            .info {
+                min-height: 42px;
+                padding: 6px 8px;
+            }
+
+            th, td {
+                padding: 6px;
+            }
+
+            tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .signature-area {
+                margin-top: 45px;
+            }
+
+            .footer {
+                margin-top: 15px;
+            }
         }
     </style>
 </head>
+
 <body>
-    <div class="acciones">
-        <button onclick="window.print()">Imprimir lista</button>
-        <button onclick="history.back()">Volver al pedido</button>
+<div class="sheet">
+
+    <div class="actions">
+        <button type="button" onclick="window.print()">Imprimir lista</button>
+        <button type="button" class="secondary" onclick="history.back()">
+            Volver al pedido
+        </button>
     </div>
 
     <header class="header">
-        <h1>LISTA DE ALUMNOS</h1>
-        <strong>DMS SUBLIMACIONES</strong>
-        <p>Pedido N.º {{ order['code'] }}</p>
+        <h1>FICHA DE PERSONALIZACIÓN DE EGRESADOS</h1>
+        <h2>DMS SUBLIMACIONES</h2>
+        <p>
+            Pedido N.º {{ order['code'] }}
+        </p>
     </header>
 
-    <section class="datos">
-        <div class="dato">
-            <span class="etiqueta">Institución</span>
-            {{ roster['institution_name'] or 'No informado' }}
-        </div>
-        <div class="dato">
-            <span class="etiqueta">Curso, grado, año y división</span>
-            {{ roster['course_name'] or 'No informado' }}
-        </div>
-        <div class="dato">
-            <span class="etiqueta">Responsable</span>
-            {{ roster['responsible_name'] or 'No informado' }}
-        </div>
-        <div class="dato">
-            <span class="etiqueta">Cantidad de alumnos</span>
-            {{ students|length }}
-        </div>
-    </section>
+    <!-- DATOS DEL RESPONSABLE Y DEL CURSO -->
+    <h3 class="section-title">1. Datos del responsable y del curso</h3>
 
-    <h3>Nómina de alumnos</h3>
+    <div class="info-grid">
+        <div class="info">
+            <span class="label">Institución</span>
+            <div class="value">{{ roster['institution_name'] or 'No informado' }}</div>
+        </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th class="numero">N.º</th>
-                <th>Apellido y nombre completo</th>
-                <th>Medida</th>
-                <th>Observaciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for student in students %}
-            <tr>
-                <td class="numero">{{ loop.index }}</td>
-                <td>{{ student['student_name'] }}</td>
-                <td></td>
-                <td></td>
-            </tr>
-            {% else %}
-            <tr>
-                <td colspan="4">Todavía no se cargaron alumnos en esta lista.</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+        <div class="info">
+            <span class="label">Curso, grado, año y división</span>
+            <div class="value">{{ roster['course_name'] or 'No informado' }}</div>
+        </div>
 
-    <div class="firma">
-        <div>Firma del responsable</div>
-        <div>Firma de recepción</div>
+        <div class="info">
+            <span class="label">Responsable</span>
+            <div class="value">{{ roster['responsible_name'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Cantidad de alumnos</span>
+            <div class="value">{{ students|length }}</div>
+        </div>
     </div>
 
-    <div class="pie">
+    <!-- PERSONALIZACIÓN GENERAL -->
+    <h3 class="section-title">2. Personalización del birrete y la estola</h3>
+
+    <div class="info-grid">
+        <div class="info">
+            <span class="label">Tipo de birrete</span>
+            <div class="value">{{ roster['cap_type'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Tipo de letra del birrete</span>
+            <div class="value">{{ roster['cap_font'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Tipo de letra de la estola</span>
+            <div class="value">{{ roster['stole_font'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Color del birrete</span>
+            <div class="value">{{ roster['cap_color'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Color de la estola</span>
+            <div class="value">{{ roster['stole_color'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Color de las letras del birrete</span>
+            <div class="value">{{ roster['cap_text_color'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Color de las letras de la estola</span>
+            <div class="value">{{ roster['stole_text_color'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Texto que irá en el birrete</span>
+            <div class="value">{{ roster['cap_text'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Texto que irá en la estola</span>
+            <div class="value">{{ roster['stole_text'] or 'No informado' }}</div>
+        </div>
+
+        <div class="info">
+            <span class="label">Otros detalles de personalización</span>
+            <div class="value">{{ roster['general_observations'] or 'Sin observaciones' }}</div>
+        </div>
+    </div>
+
+    <!-- NÓMINA -->
+    <h3 class="section-title">3. Nómina individual de alumnos</h3>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th class="number">N.º</th>
+                    <th class="name">Apellido y nombre completo</th>
+                    <th class="article-name">Nombre que irá en el artículo</th>
+                    <th class="size">Talle birrete</th>
+                    <th class="size">Talle estola</th>
+                    <th class="size">Talle toga</th>
+                    <th class="observations">Observaciones</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                {% for student in students %}
+                <tr>
+                    <td class="number">{{ loop.index }}</td>
+                    <td>{{ student['student_name'] or '' }}</td>
+                    <td>{{ student['article_name'] or '' }}</td>
+                    <td>{{ student['cap_size'] or '' }}</td>
+                    <td>{{ student['stole_size'] or '' }}</td>
+                    <td>{{ student['gown_size'] or '' }}</td>
+                    <td>{{ student['student_observations'] or '' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="empty">
+                        Todavía no hay alumnos cargados en esta nómina.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="signature-area">
+        <div class="signature">Firma del responsable</div>
+        <div class="signature">Firma de recepción de DMS</div>
+    </div>
+
+    <footer class="footer">
         DMS Sublimaciones · Perico y El Carmen, Jujuy
-    </div>
+    </footer>
+
+</div>
 </body>
 </html>
