@@ -1,48 +1,66 @@
+
 {% extends "base.html" %}
 {% block content %}
 
 <div class="titlebar no-print">
-
-    <h1>
-        {{ order.code }} - {{ order.document_type }}
-    </h1>
+    <h1>{{ order.code }} - {{ order.document_type }}</h1>
 
     <div>
-
-        <a class="btn green"
-           href="{{ wa }}"
-           target="_blank">
+        <a class="btn green" href="{{ wa }}" target="_blank" rel="noopener">
             WhatsApp
         </a>
 
         {% if order.order_module != 'General' %}
-
-        <a class="btn"
-           href="/orders/{{ order.id }}/workshop"
-           target="_blank">
+        <a class="btn" href="/orders/{{ order.id }}/workshop" target="_blank">
             Imprimir lista taller
         </a>
-
         {% endif %}
 
-        <button onclick="window.print()" class="btn">
+        {% if order.order_module == 'Birretes/Estolas' %}
+            {% if roster %}
+                <a class="btn"
+                   href="{{ url_for('print_grad_roster', oid=order.id) }}"
+                   target="_blank">
+                    Imprimir lista de alumnos
+                </a>
+
+                <button class="btn"
+                        type="button"
+                        onclick="copiarEnlace('{{ roster_public_url }}')">
+                    Copiar enlace para el cliente
+                </button>
+            {% else %}
+                <form method="post"
+                      action="{{ url_for('create_grad_roster_link', oid=order.id) }}"
+                      style="display:inline">
+                    <button class="btn" type="submit">
+                        Crear enlace para lista de alumnos
+                    </button>
+                </form>
+            {% endif %}
+        {% endif %}
+
+        <button type="button" class="btn" onclick="window.print()">
             Imprimir comprobante
         </button>
-
     </div>
-
 </div>
 
+{% with mensajes = get_flashed_messages() %}
+    {% if mensajes %}
+        <div class="panel no-print">
+            {% for mensaje in mensajes %}
+                <p>{{ mensaje }}</p>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
 
 <section class="receipt">
 
-    <!-- ==========================================
-         ENCABEZADO
-    ========================================== -->
-
     <div class="receipt-head">
-
-        <img src="{{ url_for('static', filename='logo.png') }}">
+        <img src="{{ url_for('static', filename='logo.png') }}"
+             alt="DMS Sublimaciones">
 
         <div>
             <h2>DMS Sublimaciones</h2>
@@ -54,513 +72,256 @@
             <h3>{{ order.code }}</h3>
             <p>{{ order.date_taken }}</p>
         </div>
-
     </div>
-
 
     {% if order.document_type == 'Presupuesto' %}
-
-    <div class="validity">
-        PRESUPUESTO VÁLIDO POR 7 DÍAS HÁBILES
-    </div>
-
+        <div class="validity">
+            PRESUPUESTO VÁLIDO POR 7 DÍAS HÁBILES
+        </div>
     {% endif %}
-
-
-    <!-- ==========================================
-         DATOS DEL CLIENTE
-    ========================================== -->
 
     <div class="receipt-grid">
-
-        <div>
-            <b>Cliente:</b>
-            {{ order.client_name }}
-        </div>
-
-        <div>
-            <b>Tel:</b>
-            {{ order.client_phone }}
-        </div>
-
-        <div>
-            <b>Dirección:</b>
-            {{ order.client_address }}
-        </div>
-
-        <div>
-            <b>Entrega:</b>
-            {{ order.date_delivery }}
-        </div>
-
-        <div>
-            <b>Módulo:</b>
-            {{ order.order_module }}
-        </div>
-
-        <div>
-            <b>Recepciona:</b>
-            {{ order.receptionist }}
-        </div>
-
+        <div><b>Cliente:</b> {{ order.client_name }}</div>
+        <div><b>Teléfono:</b> {{ order.client_phone }}</div>
+        <div><b>Dirección:</b> {{ order.client_address }}</div>
+        <div><b>Entrega:</b> {{ order.date_delivery }}</div>
+        <div><b>Módulo:</b> {{ order.order_module }}</div>
+        <div><b>Recepciona:</b> {{ order.receptionist }}</div>
     </div>
-
 
     {% if order.client_notes %}
-
-    <div style="
-        margin-top:20px;
-        padding:12px;
-        border:1px solid #999;
-        border-radius:8px;
-    ">
-
-        <b>OBSERVACIONES DEL PEDIDO:</b>
-
-        <br><br>
-
-        {{ order.client_notes }}
-
-    </div>
-
+        <div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px">
+            <b>OBSERVACIONES DEL PEDIDO:</b>
+            <p>{{ order.client_notes }}</p>
+        </div>
     {% endif %}
-
-
-    <!-- ==========================================
-         EGRESADITOS
-    ========================================== -->
 
     {% if order.order_module == 'Egresaditos' %}
 
-    <h2 style="margin-top:30px;">
-        Detalle de alumnos
-    </h2>
+        <h2 style="margin-top:30px">Detalle de alumnos</h2>
+        {% set resumen = namespace(total=0, pagado=0) %}
 
-    {% set resumen = namespace(total=0, pagado=0) %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Alumno</th>
+                    <th>Total alumno</th>
+                    <th>Pagado</th>
+                    <th>Saldo</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for student in students %}
+                    {% set alumno = namespace(pagado=0) %}
 
-    <table>
+                    {% for payment in egresaditos_payments %}
+                        {% if payment.student_id == student.id %}
+                            {% set alumno.pagado = alumno.pagado + (payment.amount or 0) %}
+                        {% endif %}
+                    {% endfor %}
 
-        <thead>
-            <tr>
-                <th>Alumno</th>
-                <th>Total alumno</th>
-                <th>Pagado</th>
-                <th>Saldo</th>
-            </tr>
-        </thead>
+                    {% set precio = student.final_price or 0 %}
+                    {% set saldo_alumno = precio - alumno.pagado %}
+                    {% set resumen.total = resumen.total + precio %}
+                    {% set resumen.pagado = resumen.pagado + alumno.pagado %}
 
-        <tbody>
+                    <tr>
+                        <td>{{ student.student_name }}</td>
+                        <td>${{ "%.2f"|format(precio) }}</td>
+                        <td>${{ "%.2f"|format(alumno.pagado) }}</td>
+                        <td>${{ "%.2f"|format([saldo_alumno, 0]|max) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-        {% for student in students %}
-
-            {% set alumno = namespace(pagado=0) %}
-
-            {% for payment in egresaditos_payments %}
-
-                {% if payment.student_id == student.id %}
-
-                    {% set alumno.pagado =
-                        alumno.pagado + (payment.amount or 0)
-                    %}
-
-                {% endif %}
-
-            {% endfor %}
-
-
-            {% set precio = student.final_price or 0 %}
-
-            {% set saldo_alumno =
-                precio - alumno.pagado
-            %}
-
-
-            {% set resumen.total =
-                resumen.total + precio
-            %}
-
-            {% set resumen.pagado =
-                resumen.pagado + alumno.pagado
-            %}
-
-
-            <tr>
-
-                <td>
-                    <b>
-                        {{ student.student_name }}
-                    </b>
-                </td>
-
-                <td>
-                    ${{ "%.2f"|format(precio) }}
-                </td>
-
-                <td>
-                    <b>
-                        ${{ "%.2f"|format(alumno.pagado) }}
-                    </b>
-                </td>
-
-                <td>
-                    <b>
-                        ${{ "%.2f"|format([saldo_alumno, 0]|max) }}
-                    </b>
-                </td>
-
-            </tr>
-
-        {% endfor %}
-
-        </tbody>
-
-    </table>
-
-
-    <!-- RESUMEN EGRESADITOS -->
-
-    <div class="totals">
-
-        <p>
-            Total del pedido:
-            <b>
-                ${{ "%.2f"|format(resumen.total) }}
-            </b>
-        </p>
-
-        <p>
-            Total pagado:
-            <b>
-                ${{ "%.2f"|format(resumen.pagado) }}
-            </b>
-        </p>
-
-        <p>
-            Saldo total:
-            <b>
-                ${{ "%.2f"|format(
-                    [resumen.total - resumen.pagado, 0]|max
-                ) }}
-            </b>
-        </p>
-
-    </div>
-
-
-    <!-- ==========================================
-         OTROS MÓDULOS
-    ========================================== -->
+        <div class="totals">
+            <p>Total del pedido: <b>${{ "%.2f"|format(resumen.total) }}</b></p>
+            <p>Total pagado: <b>${{ "%.2f"|format(resumen.pagado) }}</b></p>
+            <p>Saldo total: <b>${{ "%.2f"|format([resumen.total - resumen.pagado, 0]|max) }}</b></p>
+        </div>
 
     {% else %}
 
-
-        <!-- ARTÍCULOS GENERALES -->
-
         {% if general %}
-
-        <h2>Artículos</h2>
-
-        <table>
-
-            <tr>
-                <th>Producto</th>
-                <th>Detalle</th>
-                <th>Cant.</th>
-                <th>Precio</th>
-                <th>Subtotal</th>
-            </tr>
-
-            {% for i in general %}
-
-            <tr>
-
-                <td>
-                    {{ i.product }}
-                </td>
-
-                <td>
-                    {{ i.detail }}
-                </td>
-
-                <td>
-                    {{ i.qty }}
-                </td>
-
-                <td>
-                    ${{ "%.2f"|format(i.unit_price) }}
-                </td>
-
-                <td>
-                    ${{ "%.2f"|format(i.subtotal) }}
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
+            <h2>Artículos</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Detalle</th>
+                        <th>Cantidad</th>
+                        <th>Precio</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in general %}
+                        <tr>
+                            <td>{{ i.product }}</td>
+                            <td>{{ i.detail }}</td>
+                            <td>{{ i.qty }}</td>
+                            <td>${{ "%.2f"|format(i.unit_price or 0) }}</td>
+                            <td>${{ "%.2f"|format(i.subtotal or 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% endif %}
-
-
-        <!-- INDUMENTARIA -->
 
         {% if apparel %}
+            <h2>Indumentaria</h2>
+            <p><b>Tipo de tela:</b> {{ order.fabric_type }}</p>
 
-        <h2>Indumentaria</h2>
-
-        <p>
-            <b>Tipo de tela:</b>
-            {{ order.fabric_type }}
-        </p>
-
-        <table>
-
-            <tr>
-                <th>Artículo</th>
-                <th>Nombre</th>
-                <th>Superior</th>
-                <th>Inferior</th>
-                <th>Precio</th>
-            </tr>
-
-            {% for i in apparel %}
-
-            <tr>
-
-                <td>
-                    {{ i.article }}
-                </td>
-
-                <td>
-                    {{ i.person_name }}
-                </td>
-
-                <td>
-                    {{ i.upper_size }}
-                </td>
-
-                <td>
-                    {{ i.lower_size }}
-                </td>
-
-                <td>
-                    ${{ "%.2f"|format(i.price) }}
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
+            <table>
+                <thead>
+                    <tr>
+                        <th>Artículo</th>
+                        <th>Nombre</th>
+                        <th>Talle superior</th>
+                        <th>Talle inferior</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in apparel %}
+                        <tr>
+                            <td>{{ i.article }}</td>
+                            <td>{{ i.person_name }}</td>
+                            <td>{{ i.upper_size }}</td>
+                            <td>{{ i.lower_size }}</td>
+                            <td>${{ "%.2f"|format(i.price or 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% endif %}
-
-
-        <!-- BIRRETES / ESTOLAS -->
 
         {% if grads %}
+            <h2>Birretes / Estolas</h2>
 
-        <h2>Birretes / Estolas</h2>
+            <p>
+                <b>Escuela:</b> {{ order.school_name }}
+                |
+                <b>Grado/Año:</b> {{ order.school_grade }}
+            </p>
 
-        <p>
-
-            <b>Escuela:</b>
-            {{ order.school_name }}
-
-            |
-
-            <b>Grado/Año:</b>
-            {{ order.school_grade }}
-
-        </p>
-
-        <table>
-
-            <tr>
-                <th>Nombre</th>
-                <th>Talle birrete</th>
-                <th>Talle estola</th>
-                <th>Obs.</th>
-                <th>Precio</th>
-            </tr>
-
-            {% for i in grads %}
-
-            <tr>
-
-                <td>
-                    {{ i.person_name }}
-                </td>
-
-                <td>
-                    {{ i.cap_size }}
-                </td>
-
-                <td>
-                    {{ i.stole_size }}
-                </td>
-
-                <td>
-                    {{ i.note }}
-                </td>
-
-                <td>
-                    ${{ "%.2f"|format(i.price) }}
-                </td>
-
-            </tr>
-
-            {% endfor %}
-
-        </table>
-
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Talle birrete</th>
+                        <th>Talle estola</th>
+                        <th>Observaciones</th>
+                        <th>Precio</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for i in grads %}
+                        <tr>
+                            <td>{{ i.person_name }}</td>
+                            <td>{{ i.cap_size }}</td>
+                            <td>{{ i.stole_size }}</td>
+                            <td>{{ i.note }}</td>
+                            <td>${{ "%.2f"|format(i.price or 0) }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         {% endif %}
 
+        {% if order.order_module == 'Birretes/Estolas' and roster %}
+            <section class="panel no-print" style="margin-top:20px;padding:14px">
+                <h2>Lista de alumnos enviada por el cliente</h2>
 
-        <!-- TOTALES NORMALES -->
+                <p><b>Responsable:</b> {{ roster.responsible_name or 'Pendiente' }}</p>
+                <p><b>Institución:</b> {{ roster.institution_name or order.school_name or 'Pendiente' }}</p>
+                <p><b>Curso / año / división:</b> {{ roster.course_name or order.school_grade or 'Pendiente' }}</p>
+                <p><b>Fecha de envío:</b> {{ roster.submitted_at or 'Todavía no enviada' }}</p>
+
+                {% if roster_students %}
+                    <ol>
+                        {% for alumno in roster_students %}
+                            <li>{{ alumno.student_name }}</li>
+                        {% endfor %}
+                    </ol>
+                {% else %}
+                    <p>El cliente todavía no completó la lista.</p>
+                {% endif %}
+
+                <p>
+                    <b>Enlace del cliente:</b>
+                    <a href="{{ roster_public_url }}" target="_blank" rel="noopener">
+                        Abrir formulario
+                    </a>
+                </p>
+            </section>
+        {% endif %}
 
         <div class="totals">
-
-            <p>
-                Subtotal:
-                <b>
-                    ${{ "%.2f"|format(order.subtotal) }}
-                </b>
-            </p>
-
-            <p>
-                Descuento:
-                <b>
-                    ${{ "%.2f"|format(order.discount) }}
-                </b>
-            </p>
-
-            <p>
-                Total:
-                <b>
-                    ${{ "%.2f"|format(order.total) }}
-                </b>
-            </p>
-
+            <p>Subtotal: <b>${{ "%.2f"|format(order.subtotal or 0) }}</b></p>
+            <p>Descuento: <b>${{ "%.2f"|format(order.discount or 0) }}</b></p>
+            <p>Total: <b>${{ "%.2f"|format(order.total or 0) }}</b></p>
 
             {% if order.document_type != 'Presupuesto' %}
-
-            <p>
-                Seña:
-                <b>
-                    ${{ "%.2f"|format(order.deposit) }}
-                </b>
-            </p>
-
-            <p>
-                Saldo:
-                <b>
-                    ${{ "%.2f"|format(order.balance) }}
-                </b>
-            </p>
-
+                <p>Seña: <b>${{ "%.2f"|format(order.deposit or 0) }}</b></p>
+                <p>Saldo: <b>${{ "%.2f"|format(order.balance or 0) }}</b></p>
             {% endif %}
-
         </div>
-
 
     {% endif %}
 
-
-    <!-- ==========================================
-         IMPORTANTE
-    ========================================== -->
-
-    <div style="
-        margin-top:20px;
-        padding:12px;
-        border:1px solid #999;
-        border-radius:8px;
-        font-size:12px;
-        line-height:1.4;
-    ">
-
+    <div style="margin-top:20px;padding:12px;border:1px solid #999;border-radius:8px;font-size:12px;line-height:1.4">
         <b>IMPORTANTE:</b>
-
-        <br><br>
-
-        Una vez informado que el pedido se encuentra TERMINADO,
-        el cliente contará con un plazo de 7 días corridos para
-        retirarlo y/o cancelar el saldo pendiente.
-
-        <br><br>
-
-        Pasado dicho plazo,
-        se aplicará un recargo del 10% semanal sobre el saldo
-        restante hasta el momento de su retiro y cancelación total.
-
-        <br><br>
-
-        Gracias por confiar en DMS Sublimaciones.
-
+        <p>
+            Una vez informado que el pedido se encuentra TERMINADO,
+            el cliente contará con un plazo de 7 días corridos para
+            retirarlo y/o cancelar el saldo pendiente.
+        </p>
+        <p>
+            Pasado dicho plazo, se aplicará un recargo del 10% semanal
+            sobre el saldo restante hasta el momento de su retiro y
+            cancelación total.
+        </p>
+        <p>Gracias por confiar en DMS Sublimaciones.</p>
     </div>
-
 </section>
-
-
-<!-- ==========================================
-     ARCHIVOS
-========================================== -->
 
 {% if files %}
-
-<section class="panel">
-
-    <h2>Archivos del pedido</h2>
-
-    <div class="filegrid">
-
-        {% for f in files %}
-
-        <a href="/static/{{ f.file_path }}"
-           target="_blank">
-
-            📎 {{ f.original_name }}
-
-        </a>
-
-        {% endfor %}
-
-    </div>
-
-</section>
-
+    <section class="panel">
+        <h2>Archivos del pedido</h2>
+        <div class="filegrid">
+            {% for f in files %}
+                <a href="/static/{{ f.file_path }}" target="_blank" rel="noopener">
+                    📎 {{ f.original_name }}
+                </a>
+            {% endfor %}
+        </div>
+    </section>
 {% endif %}
-
-
-<!-- ==========================================
-     COSTOS
-========================================== -->
 
 {% if order.calculated_cost %}
-
-<section class="panel">
-
-    <h2>Costos automáticos</h2>
-
-    <p>
-
-        <b>Costo calculado:</b>
-
-        ${{ "%.2f"|format(order.calculated_cost or 0) }}
-
-        |
-
-        <b>Ganancia:</b>
-
-        ${{ "%.2f"|format(order.calculated_profit or 0) }}
-
-    </p>
-
-</section>
-
+    <section class="panel">
+        <h2>Costos automáticos</h2>
+        <p>
+            <b>Costo calculado:</b>
+            ${{ "%.2f"|format(order.calculated_cost or 0) }}
+            |
+            <b>Ganancia:</b>
+            ${{ "%.2f"|format(order.calculated_profit or 0) }}
+        </p>
+    </section>
 {% endif %}
 
+<script>
+async function copiarEnlace(enlace) {
+    try {
+        await navigator.clipboard.writeText(enlace);
+        alert('Enlace copiado correctamente.');
+    } catch (error) {
+        window.prompt('Copiá este enlace:', enlace);
+    }
+}
+</script>
 
 {% endblock %}
