@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>✏️ Editar datos del alumno</h1>
+
+<section class="panel">
+    <p><strong>Pedido:</strong> {{ order['code'] or '-' }}</p>
+    <p><strong>Alumno:</strong> {{ student['student_name'] or '-' }}</p>
+
+    <form method="POST"
+          action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/workshop-update">
+
+        <label>Nombre y apellido
+            <input type="text" name="student_name"
+                   value="{{ student['student_name'] or '' }}" required>
+        </label>
+
+        <label>Nombre para la prenda
+            <input type="text" name="printed_name"
+                   value="{{ student['printed_name'] or '' }}">
+        </label>
+
+        <label>Prendas
+            <input type="text" name="garment_name"
+                   value="{{ student['garment_name'] or '' }}">
+        </label>
+
+        <label>Talle de chomba/remera
+            <input type="text" name="shirt_size"
+                   value="{{ student['shirt_size'] or '' }}">
+        </label>
+
+        <label>Talle de campera
+            <input type="text" name="jacket_size"
+                   value="{{ student['jacket_size'] or '' }}">
+        </label>
+
+        <label>Talle de buzo
+            <input type="text" name="hoodie_size"
+                   value="{{ student['hoodie_size'] or '' }}">
+        </label>
+
+        <label>Detalle u observaciones
+            <textarea name="detail">{{ student['detail'] or '' }}</textarea>
+        </label>
+
+        <br>
+        <button type="submit" class="savebtn">
+            💾 Guardar cambios
+        </button>
+
+        <a class="btn" href="/orders/{{ order['id'] }}/edit">
+            Volver al pedido
+        </a>
+    </form>
+</section>
+
+{% endblock %}
