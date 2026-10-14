@@ -1892,7 +1892,27 @@ def view_order(oid):
     roster = con.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
     roster_students = []
     if roster:
-        roster_students = con.execute('SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)).fetchall()
+        roster_students = con.execute(
+            'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
+            (roster['id'],)
+        ).fetchall()
+
+    # Compatibilidad con las plantillas que todavía leen la variable "grads".
+    # La lista actual de Birretes/Estolas está guardada en grad_roster_students.
+    if order['order_module'] == 'Birretes/Estolas' and roster_students:
+        grads = [
+            {
+                'id': student['id'],
+                'person_name': student['student_name'] or '',
+                'note': student['article_name'] or '',
+                'cap_size': student['cap_size'] or '',
+                'stole_size': student['stole_size'] or '',
+                'toga_size': student['toga_size'] or '',
+                'observations': student['observations'] or '',
+                'price': money(student.get('price')),
+            }
+            for student in roster_students
+        ]
 
     # Datos especiales para comprobante de Egresaditos
     students = []
@@ -2980,13 +3000,35 @@ def workshop(oid):
     apparel=con.execute('SELECT * FROM apparel_items WHERE order_id=?',(oid,)).fetchall()
     sponsors=con.execute('SELECT * FROM apparel_sponsors WHERE order_id=?',(oid,)).fetchall()
     grads=con.execute('SELECT * FROM grad_items WHERE order_id=?',(oid,)).fetchall()
+    roster=con.execute('SELECT * FROM grad_rosters WHERE order_id=?',(oid,)).fetchone()
+    roster_students=[]
+    if roster:
+        roster_students=con.execute(
+            'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
+            (roster['id'],)
+        ).fetchall()
+        # Adaptar la lista actual de alumnos a las claves que espera la plantilla de taller.
+        if roster_students:
+            grads=[
+                {
+                    'id': student['id'],
+                    'person_name': student['student_name'] or '',
+                    'note': student['article_name'] or '',
+                    'cap_size': student['cap_size'] or '',
+                    'stole_size': student['stole_size'] or '',
+                    'toga_size': student['toga_size'] or '',
+                    'observations': student['observations'] or '',
+                    'price': money(student.get('price')),
+                }
+                for student in roster_students
+            ]
     students=con.execute(
     'SELECT * FROM egresaditos_students WHERE order_id=? ORDER BY id',
     (oid,)
     ).fetchall()
     con.close()
     if order['order_module']=='Indumentaria': return render_template('workshop_indumentaria.html',order=order,apparel=apparel,sponsors=sponsors)
-    if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads)
+    if order['order_module']=='Birretes/Estolas': return render_template('workshop_egresados.html',order=order,grads=grads,roster=roster,roster_students=roster_students)
     if order['order_module']=='Egresaditos':
         return render_template(
             'workshop_egresaditos.html',
