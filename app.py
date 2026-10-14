@@ -2463,6 +2463,7 @@ def delivery_confirm(oid):
         total_due_today=total_a_cobrar
     )
 
+
 @app.route('/orders/<int:oid>/delivery-ticket')
 @login_required
 def delivery_ticket(oid):
@@ -2484,17 +2485,30 @@ def delivery_ticket(oid):
     # Datos enviados desde la confirmación de entrega
     try:
         payment = float(request.args.get('payment') or 0)
-    except:
+    except (TypeError, ValueError):
         payment = 0
+
+    try:
+        surcharge = float(request.args.get('surcharge') or 0)
+    except (TypeError, ValueError):
+        surcharge = 0
+
+    try:
+        balance_before = float(request.args.get('balance') or 0)
+    except (TypeError, ValueError):
+        balance_before = 0
 
     payment_method = request.args.get('method') or 'Efectivo'
 
-    delivery_date = order.get('delivered_at') or datetime.datetime.now().strftime('%Y-%m-%d')
+    delivery_date = (
+        order.get('delivered_at')
+        or datetime.datetime.now().strftime('%Y-%m-%d')
+    )
 
     total = float(order.get('total') or 0)
 
-    # Lo abonado anteriormente antes del pago final
-    paid_before = max(total - payment, 0)
+    # Importe abonado antes de la entrega
+    paid_before = max(total - balance_before, 0)
 
     return render_template(
         'delivery_ticket.html',
@@ -2503,7 +2517,10 @@ def delivery_ticket(oid):
         paid_before=paid_before,
         final_payment=payment,
         payment_method=payment_method,
-        delivery_date=delivery_date
+        delivery_date=delivery_date,
+        original_balance=balance_before,
+        surcharge=surcharge,
+        total_due=balance_before + surcharge
     )
 
 @app.route('/orders/<int:oid>/workshop')
