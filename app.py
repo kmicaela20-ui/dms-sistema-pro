@@ -3,6 +3,7 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import os, datetime, urllib.parse, unicodedata
 import psycopg2, psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
+from functools import wraps
 
 app=Flask(__name__)
 app.secret_key=os.environ.get('SECRET_KEY','CAMBIAR_SECRET_KEY_DMS')
@@ -57,6 +58,31 @@ class PGConn:
 
 def db():
     return PGConn()
+
+
+def login_required(view_func):
+    """Exige que exista una sesión iniciada."""
+    @wraps(view_func)
+    def wrapped_view(*args, **kwargs):
+        if not session.get('user'):
+            return redirect(url_for('login'))
+        return view_func(*args, **kwargs)
+    return wrapped_view
+
+
+def role_required(*allowed_roles):
+    """Exige sesión iniciada y uno de los roles autorizados."""
+    def decorator(view_func):
+        @wraps(view_func)
+        def wrapped_view(*args, **kwargs):
+            if not session.get('user'):
+                return redirect(url_for('login'))
+            if session.get('role') not in allowed_roles:
+                flash('No tenés permisos para acceder a esta sección.')
+                return redirect(url_for('index') if 'index' in app.view_functions else '/')
+            return view_func(*args, **kwargs)
+        return wrapped_view
+    return decorator
 
 def today(): return datetime.date.today().isoformat()
 def now(): return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
