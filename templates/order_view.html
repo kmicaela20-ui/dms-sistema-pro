@@ -79,6 +79,7 @@
         <div><b>Cliente:</b> {{ order.client_name }}</div>
         <div><b>Tel:</b> {{ order.client_phone }}</div>
         <div><b>Dirección:</b> {{ order.client_address }}</div>
+        {% if order.client_dni_cuit %}<div><b>DNI / CUIT:</b> {{ order.client_dni_cuit }}</div>{% endif %}
         <div><b>Entrega:</b> {{ order.date_delivery }}</div>
         <div><b>Módulo:</b> {{ order.order_module }}</div>
         <div><b>Recepciona:</b> {{ order.receptionist }}</div>
