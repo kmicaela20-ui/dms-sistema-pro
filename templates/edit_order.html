@@ -82,169 +82,88 @@
 {% if order.order_module == 'Birretes/Estolas' %}
 
 <section class="panel">
-    <h2>Personalización de birretes y estolas</h2>
+    <h2>Personalización general de birretes y estolas</h2>
 
     {% if roster %}
-
     <div class="formgrid">
         <label>Responsable
-            <input name="responsible_name"
-                   value="{{ roster.responsible_name or '' }}">
+            <input name="responsible_name" value="{{ roster.responsible_name or '' }}">
         </label>
-
         <label>Institución
-            <input name="institution_name"
-                   value="{{ roster.institution_name or '' }}">
+            <input name="institution_name" value="{{ roster.institution_name or '' }}">
         </label>
-
         <label>Curso / Promoción
-            <input name="course_name"
-                   value="{{ roster.course_name or '' }}">
+            <input name="course_name" value="{{ roster.course_name or '' }}">
         </label>
-
         <label>Tipo de birrete
-            <input name="birrete_type"
-                   value="{{ roster.birrete_type or '' }}"
-                   placeholder="Ej.: clásico, con visera...">
+            <input name="birrete_type" value="{{ roster.birrete_type or '' }}" placeholder="Ej.: clásico, con visera...">
         </label>
-
         <label>Tipo de letra del birrete
-            <input name="birrete_font"
-                   value="{{ roster.birrete_font or '' }}">
+            <input name="birrete_font" value="{{ roster.birrete_font or '' }}">
         </label>
-
         <label>Tipo de letra de la estola
-            <input name="estola_font"
-                   value="{{ roster.estola_font or '' }}">
+            <input name="estola_font" value="{{ roster.estola_font or '' }}">
         </label>
-
         <label>Color del birrete
-            <input name="birrete_color"
-                   value="{{ roster.birrete_color or '' }}">
+            <input name="birrete_color" value="{{ roster.birrete_color or '' }}">
         </label>
-
         <label>Color de la estola
-            <input name="estola_color"
-                   value="{{ roster.estola_color or '' }}">
+            <input name="estola_color" value="{{ roster.estola_color or '' }}">
         </label>
-
         <label>Color de letras del birrete
-            <input name="birrete_text_color"
-                   value="{{ roster.birrete_text_color or '' }}">
+            <input name="birrete_text_color" value="{{ roster.birrete_text_color or '' }}">
         </label>
-
         <label>Color de letras de la estola
-            <input name="estola_text_color"
-                   value="{{ roster.estola_text_color or '' }}">
+            <input name="estola_text_color" value="{{ roster.estola_text_color or '' }}">
         </label>
     </div>
-
     <label>Texto que llevará el birrete
         <textarea name="birrete_text">{{ roster.birrete_text or '' }}</textarea>
     </label>
-
     <label>Texto que llevará la estola
         <textarea name="estola_text">{{ roster.estola_text or '' }}</textarea>
     </label>
 
-    {% else %}
-
-    <p>
-        Todavía no se generó la lista de alumnos para este pedido.
-        Guardá el pedido y generá el enlace desde la ficha del pedido
-        para poder cargar la personalización y los alumnos.
-    </p>
-
-    {% endif %}
-</section>
-
-
-<section class="panel">
-    <h2>Lista de alumnos</h2>
-
-    {% if roster %}
-
-    <p>
-        Estos datos se guardan junto con el pedido y se utilizan en la
-        ficha imprimible de alumnos.
-    </p>
-
-    <input type="hidden" name="roster_student_count"
-           id="roster_student_count"
-           value="{{ roster_students|length }}">
-
+    <h2>Alumnos e importes</h2>
+    <p>Completá en una sola tabla los datos de cada alumno y el precio total de sus artículos.</p>
+    <input type="hidden" name="roster_student_count" id="roster_student_count" value="{{ roster_students|length }}">
+    <input type="hidden" name="item_count" id="item_count" value="{{ roster_students|length }}">
     <div style="overflow-x:auto;">
-        <table id="rosterTable" style="min-width:1100px; width:100%;">
-            <thead>
-                <tr>
-                    <th>#</th>
-                    <th>Apellido y nombre completo</th>
-                    <th>Nombre para el artículo</th>
-                    <th>Talle birrete</th>
-                    <th>Talle estola</th>
-                    <th>Talle toga</th>
-                    <th>Observaciones</th>
-                </tr>
-            </thead>
-
+        <table id="rosterTable" style="min-width:1450px;width:100%;">
+            <thead><tr>
+                <th>Apellido y nombre completo</th>
+                <th>Nombre que llevará el artículo</th>
+                <th>Talle de birrete</th>
+                <th>Talle de estola</th>
+                <th>Talle de toga</th>
+                <th>Observaciones</th>
+                <th>Precio total por alumno</th>
+            </tr></thead>
             <tbody>
-                {% for alumno in roster_students %}
-                <tr>
-                    <td>{{ loop.index }}</td>
-
-                    <td>
-                        <input name="roster_student_name_{{ loop.index }}"
-                               value="{{ alumno.student_name or '' }}"
-                               required>
-                    </td>
-
-                    <td>
-                        <input name="roster_article_name_{{ loop.index }}"
-                               value="{{ alumno.article_name or '' }}">
-                    </td>
-
-                    <td>
-                        <input name="roster_cap_size_{{ loop.index }}"
-                               value="{{ alumno.cap_size or '' }}"
-                               placeholder="Talle">
-                    </td>
-
-                    <td>
-                        <input name="roster_stole_size_{{ loop.index }}"
-                               value="{{ alumno.stole_size or '' }}"
-                               placeholder="Talle">
-                    </td>
-
-                    <td>
-                        <input name="roster_toga_size_{{ loop.index }}"
-                               value="{{ alumno.toga_size or '' }}"
-                               placeholder="Talle">
-                    </td>
-
-                    <td>
-                        <input name="roster_observations_{{ loop.index }}"
-                               value="{{ alumno.observations or '' }}">
-                    </td>
-                </tr>
-                {% endfor %}
+            {% for alumno in roster_students %}
+            <tr>
+                <td><input name="roster_student_name_{{ loop.index }}" value="{{ alumno.student_name or '' }}"></td>
+                <td><input name="roster_article_name_{{ loop.index }}" value="{{ alumno.article_name or '' }}"></td>
+                <td><input name="roster_cap_size_{{ loop.index }}" value="{{ alumno.cap_size or '' }}" placeholder="Talle"></td>
+                <td><input name="roster_stole_size_{{ loop.index }}" value="{{ alumno.stole_size or '' }}" placeholder="Talle"></td>
+                <td><input name="roster_toga_size_{{ loop.index }}" value="{{ alumno.toga_size or '' }}" placeholder="Talle"></td>
+                <td><input name="roster_observations_{{ loop.index }}" value="{{ alumno.observations or '' }}"></td>
+                <td><input class="gradPrice" name="roster_price_{{ loop.index }}" type="number" min="0" step="0.01" value="{{ alumno.price or 0 }}" oninput="calcGrad()"></td>
+            </tr>
+            {% endfor %}
             </tbody>
         </table>
     </div>
-
-    {% if not roster_students %}
-    <p>El cliente todavía no cargó alumnos en la lista.</p>
-    {% endif %}
-
+    <button type="button" class="btn" onclick="addGradStudent()">+ Agregar alumno</button>
     {% else %}
-    <p>
-        La lista aparecerá aquí cuando se genere el enlace y el cliente
-        complete los datos de los alumnos.
-    </p>
+    <p>Todavía no se generó la lista de alumnos para este pedido. Guardá el pedido y generá el enlace desde la ficha del pedido para cargar la personalización y los alumnos.</p>
     {% endif %}
 </section>
 
 {% endif %}
 
+
+{% if order.order_module != 'Birretes/Estolas' %}
 
 <section class="panel">
     <h2>Artículos e importes del pedido</h2>
@@ -413,6 +332,9 @@
 </section>
 
 
+{% endif %}
+
+
 <input type="hidden" name="subtotal" id="subtotalInput"
        value="{{ order.subtotal or 0 }}">
 
@@ -451,6 +373,36 @@ function updateTotals(subtotal) {
         '$' + total.toFixed(2);
     document.getElementById('balanceBox').textContent =
         '$' + balance.toFixed(2);
+}
+
+function calcGrad() {
+    let subtotal = 0;
+    document.querySelectorAll('.gradPrice').forEach(input => {
+        subtotal += moneyValue(input.value);
+    });
+    updateTotals(subtotal);
+}
+
+function addGradStudent() {
+    const countInput = document.getElementById('roster_student_count');
+    const itemCount = document.getElementById('item_count');
+    const table = document.getElementById('rosterTable');
+    if (!countInput || !table) return;
+    const n = parseInt(countInput.value || '0', 10) + 1;
+    countInput.value = n;
+    if (itemCount) itemCount.value = n;
+    const row = document.createElement('tr');
+    row.innerHTML = `
+        <td><input name="roster_student_name_${n}"></td>
+        <td><input name="roster_article_name_${n}"></td>
+        <td><input name="roster_cap_size_${n}" placeholder="Talle"></td>
+        <td><input name="roster_stole_size_${n}" placeholder="Talle"></td>
+        <td><input name="roster_toga_size_${n}" placeholder="Talle"></td>
+        <td><input name="roster_observations_${n}"></td>
+        <td><input class="gradPrice" name="roster_price_${n}" type="number" min="0" step="0.01" value="0" oninput="calcGrad()"></td>
+    `;
+    table.querySelector('tbody').appendChild(row);
+    calcGrad();
 }
 
 function calc() {
@@ -537,7 +489,9 @@ function addGeneralItem() {
 }
 
 function recalcTotals() {
-    if (document.querySelector('.qtyInput')) {
+    if (document.querySelector('.gradPrice')) {
+        calcGrad();
+    } else if (document.querySelector('.qtyInput')) {
         calcGeneral();
     } else {
         calc();
@@ -545,6 +499,7 @@ function recalcTotals() {
 }
 
 recalcTotals();
+if (document.querySelector('.gradPrice')) calcGrad();
 </script>
 
 {% endblock %}
