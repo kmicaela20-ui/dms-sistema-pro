@@ -326,6 +326,21 @@ def init():
         print("ERROR finished_at:", e)
 
     # ============================================================
+    # TALLE DE TOGA PARA BIRRETES / ESTOLAS
+    # ============================================================
+
+    try:
+        cur.execute("""
+            ALTER TABLE grad_items
+            ADD COLUMN IF NOT EXISTS toga_size TEXT
+        """)
+        con.commit()
+        print("OK: columna toga_size en grad_items")
+    except Exception as e:
+        con.conn.rollback()
+        print("ERROR columna toga_size:", e)
+
+    # ============================================================
     # DATOS DE TALLER PARA EGRESADITOS
     # ============================================================
 
@@ -1590,18 +1605,26 @@ def new_egresaditos():
 def new_egresados():
     cap_sizes=['','50cm','52cm','54cm','56cm','58cm','60cm','62cm','64cm']
     stole_sizes=['','65cm','75cm','85cm','95cm']
+    toga_sizes=['','XS','S','M','L','XL','XXL','XXXL','Talle único']
     if request.method=='POST':
         con=db(); cur=con.cursor(); doc=request.form.get('document_type')
         subtotal=0; rows=[]
         count=int(request.form.get('item_count','1'))
         for i in range(1,count+1):
-            name=request.form.get(f'name_{i}') or ''; cap=request.form.get(f'cap_{i}') or ''; stole=request.form.get(f'stole_{i}') or ''; note=request.form.get(f'note_{i}') or ''; price=money(request.form.get(f'price_{i}'))
-            if name or cap or stole or note or price>0:
-                subtotal+=price; rows.append((name,cap,stole,note,price))
+            name=request.form.get(f'name_{i}') or ''
+            cap=request.form.get(f'cap_{i}') or ''
+            stole=request.form.get(f'stole_{i}') or ''
+            toga=request.form.get(f'toga_{i}') or ''
+            note=request.form.get(f'note_{i}') or ''
+            price=money(request.form.get(f'price_{i}'))
+            if name or cap or stole or toga or note or price>0:
+                subtotal+=price
+                rows.append((name,cap,stole,toga,note,price))
         oid,code=common_order_insert(cur,doc,'Birretes/Estolas',subtotal,{'school_name':request.form.get('school_name'), 'school_grade':request.form.get('school_grade')})
-        for row in rows: cur.execute('INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,note,price) VALUES(?,?,?,?,?,?)',(oid,*row))
+        for row in rows:
+            cur.execute('INSERT INTO grad_items(order_id,person_name,cap_size,stole_size,toga_size,note,price) VALUES(?,?,?,?,?,?,?)',(oid,*row))
         con.commit(); con.close(); return redirect(f'/orders/{oid}')
-    return render_template('new_egresados.html',today=today(),cap_sizes=cap_sizes,stole_sizes=stole_sizes)
+    return render_template('new_egresados.html',today=today(),cap_sizes=cap_sizes,stole_sizes=stole_sizes,toga_sizes=toga_sizes)
 
 @app.route('/orders/<int:oid>')
 @login_required
@@ -1750,6 +1773,10 @@ def edit_order(oid):
                 f'lower_{i}'
             ) or ''
 
+            toga_size = request.form.get(
+                f'toga_size_{i}'
+            ) or ''
+
             qty = money(
                 request.form.get(f'qty_{i}')
             ) or 1
@@ -1767,6 +1794,7 @@ def edit_order(oid):
                 or name
                 or upper_size
                 or lower_size
+                or toga_size
                 or price > 0
             ):
 
@@ -1801,6 +1829,7 @@ def edit_order(oid):
                             number,
                             upper_size,
                             lower_size,
+                            toga_size,
                             price
                         )
                     )
@@ -1970,9 +1999,8 @@ def edit_order(oid):
 
             for row in item_rows:
 
-                # IMPORTANTE:
-                # item_rows tiene 6 valores
-                article, name, number, upper_size, lower_size, price = row
+                # item_rows contiene los datos del alumno y los tres talles.
+                article, name, number, upper_size, lower_size, toga_size, price = row
 
                 cur.execute(
                     '''
@@ -1981,16 +2009,18 @@ def edit_order(oid):
                         person_name,
                         cap_size,
                         stole_size,
+                        toga_size,
                         note,
                         price
                     )
-                    VALUES(?,?,?,?,?,?)
+                    VALUES(?,?,?,?,?,?,?)
                     ''',
                     (
                         oid,
                         name,
                         upper_size,
                         lower_size,
+                        toga_size,
                         article,
                         price
                     )
@@ -2068,6 +2098,7 @@ def edit_order(oid):
                 person_name,
                 cap_size AS upper_size,
                 stole_size AS lower_size,
+                toga_size,
                 price
             FROM grad_items
             WHERE order_id=?
