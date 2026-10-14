@@ -2319,6 +2319,7 @@ def update_status(oid):
     
 
 
+
 @app.route('/orders/<int:oid>/delivery-confirm', methods=['GET', 'POST'])
 @login_required
 def delivery_confirm(oid):
@@ -2336,18 +2337,14 @@ def delivery_confirm(oid):
         flash('Pedido no encontrado.')
         return redirect('/orders')
 
-    # Datos económicos actuales del pedido
+    # Datos económicos actuales
     total = float(order.get('total') or 0)
     saldo = max(float(order.get('balance') or 0), 0)
-    pagado_anterior = max(total - saldo, 0)
 
-    # Fecha automática del día
-    fecha_entrega = datetime.datetime.now().strftime('%Y-%m-%d')
-
-    # Calcular recargo semanal del 10 %
-    recargo = 0
+    # Calcular días desde que el pedido quedó terminado
     dias_finalizado = 0
     semanas_atraso = 0
+    recargo = 0
 
     try:
         if order.get('finished_at'):
@@ -2367,7 +2364,10 @@ def delivery_confirm(oid):
     except Exception as e:
         print("ERROR calculando recargo de entrega:", e)
 
+    pagado_anterior = max(total - saldo, 0)
     total_a_cobrar = saldo + recargo
+
+    fecha_entrega = datetime.datetime.now().strftime('%Y-%m-%d')
 
     # ========================================================
     # CONFIRMAR ENTREGA
@@ -2379,16 +2379,21 @@ def delivery_confirm(oid):
             request.form.get('payment_method') or 'Efectivo'
         )
 
-        # Volvemos a leer el pedido antes de confirmar
+        # Volver a leer los datos actuales del pedido
         order = cur.execute(
             'SELECT * FROM orders WHERE id=?',
             (oid,)
         ).fetchone()
 
+        if not order:
+            con.close()
+            flash('Pedido no encontrado.')
+            return redirect('/orders')
+
         total = float(order.get('total') or 0)
         saldo = max(float(order.get('balance') or 0), 0)
 
-        # Recalcular el recargo con los datos actuales
+        # Recalcular el recargo al confirmar el cobro
         recargo = 0
 
         try:
@@ -2409,9 +2414,10 @@ def delivery_confirm(oid):
         except Exception as e:
             print("ERROR recalculando recargo:", e)
 
+        # Saldo original más recargo
         pago_final = saldo + recargo
 
-        # Actualizar el pedido como entregado
+        # Guardar entrega y pago final
         cur.execute(
             '''
             UPDATE orders
@@ -2435,7 +2441,7 @@ def delivery_confirm(oid):
         con.commit()
         con.close()
 
-        # Enviar al comprobante el pago final y el recargo
+        # Enviar importes al comprobante
         return redirect(
             f'/orders/{oid}/delivery-ticket'
             f'?payment={pago_final}'
