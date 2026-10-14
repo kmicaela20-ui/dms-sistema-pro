@@ -1,29 +1,26 @@
 {% extends "base.html" %}
-
 {% block content %}
 
-<h1>🎓 Editar Pedido Egresaditos</h1>
+<h1>🎓 Editar pedido de Egresaditos</h1>
 
 <section class="panel">
     <h2>📋 Datos del pedido</h2>
-    <p><strong>Pedido:</strong> {{ order['code'] }}</p>
+    <p><strong>Pedido:</strong> {{ order['code'] or '-' }}</p>
     <p><strong>Cliente:</strong> {{ order['client_name'] or '-' }}</p>
     <p><strong>Teléfono:</strong> {{ order['client_phone'] or '-' }}</p>
     <p><strong>Estado:</strong> {{ order['status'] or '-' }}</p>
 </section>
 
-<!-- EDITAR CANTIDAD DE CUOTAS Y VENCIMIENTOS -->
+<!-- EDITAR CANTIDAD DE CUOTAS -->
 
 <section class="panel" style="border:2px solid #0d6efd;">
-    <h2>✏️ Editar datos generales: cantidad de cuotas</h2>
-
+    <h2>✏️ Corregir cantidad de cuotas</h2>
     <p>
-        Usá esta opción si cargaste mal la cantidad de cuotas al crear el pedido.
-        Los alumnos, las señas y los pagos registrados no se modifican.
+        Esta opción permite corregir la cantidad de cuotas cargada
+        al crear el pedido. Los pagos y las señas registrados se conservan.
     </p>
 
     {% set cuota_actual = namespace(total=0) %}
-
     {% for installment in installments %}
         {% if (installment['installment_number'] or 0)|int > cuota_actual.total %}
             {% set cuota_actual.total = (installment['installment_number'] or 0)|int %}
@@ -34,96 +31,66 @@
           action="/egresaditos/{{ order['id'] }}/installments/edit"
           id="form-editar-cuotas">
 
-        <label style="display:block;max-width:320px;margin-bottom:16px;">
-            Cantidad correcta de cuotas (de 1 a 36)
-
-            <input
-                type="number"
-                id="installment_count"
-                name="installment_count"
-                min="1"
-                max="36"
-                required
-                value="{{ cuota_actual.total if cuota_actual.total > 0 else 1 }}"
-                style="width:100%;padding:10px;margin-top:6px;"
-            >
+        <label>
+            Cantidad de cuotas (1 a 36)
+            <input type="number"
+                   id="installment_count"
+                   name="installment_count"
+                   min="1"
+                   max="36"
+                   required
+                   value="{{ cuota_actual.total if cuota_actual.total > 0 else 1 }}"
+                   style="display:block;width:100%;max-width:320px;padding:10px;">
         </label>
 
         <h3>Fechas de vencimiento</h3>
 
-        <p style="font-size:14px;color:#526174;">
-            Podés conservar las fechas que ya estaban cargadas o corregirlas.
-            Si agregás cuotas, completá sus vencimientos.
-        </p>
-
-        <div
-            id="fechas-cuotas"
-            style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;"
-        >
-
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;">
             {% for n in range(1, 37) %}
                 {% set nsfecha = namespace(fecha='') %}
-
                 {% for installment in installments %}
                     {% if (installment['installment_number'] or 0)|int == n %}
                         {% set nsfecha.fecha = installment['due_date'] or '' %}
                     {% endif %}
                 {% endfor %}
 
-                <label
-                    id="fila-cuota-{{ n }}"
-                    style="padding:10px;border:1px solid #d6dce5;border-radius:8px;{% if n > cuota_actual.total %}display:none;{% endif %}"
-                >
+                <label id="fila-cuota-{{ n }}"
+                       style="padding:10px;border:1px solid #ddd;border-radius:8px;{% if n > cuota_actual.total %}display:none;{% endif %}">
                     Cuota {{ n }} — vencimiento
-
-                    <input
-                        type="date"
-                        name="due_date_{{ n }}"
-                        id="due_date_{{ n }}"
-                        value="{{ nsfecha.fecha }}"
-                        style="display:block;width:100%;margin-top:6px;padding:8px;"
-                    >
+                    <input type="date"
+                           name="due_date_{{ n }}"
+                           id="due_date_{{ n }}"
+                           value="{{ nsfecha.fecha }}"
+                           style="display:block;width:100%;margin-top:6px;">
                 </label>
             {% endfor %}
-
         </div>
 
-        <button
-            type="submit"
-            class="savebtn"
-            style="margin-top:16px;"
-            onclick="return confirm('¿Guardar la nueva cantidad de cuotas y sus vencimientos? Los pagos registrados se conservarán.');"
-        >
-            💾 Guardar cantidad de cuotas
+        <br>
+        <button type="submit"
+                class="savebtn"
+                onclick="return confirm('¿Confirmás el cambio de cantidad de cuotas?');">
+            💾 Guardar cuotas
         </button>
-
     </form>
 </section>
 
 <script>
 (function () {
     const cantidad = document.getElementById('installment_count');
-
     if (!cantidad) return;
 
     function actualizarFilas() {
         let total = parseInt(cantidad.value || '1', 10);
-
         if (!Number.isFinite(total)) total = 1;
-
         total = Math.max(1, Math.min(36, total));
 
         for (let n = 1; n <= 36; n++) {
             const fila = document.getElementById('fila-cuota-' + n);
             const fecha = document.getElementById('due_date_' + n);
 
-            if (fila) {
-                fila.style.display = n <= total ? '' : 'none';
-            }
-
-            if (fecha) {
-                fecha.required = n <= total;
-            }
+            if (fila) fila.style.display = n <= total ? '' : 'none';
+            if (fecha) fecha.required = n <= total;
         }
     }
 
@@ -143,36 +110,135 @@
                 <tr>
                     <th>#</th>
                     <th>Alumno</th>
-                    <th>Nombre prenda</th>
+                    <th>Prendas</th>
                     <th>Talle chomba</th>
                     <th>Talle campera</th>
                     <th>Detalle</th>
-                    <th>Forma de pago</th>
+                    <th>Pago</th>
                     <th>Precio</th>
-                    <th>Reserva plan</th>
+                    <th>Reserva prevista</th>
                     <th>Pagado</th>
                     <th>Saldo</th>
-                    <th>Registrar pago</th>
-                    <th>Eliminar alumno</th>
+                    <th>Pago</th>
+                    <th>Eliminar</th>
                 </tr>
             </thead>
 
             <tbody>
                 {% for student in students %}
+                    {% set ns = namespace(paid=0) %}
 
-                {% set ns = namespace(paid=0) %}
+                    {% for payment in payments %}
+                        {% if payment['student_id'] == student['id'] %}
+                            {% set ns.paid = ns.paid + (payment['amount'] or 0) %}
+                        {% endif %}
+                    {% endfor %}
 
-                {% for payment in payments %}
-                    {% if payment['student_id'] == student['id'] %}
-                        {% set ns.paid = ns.paid + (payment['amount'] or 0) %}
-                    {% endif %}
+                    {% set saldo = (student['final_price'] or 0) - ns.paid %}
+
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td><strong>{{ student['student_name'] or '-' }}</strong></td>
+                        <td>{{ student['garment_name'] or '-' }}</td>
+                        <td>{{ student['shirt_size'] or '-' }}</td>
+                        <td>{{ student['jacket_size'] or '-' }}</td>
+                        <td>{{ student['detail'] or '-' }}</td>
+                        <td>
+                            {% if student['payment_type'] == 'cash' %}
+                                Contado
+                            {% else %}
+                                Cuotas
+                            {% endif %}
+                        </td>
+                        <td>${{ "%.2f"|format(student['final_price'] or 0) }}</td>
+                        <td>${{ "%.2f"|format(student['reservation_plan'] or 0) }}</td>
+                        <td>${{ "%.2f"|format(ns.paid) }}</td>
+                        <td>${{ "%.2f"|format([saldo, 0]|max) }}</td>
+                        <td><a class="btn" href="#pago-{{ student['id'] }}">💵 Cargar pago</a></td>
+                        <td>
+                            <form method="POST"
+                                  action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/delete"
+                                  onsubmit="return confirm('¿Eliminar este alumno? Si tiene pagos, el sistema debe bloquear la eliminación.');">
+                                <button type="submit"
+                                        style="background:#dc3545;color:white;border:0;padding:8px;border-radius:6px;">
+                                    🗑️ Eliminar
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <!-- FORMULARIO DE PAGO DEL ALUMNO -->
+
+                    <tr id="pago-{{ student['id'] }}">
+                        <td colspan="13">
+                            <div style="padding:15px;background:#f4f7fb;border-radius:10px;">
+                                <h3>💰 Registrar pago — {{ student['student_name'] }}</h3>
+
+                                <form method="POST"
+                                      action="/egresaditos/{{ order['id'] }}/student/{{ student['id'] }}/payment">
+
+                                    <div class="grid">
+                                        <label>
+                                            Tipo de pago
+                                            <select name="payment_type" required>
+                                                <option value="reservation">Reserva / Seña</option>
+                                                <option value="installment">Cuota</option>
+                                                <option value="cash">Pago contado</option>
+                                                <option value="other">Otro pago</option>
+                                            </select>
+                                        </label>
+
+                                        <label>
+                                            Número de cuota
+                                            <select name="installment_number">
+                                                <option value="0">No corresponde</option>
+                                                {% for installment in installments %}
+                                                    <option value="{{ installment['installment_number'] }}">
+                                                        Cuota {{ installment['installment_number'] }}
+                                                        {% if installment['due_date'] %}
+                                                            — vence {{ installment['due_date'] }}
+                                                        {% endif %}
+                                                    </option>
+                                                {% endfor %}
+                                            </select>
+                                        </label>
+
+                                        <label>
+                                            Importe
+                                            <input type="number" name="amount" min="0.01" step="0.01" required>
+                                        </label>
+
+                                        <label>
+                                            Fecha de pago
+                                            <input type="date" name="payment_date" required>
+                                        </label>
+
+                                        <label>
+                                            Forma de pago
+                                            <select name="payment_method" required>
+                                                <option value="Efectivo">Efectivo</option>
+                                                <option value="Transferencia">Transferencia</option>
+                                                <option value="Mercado Pago">Mercado Pago</option>
+                                                <option value="Tarjeta">Tarjeta</option>
+                                                <option value="Otro">Otro</option>
+                                            </select>
+                                        </label>
+
+                                        <label>
+                                            Nota
+                                            <input type="text" name="note" placeholder="Ej.: transferencia">
+                                        </label>
+                                    </div>
+
+                                    <br>
+                                    <button type="submit" class="savebtn">💾 Registrar pago</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
                 {% endfor %}
+            </tbody>
+        </table>
+    </div>
 
-                {% set saldo = (student['final_price'] or 0) - ns.paid %}
-
-                <tr>
-                    <td>{{ loop.index }}</td>
-
-                    <td>
-                        <strong>{{ student['student_name'] or '-' }}</strong>
-                    </
+    <!-- AGREGAR AL
