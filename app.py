@@ -1,6 +1,6 @@
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
-import os, datetime, urllib.parse, unicodedata
+import os, datetime, urllib.parse, unicodedata, secrets
 import psycopg2, psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
@@ -545,6 +545,34 @@ def init():
     except Exception as e:
         con.conn.rollback()
         print("ERROR delivery_payment_method:", e)
+
+    # ============================================================
+    # LISTA PUBLICA DE ALUMNOS PARA BIRRETES / ESTOLAS
+    # ============================================================
+    try:
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS grad_rosters (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER UNIQUE NOT NULL,
+                token TEXT UNIQUE NOT NULL,
+                responsible_name TEXT DEFAULT '',
+                institution_name TEXT DEFAULT '',
+                course_name TEXT DEFAULT '',
+                submitted_at TEXT DEFAULT ''
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS grad_roster_students (
+                id SERIAL PRIMARY KEY,
+                roster_id INTEGER NOT NULL,
+                student_name TEXT NOT NULL,
+                position INTEGER DEFAULT 0
+            )
+        """)
+        con.commit()
+    except Exception as e:
+        con.conn.rollback()
+        print('ERROR creando tablas de lista de alumnos:', e)
 
     # ============================================================
     # GUARDAR CAMBIOS Y CERRAR BASE
@@ -1626,6 +1654,76 @@ def new_egresados():
         con.commit(); con.close(); return redirect(f'/orders/{oid}')
     return render_template('new_egresados.html',today=today(),cap_sizes=cap_sizes,stole_sizes=stole_sizes,toga_sizes=toga_sizes)
 
+@app.route('/orders/<int:oid>/roster-link', methods=['POST'])
+@login_required
+def create_grad_roster_link(oid):
+    con = db()
+    cur = con.cursor()
+    order = cur.execute("SELECT id, order_module FROM orders WHERE id=?", (oid,)).fetchone()
+    if not order or order['order_module'] != 'Birretes/Estolas':
+        con.close()
+        flash('Este enlace está disponible solamente para pedidos de Birretes/Estolas.')
+        return redirect('/orders')
+    existing = cur.execute('SELECT token FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
+    if existing:
+        token = existing['token']
+    else:
+        token = secrets.token_urlsafe(32)
+        cur.execute('INSERT INTO grad_rosters(order_id, token) VALUES(?,?)', (oid, token))
+        con.commit()
+    con.close()
+    flash('Enlace de alumnos listo. Podés copiarlo desde la ficha del pedido.')
+    return redirect(url_for('view_order', oid=oid))
+
+
+@app.route('/lista-alumnos/<token>', methods=['GET', 'POST'])
+def public_grad_roster(token):
+    con = db()
+    cur = con.cursor()
+    roster = cur.execute("SELECT r.*, o.code FROM grad_rosters r JOIN orders o ON o.id=r.order_id WHERE r.token=? AND o.order_module=?",
+                         (token, 'Birretes/Estolas')).fetchone()
+    if not roster:
+        con.close()
+        return render_template('grad_roster_invalid.html'), 404
+    if request.method == 'POST':
+        responsible = (request.form.get('responsible_name') or '').strip()
+        institution = (request.form.get('institution_name') or '').strip()
+        course = (request.form.get('course_name') or '').strip()
+        names = [n.strip() for n in request.form.getlist('student_name') if n.strip()]
+        if not responsible or not institution or not course or not names:
+            con.close()
+            flash('Completá los datos del responsable, institución, curso y al menos un alumno.')
+            return redirect(url_for('public_grad_roster', token=token))
+        cur.execute('UPDATE grad_rosters SET responsible_name=?, institution_name=?, course_name=?, submitted_at=? WHERE id=?',
+                    (responsible, institution, course, now(), roster['id']))
+        cur.execute('DELETE FROM grad_roster_students WHERE roster_id=?', (roster['id'],))
+        for pos, name in enumerate(names, start=1):
+            cur.execute('INSERT INTO grad_roster_students(roster_id, student_name, position) VALUES(?,?,?)',
+                        (roster['id'], name, pos))
+        con.commit()
+        con.close()
+        return render_template('grad_roster_success.html', code=roster['code'])
+    existing_students = cur.execute('SELECT student_name FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
+                                    (roster['id'],)).fetchall()
+    con.close()
+    return render_template('public_grad_roster.html', roster=roster, existing_students=existing_students)
+
+
+@app.route('/orders/<int:oid>/roster-print')
+@login_required
+def print_grad_roster(oid):
+    con = db()
+    roster = con.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
+    if not roster:
+        con.close()
+        flash('Todavía no se generó el enlace de la lista de alumnos.')
+        return redirect(url_for('view_order', oid=oid))
+    students = con.execute('SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)).fetchall()
+    order = con.execute('SELECT * FROM orders WHERE id=?', (oid,)).fetchone()
+    con.close()
+    return render_template('print_grad_roster.html', order=order, roster=roster, students=students)
+
+
 @app.route('/orders/<int:oid>')
 @login_required
 def view_order(oid):
@@ -1659,6 +1757,11 @@ def view_order(oid):
         'SELECT * FROM grad_items WHERE order_id=?',
         (oid,)
     ).fetchall()
+
+    roster = con.execute('SELECT * FROM grad_rosters WHERE order_id=?', (oid,)).fetchone()
+    roster_students = []
+    if roster:
+        roster_students = con.execute('SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id', (roster['id'],)).fetchall()
 
     # Datos especiales para comprobante de Egresaditos
     students = []
@@ -1696,7 +1799,10 @@ def view_order(oid):
         sponsors=sponsors,
         grads=grads,
         students=students,
-        egresaditos_payments=egresaditos_payments
+        egresaditos_payments=egresaditos_payments,
+        roster=roster,
+        roster_students=roster_students,
+        roster_public_url=(request.url_root.rstrip('/') + url_for('public_grad_roster', token=roster['token'])) if roster else None
     )
     
 @app.route('/orders/<int:oid>/edit', methods=['GET', 'POST'])
