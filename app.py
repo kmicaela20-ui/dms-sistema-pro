@@ -3007,18 +3007,21 @@ def workshop(oid):
             'SELECT * FROM grad_roster_students WHERE roster_id=? ORDER BY position, id',
             (roster['id'],)
         ).fetchall()
-        # Adaptar la lista actual de alumnos a las claves que espera la plantilla de taller.
+        # Adaptar los registros de la lista actual a las claves que usa la plantilla.
+        # Si el nombre para estampar está vacío, mostrar el nombre del alumno como respaldo.
         if roster_students:
-            grads=[
+            grads = [
                 {
                     'id': student['id'],
-                    'person_name': student['student_name'] or '',
-                    'note': student['article_name'] or '',
-                    'cap_size': student['cap_size'] or '',
-                    'stole_size': student['stole_size'] or '',
-                    'toga_size': student['toga_size'] or '',
-                    'observations': student['observations'] or '',
-                    'price': money(student.get('price')),
+                    'person_name': (student['student_name'] or ''),
+                    'student_name': (student['student_name'] or ''),
+                    'article_name': (student['article_name'] or student['student_name'] or ''),
+                    'note': (student['article_name'] or student['student_name'] or ''),
+                    'cap_size': (student['cap_size'] or ''),
+                    'stole_size': (student['stole_size'] or ''),
+                    'toga_size': (student['toga_size'] or ''),
+                    'observations': (student['observations'] or ''),
+                    'price': money(student['price']) if 'price' in student.keys() else 0,
                 }
                 for student in roster_students
             ]
