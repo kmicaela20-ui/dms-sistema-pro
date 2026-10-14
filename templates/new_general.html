@@ -1,3 +1,4 @@
+
 {% extends "base.html" %}
 {% import "form_parts.html" as parts %}
 {% block content %}
@@ -7,6 +8,19 @@
 <form method="post" enctype="multipart/form-data">
 
 {{ parts.common_fields(today) }}
+
+<section class="panel">
+    <h2>Datos del cliente</h2>
+
+    <label for="client_dni_cuit">DNI / CUIT del cliente (opcional)</label>
+    <input
+        type="text"
+        id="client_dni_cuit"
+        name="client_dni_cuit"
+        placeholder="Ingresar DNI o CUIT"
+        maxlength="20"
+        autocomplete="off">
+</section>
 
 <section class="panel">
 <h2>Artículos</h2>
@@ -100,7 +114,6 @@
 
 </section>
 
-
 <section class="panel">
 
 <h2>Archivos / diseños del pedido</h2>
@@ -120,11 +133,9 @@ Estos archivos quedarán guardados dentro del pedido para producción.
 
 </section>
 
-
 <button class="savebtn">Guardar</button>
 
 </form>
-
 
 <script>
 
@@ -141,7 +152,6 @@ function addRow(){
     }
 
 }
-
 
 /* BUSCAR PRODUCTO POR CÓDIGO */
 
@@ -181,7 +191,6 @@ function buscarCodigo(i){
 
 }
 
-
 /* CARGAR PRODUCTO DESDE INVENTARIO */
 
 async function loadInv(i){
@@ -217,7 +226,6 @@ async function loadInv(i){
     calc();
 
 }
-
 
 /* CALCULAR TOTALES */
 
