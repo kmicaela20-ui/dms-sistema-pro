@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -98,6 +99,12 @@
         font-weight: bold;
     }
 
+    .empty {
+        text-align: center;
+        padding: 18px;
+        font-style: italic;
+    }
+
     .summary {
         margin-top: 18px;
         font-size: 15px;
@@ -116,13 +123,12 @@
     }
 
     @media print {
-
         body {
             margin: 10mm;
         }
 
         .top-actions {
-            display: none;
+            display: none !important;
         }
 
         @page {
@@ -141,9 +147,12 @@
         tr {
             page-break-inside: avoid;
         }
+
+        thead {
+            display: table-header-group;
+        }
     }
 </style>
-
 </head>
 
 <body>
@@ -158,9 +167,7 @@
     </a>
 </div>
 
-
 <div class="header">
-
     <div>
         <h1>DMS Sublimaciones</h1>
         <h2>HOJA DE TALLER — EGRESADITOS</h2>
@@ -170,12 +177,9 @@
         PEDIDO<br>
         {{ order['code'] }}
     </div>
-
 </div>
 
-
 <div class="info">
-
     <div>
         <strong>Cliente:</strong>
         {{ order['client_name'] or '-' }}
@@ -195,17 +199,14 @@
         <strong>Estado:</strong>
         {{ order['status'] or '-' }}
     </div>
-
 </div>
-
 
 <h2>Listado de alumnos / Producción</h2>
 
 <table>
-
 <thead>
 <tr>
-    <th style="width:4%;">N°</th>
+    <th style="width:4%;">N.º</th>
     <th style="width:20%;">ALUMNO</th>
     <th style="width:17%;">PRENDA</th>
     <th style="width:11%;">TALLE CHOMBA</th>
@@ -216,14 +217,9 @@
 </thead>
 
 <tbody>
-
 {% for student in students %}
-
 <tr>
-
-    <td class="center">
-        {{ loop.index }}
-    </td>
+    <td class="center">{{ loop.index }}</td>
 
     <td class="student">
         {{ student['student_name'] or '-' }}
@@ -245,26 +241,23 @@
         {{ student['detail'] or '-' }}
     </td>
 
-    <td class="center">
-        ☐
-    </td>
-
+    <td class="center">☐</td>
 </tr>
-
+{% else %}
+<tr>
+    <td colspan="7" class="empty">
+        Todavía no hay alumnos cargados en este pedido.
+    </td>
+</tr>
 {% endfor %}
-
 </tbody>
-
 </table>
-
 
 <div class="summary">
     <strong>Total de alumnos:</strong> {{ students|length }}
 </div>
 
-
 <div class="notes">
-
     <h3>OBSERVACIONES DEL TALLER</h3>
 
     ___________________________________________________________________________
@@ -272,9 +265,8 @@
     <br><br>
 
     ___________________________________________________________________________
-
 </div>
-
 
 </body>
 </html>
+```
