@@ -14,69 +14,69 @@
         body {
             font-family: Arial, sans-serif;
             color: #111;
-            margin: 22px;
+            margin: 12px;
         }
 
         .header {
             text-align: center;
             border-bottom: 2px solid #111;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
+            padding-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         h1 {
             margin: 0 0 5px;
-            font-size: 23px;
+            font-size: 25px;
         }
 
         .details {
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 9px;
-            margin-bottom: 18px;
+            gap: 4px;
+            margin-bottom: 8px;
         }
 
         .detail {
             border: 1px solid #aaa;
-            padding: 9px;
-            min-height: 58px;
+            padding: 5px 7px;
+            min-height: 39px;
         }
 
         .label {
             display: block;
-            font-size: 10px;
+            font-size: 11px;
             color: #555;
             text-transform: uppercase;
-            margin-bottom: 5px;
+            margin-bottom: 2px;
         }
 
         .value {
-            font-size: 14px;
+            font-size: 16px;
             white-space: pre-wrap;
             overflow-wrap: anywhere;
         }
 
         .blank-value {
-            min-height: 23px;
+            min-height: 14px;
         }
 
         .subhead {
-            margin: 18px 0 8px;
-            padding-bottom: 6px;
+            margin: 9px 0 4px;
+            padding-bottom: 3px;
             border-bottom: 1px solid #aaa;
-            font-size: 17px;
+            font-size: 19px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            font-size: 11px;
+            font-size: 13px;
             table-layout: fixed;
         }
 
         th, td {
             border: 1px solid #555;
-            padding: 7px;
+            padding: 4px 5px;
             text-align: left;
             vertical-align: top;
             overflow-wrap: anywhere;
@@ -108,7 +108,7 @@
         }
 
         tbody td {
-            height: 34px;
+            height: 27px;
         }
 
         .actions {
@@ -124,13 +124,13 @@
             color: white;
             cursor: pointer;
             margin: 4px;
-            font-size: 14px;
+            font-size: 16px;
         }
 
         .signatures {
             display: flex;
-            gap: 50px;
-            margin-top: 38px;
+            gap: 30px;
+            margin-top: 18px;
         }
 
         .signatures div {
@@ -142,14 +142,14 @@
 
         .footer {
             text-align: center;
-            font-size: 11px;
+            font-size: 12px;
             color: #555;
-            margin-top: 22px;
+            margin-top: 10px;
         }
 
         @media print {
             body {
-                margin: 8mm;
+                margin: 5mm;
             }
 
             .actions {
@@ -165,6 +165,12 @@
             .detail, th, td {
                 break-inside: avoid;
             }
+
+            .label { font-size: 10px; }
+            .value { font-size: 15px; }
+            table { font-size: 12.5px; }
+            th, td { padding: 4px; }
+            tbody td { height: 26px; }
         }
 
         @media (max-width: 650px) {
